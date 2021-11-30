@@ -1,0 +1,120 @@
+object AboutFormSd: TAboutFormSd
+  Left = 700
+  Height = 271
+  Top = 361
+  Width = 503
+  BorderIcons = []
+  Caption = 'MlxDebug info'
+  ClientHeight = 271
+  ClientWidth = 503
+  DesignTimePPI = 120
+  OnShow = FormShow
+  Position = poOwnerFormCenter
+  LCLVersion = '2.0.4.0'
+  object Panel1: TPanel
+    Left = 0
+    Height = 271
+    Top = 0
+    Width = 80
+    Align = alLeft
+    BevelOuter = bvNone
+    ClientHeight = 271
+    ClientWidth = 80
+    TabOrder = 0
+    object ImgLogo: TImage
+      Left = 0
+      Height = 198
+      Top = 6
+      Width = 80
+      AutoSize = True
+    end
+  end
+  object Panel2: TPanel
+    Left = 149
+    Height = 218
+    Top = 32
+    Width = 291
+    BevelOuter = bvNone
+    ClientHeight = 218
+    ClientWidth = 291
+    TabOrder = 1
+    object PnlBot: TPanel
+      Left = 0
+      Height = 34
+      Top = 184
+      Width = 291
+      Align = alBottom
+      BevelOuter = bvLowered
+      ClientHeight = 34
+      ClientWidth = 291
+      ParentFont = False
+      TabOrder = 0
+      object BtClose: TButton
+        Left = 208
+        Height = 25
+        Top = 4
+        Width = 75
+        Anchors = [akTop, akRight]
+        Caption = 'Close'
+        OnClick = BtCloseClick
+        ParentFont = False
+        TabOrder = 0
+      end
+    end
+    object PcVersion: TPageControl
+      Left = 0
+      Height = 184
+      Top = 0
+      Width = 291
+      ActivePage = TsVersion
+      Align = alClient
+      ParentFont = False
+      TabIndex = 0
+      TabOrder = 1
+      object TsVersion: TTabSheet
+        Caption = 'Version (generic)'
+        ClientHeight = 151
+        ClientWidth = 283
+        ParentFont = False
+        object MemVersion: TMemo
+          Left = 0
+          Height = 151
+          Top = 0
+          Width = 283
+          Align = alClient
+          Lines.Strings = (
+            'MemVersion'
+          )
+          ParentFont = False
+          ReadOnly = True
+          ScrollBars = ssAutoBoth
+          TabOrder = 0
+          WantReturns = False
+          WordWrap = False
+        end
+      end
+      object TsChangeLog: TTabSheet
+        Caption = 'Change log'
+        ClientHeight = 151
+        ClientWidth = 283
+        ParentFont = False
+        object MemChangeLog: TMemo
+          Left = 0
+          Height = 151
+          Top = 0
+          Width = 283
+          Align = alClient
+          Lines.Strings = (
+            'MemChangeLog'
+          )
+          ParentFont = False
+          ReadOnly = True
+          ScrollBars = ssAutoBoth
+          TabOrder = 0
+          WantReturns = False
+          WordWrap = False
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,73 @@
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           RISC-V
+  Version:                           0x1
+  Entry point address:               0x8000
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          8776 (bytes into file)
+  Flags:                             0x1, RVC, soft-float ABI
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         2
+  Size of section headers:           40 (bytes)
+  Number of section headers:         6
+  Section header string table index: 5
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] .text             PROGBITS        00008000 002000 000072 00  AX  0   0 16
+  [ 2] .data             PROGBITS        00001000 001000 000020 00  WA  0   0 16
+  [ 3] .symtab           SYMTAB          00000000 002074 000100 10      4  10  4
+  [ 4] .strtab           STRTAB          00000000 002174 0000ac 00      0   0  1
+  [ 5] .shstrtab         STRTAB          00000000 002220 000027 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), O (extra OS processing required), G (group), T (TLS),
+  C (compressed), x (unknown), o (OS specific), E (exclude),
+  p (processor specific)
+
+There are no section groups in this file.
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  LOAD           0x001000 0x00001000 0x00001000 0x00020 0x00020 RW  0x1000
+  LOAD           0x002000 0x00008000 0x00008000 0x00072 0x00072 R E 0x1000
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     .data 
+   01     .text 
+
+There is no dynamic section in this file.
+
+There are no relocations in this file.
+
+The decoding of unwind sections for machine type RISC-V is not currently supported.
+
+Symbol table '.symtab' contains 16 entries:
+   Num:    Value  Size Type    Bind   Vis      Ndx Name
+     0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 00008000     0 SECTION LOCAL  DEFAULT    1 
+     2: 00001000     0 SECTION LOCAL  DEFAULT    2 
+     3: 00000000     0 FILE    LOCAL  DEFAULT  ABS C:\Users\yso\AppData\Loca
+     4: 0000800a     0 NOTYPE  LOCAL  DEFAULT    1 begin_testcode
+     5: 00001000     0 NOTYPE  LOCAL  DEFAULT    2 test_1_res
+     6: 00001004     0 NOTYPE  LOCAL  DEFAULT    2 test_2_res
+     7: 00001008     0 NOTYPE  LOCAL  DEFAULT    2 test_3_res
+     8: 0000100c     0 NOTYPE  LOCAL  DEFAULT    2 test_4_res
+     9: 00001010     0 NOTYPE  LOCAL  DEFAULT    2 test_5_res
+    10: 00001020     0 NOTYPE  GLOBAL DEFAULT    2 end_signature
+    11: 00008008     0 NOTYPE  GLOBAL DEFAULT    1 _main_2
+    12: 0000800a     0 NOTYPE  GLOBAL DEFAULT    1 _main_1
+    13: 00001000     0 NOTYPE  GLOBAL DEFAULT    2 begin_signature
+    14: 00008000     0 NOTYPE  GLOBAL DEFAULT    1 _start
+    15: 00001020     0 NOTYPE  GLOBAL DEFAULT    2 _end
+
+No version information found in this file.

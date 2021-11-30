@@ -1,0 +1,8 @@
+MD command line debugger
+Project C:\projects\riscv-compliance\tools\config\iss_config.prj
+# i Build started [13 Jul 2020, 18:47.10]
+# i Old files are deleted [13 Jul 2020, 18:47.10]
+# e Error parsing line at 0x0000801C (eInvalid Fn3/Fn7 code combination for ARx code [R:TExecLineRV.CmdDec])[R:TBuildDasm.DasmProcessChain][F:C:/projects/riscv-compliance/work/rv32em/MULHSU.elf.hex|1|0]
+# i Build stopped due to errors [13 Jul 2020, 18:47.10]
+# s Simulator
+Terminated by error

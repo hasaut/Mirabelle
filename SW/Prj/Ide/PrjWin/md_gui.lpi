@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="11"/>
+    <PathDelim Value="\"/>
+    <General>
+      <SessionStorage Value="InProjectDir"/>
+      <MainUnit Value="0"/>
+      <Title Value="md_gui"/>
+      <ResourceType Value="res"/>
+      <UseXPManifest Value="True"/>
+      <Icon Value="0"/>
+    </General>
+    <BuildModes Count="1">
+      <Item1 Name="Default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default"/>
+      </Modes>
+    </RunParams>
+    <RequiredPackages Count="3">
+      <Item1>
+        <PackageName Value="LazControls"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="SynEdit"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+      </Item3>
+    </RequiredPackages>
+    <Units Count="8">
+      <Unit0>
+        <Filename Value="md_gui.lpr"/>
+        <IsPartOfProject Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="..\Src\sdmain_gui.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="SdMainForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="SdMain_gui"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="..\Src\mgedit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="MgEdit"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+        <UnitName Value="MgEdit"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="..\Lib\mmesbase_sd.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="MesBaseForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="MMesBase_sd"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="..\Lib\afitem_sd.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="AfItem"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+        <UnitName Value="AfItem_sd"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\Lib\frametree.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="PrjTree"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+        <UnitName Value="FrameTree"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\Src\wdebug_sd.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="MgDebug"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
+        <UnitName Value="WDebug_sd"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\Lib\extcompdialog_sd.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="WndExtCompDialog"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="ExtCompDialog_sd"/>
+      </Unit7>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <PathDelim Value="\"/>
+    <Target>
+      <Filename Value="..\..\..\Out\$(TargetCPU)-$(TargetOS)\md_gui"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="..\Src;..\Lib;..\Frames;..\..\..\Src\Model;..\..\..\Src\Board;..\..\..\Src\Build;..\..\..\Src\MirLib;..\..\..\Src\Comp;..\..\..\Src\Comp\Win;..\..\..\Ext\Synapse\source\lib"/>
+      <UnitOutputDirectory Value="..\..\..\Out\$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="False"/>
+      </Debugging>
+      <Options>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

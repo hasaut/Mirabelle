@@ -1,0 +1,11 @@
+object WndInfoSd: TWndInfoSd
+  Left = 0
+  Height = 138
+  Top = 0
+  Width = 312
+  DesignTimePPI = 120
+  ParentFont = False
+  TabOrder = 0
+  DesignLeft = 759
+  DesignTop = 393
+end

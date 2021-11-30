@@ -1,0 +1,19 @@
+MD command line debugger
+Project C:\projects\riscv-compliance\tools\config\iss_config.prj
+# i Build started [09 Jul 2020, 13:46.51]
+# i Old files are deleted [09 Jul 2020, 13:46.51]
+# i Build time: 0.009s
+# i Project compiled successfully [09 Jul 2020, 13:46.51]
+# i Build files are generated [09 Jul 2020, 13:46.51]
+# s Simulator
+
+Core[0]_e 
+Core[1]_e 
+
+Core[0]_e 
+Core[1]_e 
+
+** Continuous run mode (type "q" to exit, "pause" to interactive mode)
+
+# i Executed in 00:00:00.000
+# i Terminated, output files will be created

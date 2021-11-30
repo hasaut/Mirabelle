@@ -1,0 +1,214 @@
+
+C:/projects/riscv-compliance/work/rv32emc/C-AND.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00008000 <_start>:
+    8000:	800a                	c.mv	zero,sp
+    8002:	0000                	unimp
+    8004:	8008                	0x8008
+    8006:	0000                	unimp
+
+00008008 <_main_2>:
+    8008:	a001                	j	8008 <_main_2>
+
+0000800a <_main_1>:
+    800a:	ffff9117          	auipc	sp,0xffff9
+    800e:	ff610113          	addi	sp,sp,-10 # 1000 <begin_signature>
+    8012:	4581                	li	a1,0
+    8014:	4481                	li	s1,0
+    8016:	8ced                	and	s1,s1,a1
+    8018:	c026                	sw	s1,0(sp)
+    801a:	4681                	li	a3,0
+    801c:	4605                	li	a2,1
+    801e:	8e75                	and	a2,a2,a3
+    8020:	c232                	sw	a2,4(sp)
+    8022:	4581                	li	a1,0
+    8024:	fff00713          	li	a4,-1
+    8028:	8f6d                	and	a4,a4,a1
+    802a:	c43a                	sw	a4,8(sp)
+    802c:	4481                	li	s1,0
+    802e:	00008437          	lui	s0,0x8
+    8032:	fff40413          	addi	s0,s0,-1 # 7fff <_end+0x6f8f>
+    8036:	8c65                	and	s0,s0,s1
+    8038:	c622                	sw	s0,12(sp)
+    803a:	4601                	li	a2,0
+    803c:	65a1                	lui	a1,0x8
+    803e:	8df1                	and	a1,a1,a2
+    8040:	c82e                	sw	a1,16(sp)
+    8042:	ffff9117          	auipc	sp,0xffff9
+    8046:	fd210113          	addi	sp,sp,-46 # 1014 <test_2_res>
+    804a:	4705                	li	a4,1
+    804c:	4681                	li	a3,0
+    804e:	8ef9                	and	a3,a3,a4
+    8050:	c036                	sw	a3,0(sp)
+    8052:	4405                	li	s0,1
+    8054:	4605                	li	a2,1
+    8056:	8e61                	and	a2,a2,s0
+    8058:	c232                	sw	a2,4(sp)
+    805a:	4585                	li	a1,1
+    805c:	fff00493          	li	s1,-1
+    8060:	8ced                	and	s1,s1,a1
+    8062:	c426                	sw	s1,8(sp)
+    8064:	4685                	li	a3,1
+    8066:	00008637          	lui	a2,0x8
+    806a:	fff60613          	addi	a2,a2,-1 # 7fff <_end+0x6f8f>
+    806e:	8e75                	and	a2,a2,a3
+    8070:	c632                	sw	a2,12(sp)
+    8072:	4585                	li	a1,1
+    8074:	6721                	lui	a4,0x8
+    8076:	8f6d                	and	a4,a4,a1
+    8078:	c83a                	sw	a4,16(sp)
+    807a:	ffff9117          	auipc	sp,0xffff9
+    807e:	fae10113          	addi	sp,sp,-82 # 1028 <test_3_res>
+    8082:	fff00493          	li	s1,-1
+    8086:	4401                	li	s0,0
+    8088:	8c65                	and	s0,s0,s1
+    808a:	c022                	sw	s0,0(sp)
+    808c:	fff00613          	li	a2,-1
+    8090:	4585                	li	a1,1
+    8092:	8df1                	and	a1,a1,a2
+    8094:	c22e                	sw	a1,4(sp)
+    8096:	fff00713          	li	a4,-1
+    809a:	fff00693          	li	a3,-1
+    809e:	8ef9                	and	a3,a3,a4
+    80a0:	c436                	sw	a3,8(sp)
+    80a2:	fff00413          	li	s0,-1
+    80a6:	00008637          	lui	a2,0x8
+    80aa:	fff60613          	addi	a2,a2,-1 # 7fff <_end+0x6f8f>
+    80ae:	8e61                	and	a2,a2,s0
+    80b0:	c632                	sw	a2,12(sp)
+    80b2:	fff00593          	li	a1,-1
+    80b6:	64a1                	lui	s1,0x8
+    80b8:	8ced                	and	s1,s1,a1
+    80ba:	c826                	sw	s1,16(sp)
+    80bc:	ffff9117          	auipc	sp,0xffff9
+    80c0:	f8010113          	addi	sp,sp,-128 # 103c <test_4_res>
+    80c4:	000086b7          	lui	a3,0x8
+    80c8:	fff68693          	addi	a3,a3,-1 # 7fff <_end+0x6f8f>
+    80cc:	4601                	li	a2,0
+    80ce:	8e75                	and	a2,a2,a3
+    80d0:	c032                	sw	a2,0(sp)
+    80d2:	000085b7          	lui	a1,0x8
+    80d6:	fff58593          	addi	a1,a1,-1 # 7fff <_end+0x6f8f>
+    80da:	4705                	li	a4,1
+    80dc:	8f6d                	and	a4,a4,a1
+    80de:	c23a                	sw	a4,4(sp)
+    80e0:	000084b7          	lui	s1,0x8
+    80e4:	fff48493          	addi	s1,s1,-1 # 7fff <_end+0x6f8f>
+    80e8:	fff00413          	li	s0,-1
+    80ec:	8c65                	and	s0,s0,s1
+    80ee:	c422                	sw	s0,8(sp)
+    80f0:	00008637          	lui	a2,0x8
+    80f4:	fff60613          	addi	a2,a2,-1 # 7fff <_end+0x6f8f>
+    80f8:	000085b7          	lui	a1,0x8
+    80fc:	fff58593          	addi	a1,a1,-1 # 7fff <_end+0x6f8f>
+    8100:	8df1                	and	a1,a1,a2
+    8102:	c62e                	sw	a1,12(sp)
+    8104:	00008737          	lui	a4,0x8
+    8108:	fff70713          	addi	a4,a4,-1 # 7fff <_end+0x6f8f>
+    810c:	66a1                	lui	a3,0x8
+    810e:	8ef9                	and	a3,a3,a4
+    8110:	c836                	sw	a3,16(sp)
+    8112:	ffff9117          	auipc	sp,0xffff9
+    8116:	f3e10113          	addi	sp,sp,-194 # 1050 <test_5_res>
+    811a:	6421                	lui	s0,0x8
+    811c:	4601                	li	a2,0
+    811e:	8e61                	and	a2,a2,s0
+    8120:	c032                	sw	a2,0(sp)
+    8122:	65a1                	lui	a1,0x8
+    8124:	4485                	li	s1,1
+    8126:	8ced                	and	s1,s1,a1
+    8128:	c226                	sw	s1,4(sp)
+    812a:	66a1                	lui	a3,0x8
+    812c:	fff00613          	li	a2,-1
+    8130:	8e75                	and	a2,a2,a3
+    8132:	c432                	sw	a2,8(sp)
+    8134:	65a1                	lui	a1,0x8
+    8136:	00008737          	lui	a4,0x8
+    813a:	fff70713          	addi	a4,a4,-1 # 7fff <_end+0x6f8f>
+    813e:	8f6d                	and	a4,a4,a1
+    8140:	c63a                	sw	a4,12(sp)
+    8142:	64a1                	lui	s1,0x8
+    8144:	6421                	lui	s0,0x8
+    8146:	8c65                	and	s0,s0,s1
+    8148:	c822                	sw	s0,16(sp)
+    814a:	0ff0000f          	fence
+    814e:	4185                	li	gp,1
+    8150:	00000073          	ecall
+    8154:	0001                	nop
+    8156:	0000                	unimp
+    8158:	0000                	unimp
+    815a:	0000                	unimp
+    815c:	0000                	unimp
+    815e:	0000                	unimp
+    8160:	0000                	unimp
+
+Disassembly of section .data:
+
+00001000 <begin_signature>:
+    1000:	ffff                	0xffff
+    1002:	ffff                	0xffff
+    1004:	ffff                	0xffff
+    1006:	ffff                	0xffff
+    1008:	ffff                	0xffff
+    100a:	ffff                	0xffff
+    100c:	ffff                	0xffff
+    100e:	ffff                	0xffff
+    1010:	ffff                	0xffff
+    1012:	ffff                	0xffff
+
+00001014 <test_2_res>:
+    1014:	ffff                	0xffff
+    1016:	ffff                	0xffff
+    1018:	ffff                	0xffff
+    101a:	ffff                	0xffff
+    101c:	ffff                	0xffff
+    101e:	ffff                	0xffff
+    1020:	ffff                	0xffff
+    1022:	ffff                	0xffff
+    1024:	ffff                	0xffff
+    1026:	ffff                	0xffff
+
+00001028 <test_3_res>:
+    1028:	ffff                	0xffff
+    102a:	ffff                	0xffff
+    102c:	ffff                	0xffff
+    102e:	ffff                	0xffff
+    1030:	ffff                	0xffff
+    1032:	ffff                	0xffff
+    1034:	ffff                	0xffff
+    1036:	ffff                	0xffff
+    1038:	ffff                	0xffff
+    103a:	ffff                	0xffff
+
+0000103c <test_4_res>:
+    103c:	ffff                	0xffff
+    103e:	ffff                	0xffff
+    1040:	ffff                	0xffff
+    1042:	ffff                	0xffff
+    1044:	ffff                	0xffff
+    1046:	ffff                	0xffff
+    1048:	ffff                	0xffff
+    104a:	ffff                	0xffff
+    104c:	ffff                	0xffff
+    104e:	ffff                	0xffff
+
+00001050 <test_5_res>:
+    1050:	ffff                	0xffff
+    1052:	ffff                	0xffff
+    1054:	ffff                	0xffff
+    1056:	ffff                	0xffff
+    1058:	ffff                	0xffff
+    105a:	ffff                	0xffff
+    105c:	ffff                	0xffff
+    105e:	ffff                	0xffff
+    1060:	ffff                	0xffff
+    1062:	ffff                	0xffff
+    1064:	0000                	unimp
+    1066:	0000                	unimp
+    1068:	0000                	unimp
+    106a:	0000                	unimp
+    106c:	0000                	unimp
+    106e:	0000                	unimp

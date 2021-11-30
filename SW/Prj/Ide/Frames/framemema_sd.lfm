@@ -1,0 +1,35 @@
+object SdWndMemA: TSdWndMemA
+  Left = 0
+  Height = 300
+  Top = 0
+  Width = 400
+  ClientHeight = 300
+  ClientWidth = 400
+  Color = clDefault
+  DesignTimePPI = 120
+  ParentColor = False
+  ParentFont = False
+  ParentShowHint = False
+  TabOrder = 0
+  DesignLeft = 713
+  DesignTop = 364
+  object MemBinView: TMemo
+    Left = 85
+    Height = 112
+    Top = 42
+    Width = 188
+    Font.CharSet = ANSI_CHARSET
+    Font.Height = -18
+    Font.Name = 'Courier New'
+    Font.Pitch = fpFixed
+    Font.Quality = fqDraft
+    Lines.Strings = (
+      'MemBinView'
+    )
+    ParentFont = False
+    ReadOnly = True
+    ScrollBars = ssAutoBoth
+    TabOrder = 0
+    WordWrap = False
+  end
+end

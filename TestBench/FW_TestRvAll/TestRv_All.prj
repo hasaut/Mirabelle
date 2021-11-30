@@ -1,0 +1,16 @@
+Player bCom67 921600
+GdbRsp 
+CpuF ee
+MemF code 09 008000 08000 08 00
+MemF Data 03 001000 01000 08 00
+PerF Perif UPerif 0x0010
+ThrF ProcessA
+ThrF ProcessB
+IncF Inc
+OutF Out
+TstF Compliance
+GroupTree True
+Brkp 
+Fpga  0x800000 0x700000 C:\ZukHL\Projects\ZmpThil\AltCX\output_files\ZmpThil_auto.rpd; 0xF00000 0x100000 C:\ZukH\Projects\ZmpSenTag\FW\Out\SenTag_code.hex;
+OpenFiles ..\..\ZmpThil\AltCX_Top\MsTop.v ..\Dig\MssdCpu.v ..\Dig\MsCmdDec.v ..\DigLib\MsBaseLib.v ..\Dig\MssdCmdDec.v ..\Dig\MsrvCmdDec.v ..\Dig\MsrvCpu.v ..\Dig\MsProcLib.v ..\Dig\MsDebugUL.v ..\Dig\MsTestFsm.v ..\Dig\MsFpuSA.v
+ActiveFile ..\Dig\MsFpuSA.v

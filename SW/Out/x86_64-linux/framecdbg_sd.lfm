@@ -1,0 +1,183 @@
+object WndCDbgSd: TWndCDbgSd
+  Left = 0
+  Height = 270
+  Top = 0
+  Width = 562
+  ClientHeight = 270
+  ClientWidth = 562
+  DesignTimePPI = 120
+  OnResize = FrameResize
+  ParentFont = False
+  TabOrder = 0
+  DesignLeft = 411
+  DesignTop = 412
+  object PnlSel: TPanel
+    Left = 0
+    Height = 207
+    Top = 25
+    Width = 38
+    Align = alLeft
+    BevelOuter = bvLowered
+    ClientHeight = 207
+    ClientWidth = 38
+    ParentFont = False
+    TabOrder = 0
+    object SbAtom: TSpeedButton
+      Left = 5
+      Height = 28
+      Top = 32
+      Width = 28
+      Caption = 'A'
+      Flat = True
+      GroupIndex = 1
+      OnClick = SbAtomClick
+      ParentFont = False
+    end
+    object SbJmps: TSpeedButton
+      Left = 5
+      Height = 28
+      Top = 60
+      Width = 28
+      Caption = 'J'
+      Flat = True
+      GroupIndex = 1
+      OnClick = SbJmpsClick
+      ParentFont = False
+    end
+    object SbVars: TSpeedButton
+      Left = 5
+      Height = 28
+      Top = 88
+      Width = 28
+      Caption = 'V'
+      Flat = True
+      GroupIndex = 1
+      OnClick = SbVarsClick
+      ParentFont = False
+    end
+    object SbSRec: TSpeedButton
+      Left = 5
+      Height = 28
+      Top = 115
+      Width = 28
+      Caption = 'SR'
+      Flat = True
+      GroupIndex = 1
+      OnClick = SbSRecClick
+      ParentFont = False
+    end
+    object SbOrdr: TSpeedButton
+      Left = 5
+      Height = 28
+      Top = 140
+      Width = 28
+      Caption = 'O'
+      Flat = True
+      GroupIndex = 1
+      OnClick = SbOrdrClick
+      ParentFont = False
+    end
+    object SbMatr: TSpeedButton
+      Left = 5
+      Height = 28
+      Top = 170
+      Width = 28
+      Caption = 'M'
+      Flat = True
+      GroupIndex = 1
+      OnClick = SbMatrClick
+      ParentFont = False
+    end
+    object SbPars: TSpeedButton
+      Left = 5
+      Height = 28
+      Top = 5
+      Width = 28
+      Caption = 'P'
+      Down = True
+      Flat = True
+      GroupIndex = 1
+      OnClick = SbParsClick
+      ParentFont = False
+    end
+  end
+  object Panel1: TPanel
+    Left = 50
+    Height = 92
+    Top = 50
+    Width = 350
+    BevelOuter = bvLowered
+    ClientHeight = 92
+    ClientWidth = 350
+    ParentFont = False
+    TabOrder = 1
+    object PcModules: TPageControl
+      Left = 1
+      Height = 90
+      Top = 1
+      Width = 348
+      Align = alClient
+      ParentFont = False
+      TabOrder = 0
+    end
+  end
+  object PnlSave: TPanel
+    Left = 0
+    Height = 38
+    Top = 232
+    Width = 562
+    Align = alBottom
+    BevelOuter = bvLowered
+    ClientHeight = 38
+    ClientWidth = 562
+    ParentFont = False
+    TabOrder = 2
+    object LbDirName: TLabel
+      Left = 5
+      Height = 20
+      Top = 11
+      Width = 176
+      Caption = 'Save debug lists to folder: '
+      ParentColor = False
+      ParentFont = False
+    end
+    object EdDirName: TEdit
+      Left = 121
+      Height = 28
+      Top = 1
+      Width = 100
+      ParentFont = False
+      TabOrder = 0
+      Text = 'EdDirName'
+    end
+    object BtDirName: TSpeedButton
+      Left = 232
+      Height = 28
+      Top = 9
+      Width = 29
+      Caption = '...'
+      OnClick = BtDirNameClick
+      ParentFont = False
+    end
+    object BtSave: TSpeedButton
+      Left = 371
+      Height = 28
+      Top = 8
+      Width = 100
+      Caption = 'Save'
+      OnClick = BtSaveClick
+      ParentFont = False
+    end
+  end
+  object Panel2: TPanel
+    Left = 0
+    Height = 25
+    Top = 0
+    Width = 562
+    Align = alTop
+    BevelOuter = bvLowered
+    Caption = 'Compiler debug'
+    ParentFont = False
+    TabOrder = 3
+  end
+end
