@@ -43,11 +43,11 @@
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="md_gui"/>
+      <Filename Value="../../../Out/$(TargetCPU)-$(TargetOS)/md_gui"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../Src;../Lib;../Frames;../../MirLib;../../Board;../../Build;../../Model;../../../../../UtilL/Comp;../../../../../UtilL/Comp/Lin;../../../../../../ZukHL/Synapse/source/lib"/>
+      <OtherUnitFiles Value="../Src;../Lib;../Frames;../../../Src/MirLib;../../../Src/Board;../../../Src/Build;../../../Src/Model;../../../Src/Comp;../../../Src/Comp/Lin;../../../../../../../../ZukHL/Synapse/source/lib"/>
       <UnitOutputDirectory Value="/home/pi/ZukHL/Projects/Mirabelle/UtilM/Out/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
