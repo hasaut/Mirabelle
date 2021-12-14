@@ -24,18 +24,18 @@ After being configured, the communication is quite straightforward. In transmiss
 
 The following table gives the list of the IO ports. Detailed description is given in the following chapters.
 
-| Name  and size| Offset | Description |
+| Name <br/> and size| Offset | Description |
 | :--- | :--- | :--- |
-| IowUartCtrl  16 | +0 | WR: 2xRFU 2xTimerSrc 2xRFU SenseColl Lin/Uart TxEn RxEn 6xIrqEn <br/> RD: BusStatPend RFU RecvOvf AvgDErr AvgSErr AvgPErr SBitErr PBitErr StatePend TimerNZ SyncReady Collision SendEmpty RecvEmpty CanWrite CanRead |
-| IowUartBaud  16 | +1 | Baud rate <br/> this is the length of 8 bits, not of 1 bit. <br/> In Master mode this is a transmission baud rate, in Slave mode this is a detected baud rate (i.e. it can be read) |
-| IowUartData  16 | +2 | WR: Data to be sent <br/> RD: Data received <br/> Though the access is 16-bit, only 9 bit are used. Bits 7:0 are data bits, bit 8 has a special meaning (description is given below)  <br/> There is a 4-words FIFO for transmission and a 4-words FIFO for reception |
-| IodTOut  32 | +3 | Time out. Timer counts from this value down to Zero. Resets when next byte is received |
-| IobFlagsBR  8 | +0 | Writing "1" resets the corresponding flag in IowUartCtrl register <br/> WR: 2xRFU RecvOvf AvgDErr AvgSErr AvgPErr SBitErr PBitErr |
-| IobUartCfg  8 | +1 | Lin configuration. These parameters configure the geometry of the frame. <br/> WR: ColWnd:AvgWnd TolBit BrkMin BrkMax BpdMin Master TxTail |
-| IobPidCalc  8 | +2 | WR/RD: PID calculator |
-| IobIrqR  8 | +3 | WR: IrqR IRQ reset |
-| IobSendPid  8 | +3 | RD: Resulting PID after transmission (including parity bits) |
-| IodBusStatL  32 | +2 | WR: Set LIN bus LOW for specified duration (in us) |
+| IowUartCtrl <br/> 16 | +0 | WR: 2xRFU 2xTimerSrc 2xRFU SenseColl Lin/Uart TxEn RxEn 6xIrqEn <br/> RD: BusStatPend RFU RecvOvf AvgDErr AvgSErr AvgPErr SBitErr PBitErr StatePend TimerNZ SyncReady Collision SendEmpty RecvEmpty CanWrite CanRead |
+| IowUartBaud <br/> 16 | +1 | Baud rate <br/> this is the length of 8 bits, not of 1 bit. <br/> In Master mode this is a transmission baud rate, in Slave mode this is a detected baud rate (i.e. it can be read) |
+| IowUartData <br/> 16 | +2 | WR: Data to be sent <br/> RD: Data received <br/> Though the access is 16-bit, only 9 bit are used. Bits 7:0 are data bits, bit 8 has a special meaning (description is given below)  <br/> There is a 4-words FIFO for transmission and a 4-words FIFO for reception |
+| IodTOut <br/> 32 | +3 | Time out. Timer counts from this value down to Zero. Resets when next byte is received |
+| IobFlagsBR <br/> 8 | +0 | Writing "1" resets the corresponding flag in IowUartCtrl register <br/> WR: 2xRFU RecvOvf AvgDErr AvgSErr AvgPErr SBitErr PBitErr |
+| IobUartCfg <br/> 8 | +1 | Lin configuration. These parameters configure the geometry of the frame. <br/> WR: ColWnd:AvgWnd TolBit BrkMin BrkMax BpdMin Master TxTail |
+| IobPidCalc <br/> 8 | +2 | WR/RD: PID calculator |
+| IobIrqR <br/> 8 | +3 | WR: IrqR IRQ reset |
+| IobSendPid <br/> 8 | +3 | RD: Resulting PID after transmission (including parity bits) |
+| IodBusStatL <br/> 32 | +2 | WR: Set LIN bus LOW for specified duration (in us) |
 
 ### Detailed description of the IO ports
 
@@ -149,12 +149,12 @@ In general, the duration = Desired_duration_in_bits / MinRange - 1. For the exam
   - CfgTxTail = TxTail Duration of tail H level (in System CLK pulses) <br/> This parameter controls a push-pull driver of Lin TX pin. It forces high level for a short period of time to "help" pull-up resistor. In Legacy LIN application it must be set to zero. Non-zero values help increase the LIN physical baud rate.
 
 The following parameters work fine:
-CfgColAvg = 0xCC;   // 7:4 collision SenWnd, 3:0 average SenWnd | Range = (0.4375..0.0625)
-CfgTolBit = 0x03;   // 7:4 RFU, 3:0 Sync (0x55) jitter tolerance | Range = (0.4375..0.0625)
-CfgBrkMin =  9 * 8; // 7:0 MinBrkLen | Range = (31.875..0.125)
-CfgBrkMax = 11 * 8; // 7:0 MaxBrkLen | Range = (31.875..0.125)
-CfgBpdMin = 14 * 8; // 7:0 Max Brk+Dlm Len | Range = (31.875..0.125)
-CfgMaster = 0x02;   // 7:2 RFU, 1 2x StopBrk, 0 2x StopData
+CfgColAvg = 0xCC;   // 7:4 collision SenWnd, 3:0 average SenWnd | Range = (0.4375..0.0625) <br/>
+CfgTolBit = 0x03;   // 7:4 RFU, 3:0 Sync (0x55) jitter tolerance | Range = (0.4375..0.0625) <br/>
+CfgBrkMin =  9 * 8; // 7:0 MinBrkLen | Range = (31.875..0.125) <br/>
+CfgBrkMax = 11 * 8; // 7:0 MaxBrkLen | Range = (31.875..0.125) <br/>
+CfgBpdMin = 14 * 8; // 7:0 Max Brk+Dlm Len | Range = (31.875..0.125) <br/>
+CfgMaster = 0x02;   // 7:2 RFU, 1 2x StopBrk, 0 2x StopData <br/>
 CfgTail   = 0x01;
 
 *IobPidCalc* helps FW to calculate parity bits of PID if necessary. 
