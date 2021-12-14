@@ -16,24 +16,26 @@ LIN module supports Master and Slave mode and may additionally be used as a gene
   - Baud rate recognition.
   - Collision and anomaly detection.
  
-Befor the use the block must be properly configured. The configuration mainly includes the geometry of the frame.
+The block must be properly configured before the use. The configuration mainly includes the geometry of the frame.
 
 After being configured, the communication is quite straightforward. In transmission mode the FW needs to fill TX FIFO with data. In reception mode the FW needs to pick received data from the RX FIFO. 
 
 ### List of the IO ports
 
-| Name <br/> and size| Offset | Description |
+The following table gives the list of the IO ports. Detailed description is given in the following chapters.
+
+| Name  and size| Offset | Description |
 | :--- | :--- | :--- |
-| IowUartCtrl <br/> 16 | +0 | WR: 2xRFU 2xTimerSrc 2xRFU SenseColl Lin/Uart TxEn RxEn 6xIrqEn <br/> RD: BusStatPend RFU RecvOvf AvgDErr AvgSErr AvgPErr SBitErr PBitErr StatePend TimerNZ SyncReady Collision SendEmpty RecvEmpty CanWrite CanRead |
-| IowUartBaud <br/> 16 | +1 | Baud rate <br/> this is the length of 8 bits, not of 1 bit. <br/> In Master mode this is a transmission baud rate, in Slave mode this is a detected baud rate (i.e. it can be read) |
-| IowUartData <br/> 16 | +2 | WR: Data to be sent <br/> RD: Data received <br/> Though the access is 16-bit, only 9 bit are used. Bits 7:0 are data bits, bit 8 has a special meaning (see following table)  <br/> There is a 4-words FIFO for transmission and a 4-words FIFO for reception |
-| IodTOut <br/> 32 | +3 | Time out. Timer counts from this value down to Zero. Resets when next byte is received |
-| IobFlagsBR <br/> 8 | +0 | Writing "1" resets the corresponding flag from IowUartCtrl register <br/> WR: Flags2_Reset: 2xRFU RecvOvf AvgDErr AvgSErr AvgPErr SBitErr PBitErr |
-| IobUartCfg <br/> 8 | +1 | Lin configuration. There are several configuration regisetrs which need to be written one after another. <br/> There is an internal index which increments each time register is written. Access to any other register (for example IowLinCtrl) resets this index <br/> WR: ColWnd:AvgWnd TolBit BrkMin BrkMax BpdMin Master TxTail <br/> Detailed description is given in a separate table |
-| IobPidCalc <br/> 8 | +2 | WR/RD: PID calculator |
-| IobIrqR <br/> 8 | +3 | WR: IrqR IRQ reset |
-| IobSendPid <br/> 8 | +3 | RD: Resulting PID after transmission (including parity bits) |
-| IodBusStatL <br/> 32 | +2 | WR: Set LIN bus LOW for specified duration (in us) |
+| IowUartCtrl  16 | +0 | WR: 2xRFU 2xTimerSrc 2xRFU SenseColl Lin/Uart TxEn RxEn 6xIrqEn <br/> RD: BusStatPend RFU RecvOvf AvgDErr AvgSErr AvgPErr SBitErr PBitErr StatePend TimerNZ SyncReady Collision SendEmpty RecvEmpty CanWrite CanRead |
+| IowUartBaud  16 | +1 | Baud rate <br/> this is the length of 8 bits, not of 1 bit. <br/> In Master mode this is a transmission baud rate, in Slave mode this is a detected baud rate (i.e. it can be read) |
+| IowUartData  16 | +2 | WR: Data to be sent <br/> RD: Data received <br/> Though the access is 16-bit, only 9 bit are used. Bits 7:0 are data bits, bit 8 has a special meaning (description is given below)  <br/> There is a 4-words FIFO for transmission and a 4-words FIFO for reception |
+| IodTOut  32 | +3 | Time out. Timer counts from this value down to Zero. Resets when next byte is received |
+| IobFlagsBR  8 | +0 | Writing "1" resets the corresponding flag in IowUartCtrl register <br/> WR: 2xRFU RecvOvf AvgDErr AvgSErr AvgPErr SBitErr PBitErr |
+| IobUartCfg  8 | +1 | Lin configuration. These parameters configure the geometry of the frame. <br/> WR: ColWnd:AvgWnd TolBit BrkMin BrkMax BpdMin Master TxTail |
+| IobPidCalc  8 | +2 | WR/RD: PID calculator |
+| IobIrqR  8 | +3 | WR: IrqR IRQ reset |
+| IobSendPid  8 | +3 | RD: Resulting PID after transmission (including parity bits) |
+| IodBusStatL  32 | +2 | WR: Set LIN bus LOW for specified duration (in us) |
 
 ### Detailed description of the IO ports
 
