@@ -5,6 +5,7 @@ module IoLin #(parameter CAddrBase=16'h0000)
   input ASync1M, input ASync1K, output AIrq,
   output ATxEn, output ALinMode,
   input ARx, output ATx,
+  output [15:0] AStateFlags, output [8:0] AFifoRecvWrData, output ARecvNow, // Test and debug
   output [7:0] ATest
  );
 
@@ -90,7 +91,7 @@ module IoLin #(parameter CAddrBase=16'h0000)
  //       0_DDDDDDDD = Data
  //
  // MISO: 1_01000000 = (Brake+Sync) received and baud rate is set
- //       1_01EEEEEE = Error code (05 ListenCancelled, 06 InvalidCmd)
+ //       1_01EEEEEE = Error code (05 ListenCancelled, 06 InvalidCmd, 07 MispListen)
  //       0_DDDDDDDD = Data
 
  // Local variables
@@ -174,13 +175,16 @@ module IoLin #(parameter CAddrBase=16'h0000)
  PerifCfgBlock #(.CRegLen(8), .CRegCnt(7)) ULinCfg
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI(AIoMosi[7:0]), .AWrEn(BIoAccess[IoSizeB+IoOperW+3]), .AAnyOtherAccess(|BIoAccess),
+   .ADataI(AIoMosi[7:0]), .AWrEn(BIoAccess[IoSizeB+IoOperW+1]), .AAnyOtherAccess(|BIoAccess),
    .ADataO({BCfgTxTail, BCfgMaster, BCfgBpdMax, BCfgBrkMax, BCfgBrkMin, BCfgBitTol, BCfgSenLen})
   );
 
+ // State flags
+ wire [15:0] LStateFlags = {FBusStatCntNZ, 1'h0, FFlagsB, FStatePend, BTimerNZ, FSyncReady, FCollision, FFlagsA};
+
  // Interface RD
  assign AIoMiso =
-   (BIoAccess[IoSizeW+IoOperR+IAddrCtrl] ? {48'h0, FBusStatCntNZ, 1'h0, FFlagsB, FStatePend, BTimerNZ, FSyncReady, FCollision, FFlagsA} : 64'h0) |
+   (BIoAccess[IoSizeW+IoOperR+IAddrCtrl] ? {48'h0, LStateFlags} : 64'h0) |
    (BIoAccess[IoSizeW+IoOperR+IAddrBaud] ? {48'h0, FBaudRate} : 64'h0) |
    (BIoAccess[IoSizeW+IoOperR+IAddrData] ? {48'h0, 7'h0, BRecvFifo} : 64'h0) |
    (BIoAccess[IoSizeB+IoOperR+IAddrPidCalc] ? {56'h0, LPidCalc} : 64'h0) |
@@ -190,13 +194,13 @@ module IoLin #(parameter CAddrBase=16'h0000)
 
 
  // Fifo (Send)
- wire BSendReq, BSendAck, BSendClr; wire [8:0] BFifoSTop;
+ wire BSendReq, BSendAck, BSendClr; wire [8:0] BFifoSTop; wire [15:0] BFifoSDataSize;
  MsFifo4x #(.CDataLen(9)) UFifoSend
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI(AIoMosi[8:0]), .AWrEn(BIoAccess[IoSizeW+IoOperW+IAddrData]),
    .ADataO(BFifoSTop), .ARdEn(BSendAck),
-   .AClr(BSendClr), .AHasData(BSendReq), .AHasSpace(BFlagsA[1]), .ADataSize()
+   .AClr(BSendClr), .AHasData(BSendReq), .AHasSpace(BFlagsA[1]), .ADataSize(BFifoSDataSize)
   );
  assign BFlagsA[3] = BSendReq;
 
@@ -215,6 +219,7 @@ module IoLin #(parameter CAddrBase=16'h0000)
  assign BBusStatCnt = BIoAccess[IoSizeD+IoOperW+IAddrBusStatL] ? AIoMosi[23:0] : FBusStatCnt-{23'h0, BBusStatCntNZ & ASync1M};
 
  // Common
+ assign BStateNZ = |FState;
  assign BFlagsB = ~BFlagsBReset & ~{6{FState[IStListStart]}} &
                   (FFlagsB | {BFifoRecvWrOvf, BRecvAvgErr, BRecvNextByte ? {BRecvData[0]==1'b1, BRecvData[9]==1'b0} : 2'h0});
 
@@ -240,12 +245,14 @@ module IoLin #(parameter CAddrBase=16'h0000)
    (BState[IStDataStart]  ? 4'h9+{3'h0, LStopD} : 4'h0) |
    (BState[IStRepStart]   ? BFifoSTop[3:0] : 4'h0);
 
+ wire [3:0] BSendBitIdxDn; // If there are 2 stop bits, the reception may start too late, because slave may respond ater the 1st stop bit
+
  wire BTxNext;
  UartSend UUartSend
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ABaud(FBaudRate), .ABaudUpdate(FBaudWr),
-   .ANextByte(BSendNextByte), .ABitCnt(BSendBitCnt), .AData(BSendData),
+   .ANextByte(BSendNextByte), .ABitCnt(BSendBitCnt), .AData(BSendData), .ABitIdxDn(BSendBitIdxDn),
    .ACancel(BSendClr), .AInProgress(BSendInProgress), .ATx(BTx), .ATxNext(BTxNext),
    .ASenLen(BCfgSenLen[7:4]), .ASenWnd(BSendSenWnd)
   );
@@ -256,7 +263,7 @@ module IoLin #(parameter CAddrBase=16'h0000)
 
  // Command decoder and Send FIFO management
  assign BStopListen = BSendReq & (BFifoSTop[8:6]==CCmdStopListen);
- assign BMispListen = BSendReq & (BFifoSTop[8:6]==CCmdListen) & (FState!=CStNil); // Misplaced listen
+ assign BMispListen = BSendReq & (BFifoSTop[8:6]==CCmdListen) & BStateNZ; // Misplaced listen
  //wire BInvalidCmd = BSendReq & (BFifoSTop[8:6]==xxxxx);
  assign BSendAck = BState[IStBreakStart] | BState[IStDataStart] | BState[IStRepStart] | BState[IStListStart] |
                    BStopListen | BMispListen;
@@ -277,11 +284,19 @@ module IoLin #(parameter CAddrBase=16'h0000)
  assign BChs13v = BState[IStBreakStart] ? 8'h0 : BChs13vA[7:0] + {7'h0, BChs13vA[8]};*/
 
  // *** Recv part
+
+ // If there are 2 stop bits, the reception may start too late, because slave may respond ater the 1st stop bit
+ // thus the start bit of the reception may be lost
+ // Creata a signal to start reception already in the 2nd part of double stop-bit
+
+
+ wire BRecvStartEarly = (FState[IStPidPend] | FState[IStDataPend]) & LStopD & (~BSendReq | (BFifoSDataSize==16'h1)) & (BSendBitIdxDn==4'h0);
+
  UartRecv UUartRecv
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ABaud(FBaudRate), .ABaudUpdate(FBaudWr),
-   .ARx(FRxBuf), .AEn(LLinMode ? (FState==CStNil) | FState[IStListData] : LRxEn),
+   .ARx(FRxBuf), .AEn(LLinMode ? ~BStateNZ | FState[IStListData] | BRecvStartEarly : LRxEn),
    .AData(BRecvData), .AInProgress(), .AByteEnd(BRecvNextByte),
    .ASenLen(BCfgSenLen[3:0]), .AAvgErr(BRecvAvgErr)
   );
@@ -311,25 +326,25 @@ module IoLin #(parameter CAddrBase=16'h0000)
 
  // ** FSM **
  // SOF
- assign BState[IStBreakStart]  = (FState==CStNil) & BSendReq & (BFifoSTop[8:6]==CCmdSendSof) & ~FCollision;
+ assign BState[IStBreakStart]  = ~BStateNZ & BSendReq & (BFifoSTop[8:6]==CCmdSendSof) & ~FCollision;
  assign BState[IStBreakPend]   = FState[IStBreakStart] | (FState[IStBreakPend] & BSendInProgress & ~FCollision);
  assign BState[IStSyncStart]   = FState[IStBreakPend] & ~BSendInProgress & ~FCollision;
  assign BState[IStSyncPend]    = FState[IStSyncStart] | (FState[IStSyncPend] & BSendInProgress & ~FCollision);
  assign BState[IStPidStart]    = FState[IStSyncPend] & ~BSendInProgress & ~FCollision;
  assign BState[IStPidPend]     = FState[IStPidStart] | (FState[IStPidPend] & BSendInProgress & ~FCollision);
  // Data
- assign BState[IStDataStart]   = ((FState==CStNil) & BSendReq & ~BFifoSTop[8] & ~FCollision) |
+ assign BState[IStDataStart]   = (~BStateNZ & BSendReq & ~BFifoSTop[8] & ~FCollision) |
                                  (FState[IStPidPend]  & ~BSendInProgress & BSendReq & ~BFifoSTop[8] & ~FCollision) |
                                  (FState[IStDataPend] & ~BSendInProgress & BSendReq & ~BFifoSTop[8] & ~FCollision);
  assign BState[IStDataPend]    = FState[IStDataStart] | (FState[IStDataPend] & BSendInProgress & ~FCollision);
  // Rep
- assign BState[IStRepStart]    = ((FState==CStNil) & BSendReq & (BFifoSTop[8:6]==CCmdSendRep) & ~FCollision) |
+ assign BState[IStRepStart]    = (~BStateNZ & BSendReq & (BFifoSTop[8:6]==CCmdSendRep) & ~FCollision) |
                                  (FState[IStRepPend] & ~BSendInProgress & BSendReq & (BFifoSTop[8:6]==CCmdSendRep) & ~FCollision);
  assign BState[IStRepPend]     = FState[IStRepStart] | (FState[IStRepPend] & BSendInProgress & ~FCollision);
  // Errors
  assign BState[IStCollision]   = FCollision;
  // Listener
- assign BState[IStListStart]   = (FState==CStNil) & BSendReq & (BFifoSTop[8:6]==CCmdListen) & ~FCollision;
+ assign BState[IStListStart]   = ~BStateNZ & BSendReq & (BFifoSTop[8:6]==CCmdListen) & ~FCollision;
  assign BState[IStListPend]    = FState[IStListStart] | (FState[IStListPend] & ~BStopListen & ~BBaudDetRes);
  assign BState[IStListBaudDet] = (FState[IStListPend] & ~BStopListen & BBaudDetRes);
  assign BState[IStListData]    = (FState[IStListBaudDet] & ~BStopListen) |
@@ -356,7 +371,11 @@ module IoLin #(parameter CAddrBase=16'h0000)
  assign ATx = BTx & ~FBusStatCntNZ;
  assign ATxEn = LTxEn & (~BTx | FTxOutEn);
  assign ALinMode = LLinMode;
- assign ATest = {ARx, ATx, FState[IStListPend], FState[IStListBaudDet], FState[IStListData], BBaudDetRes, BSendNextByte, BRecvNextByte};
+ //assign ATest = {ARx, ATx, FState[IStListPend], FState[IStListBaudDet], FState[IStListData], BBaudDetRes, BSendNextByte, BRecvNextByte};
+ assign ATest = {ARx, ATx, FState[IStPidPend], BStateNZ, BRecvStartEarly, BSendAck, BSendBitIdxDn==4'h0, BFifoSDataSize==16'h1};
+
+ assign {AStateFlags, AFifoRecvWrData, ARecvNow} = {LStateFlags, BFifoRecvWrData, BRecvNow};
+
 endmodule
 
 module LinDivToInc ( ADiv, AInc );
@@ -381,7 +400,7 @@ module LinBaudCorr
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] ABaud, input ABaudUpdate,
-  input AStart, input [3:0] ABitCnt, output [3:0] ABitIdx,
+  input AStart, input [3:0] ABitCnt, output [3:0] ABitIdxDn,
   input ACancel,
   input ARxMode,          // In RX mode Stop bit is half a bit
   output ANextBit, output AInProgress,
@@ -440,7 +459,7 @@ module LinBaudCorr
 
  assign BSenWndStart = ACancel ? 1'h0 : (FDeltaDec==11'h1);
 
- assign ABitIdx = ABitCnt - FBitCnt;
+ assign ABitIdxDn = FBitCnt;
  assign ANextBit = BNextBit;
  assign AInProgress = BDataPend;
  assign ASenWnd = ~BDeltaDecNZ & ((FBitLen>=FDelta) | (ARxMode & ~BBitCntNZ));
@@ -452,7 +471,7 @@ module UartSend
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] ABaud, input ABaudUpdate,
-  input ANextByte, input [3:0] ABitCnt, input [15:0] AData,
+  input ANextByte, input [3:0] ABitCnt, input [15:0] AData, output [3:0] ABitIdxDn,
   input ACancel, output AInProgress, output ATx, output ATxNext,
   input [3:0] ASenLen, output ASenWnd
  );
@@ -473,7 +492,7 @@ module UartSend
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ABaud(ABaud), .ABaudUpdate(ABaudUpdate),
-   .AStart(ANextByte), .ABitCnt(ABitCnt), .ABitIdx(),
+   .AStart(ANextByte), .ABitCnt(ABitCnt), .ABitIdxDn(ABitIdxDn),
    .ACancel(ACancel),
    .ARxMode(1'b0),
    .ANextBit(BNextBit), .AInProgress(AInProgress),
@@ -516,18 +535,20 @@ module UartRecv
 
  // Implementation
  wire BStart    = AEn & (ARx==2'b10) & ~BInProgress;
- wire [3:0] BBitIdx;
+ wire [3:0] BBitIdxDn;
  wire BNextBit, BSenWnd, BSenWndStart;
  LinBaudCorr ULinBaudCorr
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ABaud(ABaud), .ABaudUpdate(ABaudUpdate),
-   .AStart(BStart), .ABitCnt(4'h9), .ABitIdx(BBitIdx),
+   .AStart(BStart), .ABitCnt(4'h9), .ABitIdxDn(BBitIdxDn),
    .ACancel(~AEn),
    .ARxMode(1'b1),
    .ANextBit(BNextBit), .AInProgress(BInProgress),
    .ASenLen(ASenLen), .ASenWnd(BSenWnd), .ASenWndStart(BSenWndStart)
   );
+
+ wire [3:0] BBitIdx = 4'h9 - BBitIdxDn;
 
  wire BSenWndA = BSenWnd & FInProgress;
  wire [12:0] BAvgCntP = FAvgCnt + {{12{BSenWndA & ~ARx[1]}}, BSenWndA};

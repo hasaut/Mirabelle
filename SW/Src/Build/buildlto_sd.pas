@@ -31,6 +31,9 @@ Type
 
 implementation
 
+Uses
+  ConComL;
+
 Constructor TBuildLto.Create;
 Begin
  Inherited;

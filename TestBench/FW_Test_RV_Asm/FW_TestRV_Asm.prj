@@ -12,5 +12,5 @@ TstF Src
 GroupTree True
 Brkp 
 Fpga  0x800000 0x700000 C:\ZukHL\Projects\ZmpThil\AltCX\output_files\ZmpThil_auto.rpd; 0xF00000 0x100000 C:\ZukH\Projects\ZmpSenTag\FW\Out\SenTag_code.hex;
-OpenFiles ..\..\ZmpThil\AltCX_Top\MsTop.v ..\Dig\MsProcTopSS.v ..\Dig\MssdCpu.v ..\Dig\MsCmdDec.v ..\Dig\MssdCmdDec.v ..\Dig\MsrvCmdDec.v ..\Dig\MsrvCpu.v ..\DigLib\MsBaseLib.v ..\Dig\MsProcLib.v ..\Dig\MsDebugUL.v ..\Dig\MsTestFsm.v ..\Dig\MsFpuSA.v ..\Dig\MsacCmdDec.v Src\I-ADD-01.elf.i Src\I-ADDI-01.elf.i Src\I-DELAY_SLOTS-01.elf.i Src\I-AUIPC-01.elf.i Src\I-BEQ-01.elf.i Src\I-ENDIANESS-01.elf.i Src\I-RF_size-01.elf.i Src\I-JALR-01.elf.i Src\I-NOP-01.elf.i
+OpenFiles Src\I-ADD-01.elf.i Src\I-ADDI-01.elf.i Src\I-DELAY_SLOTS-01.elf.i Src\I-AUIPC-01.elf.i Src\I-BEQ-01.elf.i Src\I-ENDIANESS-01.elf.i Src\I-RF_size-01.elf.i Src\I-JALR-01.elf.i Src\I-NOP-01.elf.i
 ActiveFile Src\I-NOP-01.elf.i

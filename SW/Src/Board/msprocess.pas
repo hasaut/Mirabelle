@@ -2593,6 +2593,7 @@ Begin
   end;
  if BResult=FALSE then begin ViewAny('feWrite register time out [R:TMsProcess.FpgaWriteReg]'); break; end;
 
+ ViewAny('fiWrite register successful. Addr = 0x'+IntToHex(AAddr,4)+' Data = 0x'+IntToHex(BData,2)+' [R:TMsProcess.FpgaWriteReg]');
  Result:=TRUE;
  until TRUE;
 End;

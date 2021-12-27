@@ -1,4 +1,4 @@
-Player bCom67 921600
+Player fCom67 921600
 GdbRsp 
 CpuF ee
 MemF code 09 008000 08000 08 00
@@ -8,10 +8,10 @@ ThrF ProcessA
 ThrF ProcessB
 IncF Inc
 OutF Out
-SrcF ..\FW_TestRvAll\ComplianceA\rv32emc\C-JR.elf.hex
+SrcF ..\TestCaseLib\rv\rv32emc\C-JR.elf.hex
 LnkF lto
 GroupTree True
 Brkp 
 Fpga  0x800000 0x700000 C:\ZukHL\Projects\ZmpThilV9B\output_files\ZmpThil_auto.rpd; 0xF00000 0x100000 C:\ZukH\Projects\ZmpSenTag\FW\Out\SenTag_code.hex;
-OpenFiles ..\..\ZmpThil\AltCX_Top\MsTop.v ..\Dig\MssdCpu.v ..\Dig\MsCmdDec.v ..\Dig\MssdCmdDec.v ..\Dig\MsrvCmdDec.v ..\Dig\MsrvCpu.v ..\DigLib\MsBaseLib.v ..\Dig\MsProcLib.v ..\Dig\MsDebugUL.v ..\Dig\MsTestFsm.v ..\Dig\MsFpuSA.v ..\Dig\MsacCmdDec.v ..\FW_TestRvAll\ComplianceA\rv32e\I-ADD-01.elf.hex ..\FW_TestRvAll\ComplianceA\rv32e\I-ADDI-01.elf.hex ..\FW_TestRvAll\ComplianceA\rv32e\I-DELAY_SLOTS-01.elf.hex ..\FW_TestRvAll\ComplianceA\rv32e\I-JAL-01.elf.hex ..\FW_TestRvAll\ComplianceA\rv32e\I-JALR-01.elf.hex ..\FW_TestRvAll\ComplianceA\rv32emc\C-JR.elf.hex
-ActiveFile ..\FW_TestRvAll\ComplianceA\rv32emc\C-JR.elf.hex
+OpenFiles ..\TestCaseLib\rv\rv32emc\C-JR.elf.hex
+ActiveFile ..\TestCaseLib\rv\rv32emc\C-JR.elf.hex
