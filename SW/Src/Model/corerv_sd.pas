@@ -536,6 +536,11 @@ Begin
       if FOnDasmMissing(BIpPrev,FRegMIp.FIp)=FALSE then break;
       end;
      end;
+   rvccSwt:
+     begin
+     UpdateIp(Cardinal(ASubdec.FImm));
+     if SysCmd(scSwt)=FALSE then break;
+     end;
 
    //CBraListA = 'bra bbe bc bnc bz bnz ba bany bg bge bs bse bn bv bnn bnv';
    //CBraListB = 'bra bbe bc bae be bne ba bany bg bge bs bse bn bv bnn bnv';

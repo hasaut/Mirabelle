@@ -288,9 +288,7 @@ module IoLin #(parameter CAddrBase=16'h0000)
  // If there are 2 stop bits, the reception may start too late, because slave may respond ater the 1st stop bit
  // thus the start bit of the reception may be lost
  // Creata a signal to start reception already in the 2nd part of double stop-bit
-
-
- wire BRecvStartEarly = (FState[IStPidPend] | FState[IStDataPend]) & LStopD & (~BSendReq | (BFifoSDataSize==16'h1)) & (BSendBitIdxDn==4'h0);
+ wire BRecvStartEarly = (FState[IStPidPend] | FState[IStDataPend]) & LStopD & ~BSendReq & (BSendBitIdxDn==4'h0);
 
  UartRecv UUartRecv
   (

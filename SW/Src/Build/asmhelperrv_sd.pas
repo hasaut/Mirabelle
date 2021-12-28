@@ -540,9 +540,9 @@ Begin
          ((AConst and $400) shr 4) or // 040  10
          ((AConst and $300) shr 1) or // 180 9:8
          ((AConst and $010) shl 5) or // 200   4
-         ((AConst and $800) shl 0);   // 800  11
+         ((AConst and $800) shr 1);   // 400  11
  ACodeBin[1]:=Chr((Ord(ACodeBin[1]) and $03) or ((BConst shl 2) and $FC));
- ACodeBin[2]:=Chr((Ord(ACodeBin[2]) and $E0) or ((BConst shr 11) and $1F));
+ ACodeBin[2]:=Chr((Ord(ACodeBin[2]) and $E0) or ((BConst shr 6) and $1F));
 End;
 
 {

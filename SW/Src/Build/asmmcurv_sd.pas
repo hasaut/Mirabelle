@@ -443,7 +443,8 @@ Function TAsmMcuRV.CodeGenSwtEjal ( ALine : TAsmFlowLine ) : TCmdCompError;
 Var
   BRef      : string;
   BRdIdx,
-  BRs1Idx       : Integer;
+  BRs1Idx   : Integer;
+  BConst64  : Int64;
 Begin
  Result:=cceCheckNext;
 
@@ -451,10 +452,17 @@ Begin
  if ALine.Params[0].Name='swt' then
   begin
   if Length(ALine.Params)<>2 then break;
-  ALine.AppendDataBinD(CmdGenI(0,CRvRegZ,$01,CRvRegZ,$67)); // RS1 is always Z
   BRef:=ALine.Params[1].Name;
-  ALine.AppendRef(ALine.Params[1],BRef,'T',0,0);
-  ALine.SetDstLabel(BRef);
+  if IsIntegerEqu(BRef,BConst64) then
+   begin
+   ALine.AppendDataBinD(CmdGenI((Cardinal(BConst64)-ALine.Addr) shr 1,CRvRegZ,$01,CRvRegZ,$67));
+   end
+  else
+   begin
+   ALine.AppendDataBinD(CmdGenI(0,CRvRegZ,$01,CRvRegZ,$67)); // RS1 is always Z
+   ALine.AppendRef(ALine.Params[1],BRef,'T',0,0);
+   ALine.SetDstLabel(BRef);
+   end;
   ALine.IsJmp:=TRUE;
   Result:=cceCompiled;
   break;

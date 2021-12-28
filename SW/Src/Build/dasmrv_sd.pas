@@ -11,7 +11,7 @@ Type
   TRvCmdCode =
    (
     rvccInvalid,
-    rvccLui, rvccAuipc, rvccJ, rvccJal, rvccJalr,
+    rvccLui, rvccAuipc, rvccJ, rvccJal, rvccJalr, rvccSwt,
     rvccBeq, rvccBne, rvccBlt, rvccBge, rvccBltu, rvccBgeu,
     rvccLb, rvccLh, rvccLw, rvccLbu, rvccLhu,
     rvccSb, rvccSh, rvccSw,
@@ -99,7 +99,7 @@ Const
   CRvCmdNames : array [TRvCmdCode] of string =
    (
     'Invalid',
-    'lui', 'auipc', 'j', 'jal', 'jalr',
+    'lui', 'auipc', 'j', 'jal', 'jalr', 'swt',
     'beq', 'bne', 'blt', 'bge', 'bltu', 'bgeu',
     'lb', 'lh', 'lw', 'lbu', 'lhu',
     'sb', 'sh', 'sw',
@@ -631,8 +631,17 @@ Begin
         end;
    $67: begin // JALR
         RvSubdecI(BCode); SignExtImm($800);
-        FCmdCode:=rvccJalr;
-        GenCode('%c %d,%x(%u)');
+        if (BCode and $1000)<>0 then
+         begin
+         FSubdec.FImm:=FSubdec.FImm shl 1;
+         FCmdCode:=rvccSwt;
+         GenCode('%c %r');
+         end
+        else
+         begin
+         FCmdCode:=rvccJalr;
+         GenCode('%c %d,%x(%u)');
+         end;
         end;
    $63: begin // Bx
         RvSubdecB(BCode); SignExtImm($1000);

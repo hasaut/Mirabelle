@@ -1540,7 +1540,7 @@ Begin
  case FPlayer of
   plIss:
     begin
-    //FProcModel.StepInto; // One step to overcome breakpoint
+    FProcModel.StepInto; // One step to overcome breakpoint
     FProcModel.ClearTrapHit;
     end;
   plFpga:

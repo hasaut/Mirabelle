@@ -1,0 +1,21 @@
+Player f/dev/ttyUSB1 3000000
+GdbRsp 
+CpuF se
+MemF code 09 008000 08000 08 00
+MemF data 03 001000 04000 08 00
+MemF io 03 000000 0100 08 00
+IncF Inc
+OutF Out
+SrcF Src\mdMain.asm
+SrcF Src\mdProc.asm
+SrcF Src\rvStartup.srv
+SrcF Src\ApplMain.asm
+SrcF Src\ApplMain.pas
+SrcF ..\..\FwLib\SysLib.asm
+SrcF ..\..\FwLib\SysLib.pas
+LnkF lto
+GroupTree True
+Brkp 
+Fpga  0x000000 0x700000 C:\ZukHL\Projects\Mirabelle\MsLoader\AltCX\output_files\MsLoader_auto.rpd; 0x700000 0x100000 C:\ZukH\Projects\Mirabelle\MsLoader\FW\Out\Fw_Ldr_code.hex; 0x700000 0x100000 /home/ozh/smb/ZukH/Projects/Mirabelle/MsLoader/FW/Out/Fw_Ldr_code.hex; 0xF00000 0x100000 C:\ZukH\Projects\Mirabelle\FW_Ldr\Out\Fw_Ldr_code.hex; 0x000000 0x700000 /home/ozh/smb/ZukHL/Projects/Mirabelle/MsLoader/AltCX/output_files/MsLoader_auto.rpd;
+OpenFiles Src\mdMain.asm ..\AltCX_Top\MsFpga.v ..\AltCX_Top\MsTop.v ..\..\..\Dig\Cpu\MsTestFsm.v Inc\IoIda.h Src\mdProc.asm Src\ApplMain.asm Src\ApplMain.pas Src\rvStartup.srv
+ActiveFile Src\ApplMain.asm
