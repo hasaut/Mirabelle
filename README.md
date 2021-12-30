@@ -30,9 +30,11 @@ can be more optimal using stack architecture.
 The instruction decoder itself is small in the digital design. Mirabelle project targets embedded 
 applications where the cost of program memory like flash can be important.
 It is expected that the increased size of digital part for the decoder will be payed out 
-by decreased size of flash memory.
+by decreased size of flash memory. 
 
-It is not necessary to keep all decoders: one can include only Risc-V for example. 
+There are some reasons to use [multi-ISA implementation](Doc/MultiIsa.pdf).
+
+It is not necessary to keep all decoders: the verilog sources organization simplifies the way to choose the necessary ISA.
 
 ## Multi-core
 
