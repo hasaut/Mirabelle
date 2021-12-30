@@ -429,7 +429,8 @@ Begin
    'j',
    'J',
    'k',
-   'K': FWndInfo.AppendAny(BCmdS);
+   'K',
+   'G': FWndInfo.AppendAny(BCmdS);
    't': FWndTerm.AppendAny(BCmdS);
    'l': FWndLtoR.AppendAny(BCmdS);
    'm': begin

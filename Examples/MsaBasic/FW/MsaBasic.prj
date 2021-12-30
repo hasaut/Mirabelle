@@ -24,4 +24,4 @@ GroupTree True
 Brkp 008138 0081A6 0081D2
 Fpga  0x800000 0x700000 C:\ZukHL\Projects\ZmpThil\AltCX\output_files\ZmpThil_auto.rpd; 0xF00000 0x100000 C:\ZukH\Projects\ZmpThilV9B\FW\Out\ZmpThil_code.hex; 0x800000 0x700000 C:\ZukHL\Projects\Mlx90377AD_dp_v4x\AltCX\output_files\Mlx90377AD_dp_v4x_auto.rpd; 0x000000 0x700000 C:\ZukHL\Projects\ZmpThilV9B\output_files\ZmpThil_auto.rpd;
 OpenFiles Src/mdStartup.asm Src/mdMainA.asm Src/mdMainB.asm ../../../../Mlx90332AA_dp_v4x/FW/Src/ProcMlx.asm Inc/IoIda.h ../AltCX_Top/MsFpga.v ../AltCX_Top/MsTop.v ../../../Dig/Cpu/MsrvCmdDec.v Src/mdMainC.srv Src/mdMainD.srv Src/MdMainB.ci Src/IrqTimerA.ci Src/MdMainA.pas ../../FwLib/MsBase.asm ../../FwLib/SysLib.asm Src/MdMainC.c Out/IrqTimerA.srv
-ActiveFile Src/MdMainC.c
+ActiveFile ../../FwLib/SysLib.asm

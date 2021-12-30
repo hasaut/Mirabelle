@@ -5,7 +5,7 @@ unit AfItem_sd;
 interface
 
 uses
-  Classes, SysUtils, Graphics, Forms, Controls, ExtCtrls, ComCtrls, SynEdit,
+  Classes, SysUtils, Graphics, Forms, Controls, ExtCtrls, ComCtrls, SynEdit, SynEditTypes,
   SynEditHighlighter, SynHighlighterAny, SynHighlighterPas, SynHighlighterCpp,
   SynHighlighterPython, SynEditMiscClasses,
   ConComI, DbgInfo_sd, WasmProcess_sd;
@@ -74,6 +74,8 @@ type
     Constructor Create ( AOwner : TComponent ); Override;
     Destructor Destroy; Override;
   end;
+
+  { TAfItem }
 
   TAfItem = class(TFrame)
   private

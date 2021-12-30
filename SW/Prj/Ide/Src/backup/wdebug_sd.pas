@@ -1363,7 +1363,7 @@ Begin
  repeat
  if HexToDWordCheck(AEtbS,BEtb)=FALSE then break;
  BActIdx:=-1;
- BCpuIdx:=0;
+ BCpuIdx:=0; BEventCnt:=0;
  while BCpuIdx<Length(FDbgRegsList) do
   begin
   if BEtb and (1 shl (BCpuIdx+16))<>0 then begin BActIdx:=BCpuIdx; inc(BEventCnt) end;

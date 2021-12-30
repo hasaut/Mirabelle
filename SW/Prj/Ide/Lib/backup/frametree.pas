@@ -504,14 +504,17 @@ Procedure TPrjTree.TreeXchgNode ( ANodeA, ANodeB : TTreeNode );
 Var
   BNameHolderA,
   BNameHolderB  : TNameHolder;
+  BDummyTextA,
+  BDummyTextB   : string;
 Begin
  repeat
  if ANodeA=nil then break;
  if ANodeB=nil then break;
  BNameHolderA:=TNameHolder(ANodeA.Data); if BNameHolderA=nil then break;
  BNameHolderB:=TNameHolder(ANodeB.Data); if BNameHolderB=nil then break;
- ANodeA.Data:=BNameHolderB; ANodeA.Text:=BNameHolderB.FullName; ##
- ANodeB.Data:=BNameHolderA; ANodeB.Text:=BNameHolderA.FullName;
+ BDummyTextA:=ANodeA.Text; BDummyTextB:=ANodeB.Text;
+ ANodeA.Data:=BNameHolderB; ANodeA.Text:=BDummyTextB;
+ ANodeB.Data:=BNameHolderA; ANodeB.Text:=BDummyTextA;
  until TRUE;
 End;
 

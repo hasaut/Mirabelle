@@ -1,21 +1,21 @@
 object WndTermSd: TWndTermSd
   Left = 0
-  Height = 193
+  Height = 232
   Top = 0
-  Width = 516
-  ClientHeight = 193
-  ClientWidth = 516
-  DesignTimePPI = 120
+  Width = 619
+  ClientHeight = 232
+  ClientWidth = 619
+  DesignTimePPI = 144
   OnResize = FrameResize
   ParentFont = False
   TabOrder = 0
   DesignLeft = 928
   DesignTop = 251
   object MeList: TMemo
-    Left = 49
-    Height = 113
-    Top = 36
-    Width = 188
+    Left = 59
+    Height = 136
+    Top = 43
+    Width = 226
     Font.CharSet = ANSI_CHARSET
     Font.Height = -13
     Font.Name = 'Courier New'
@@ -30,10 +30,10 @@ object WndTermSd: TWndTermSd
     WordWrap = False
   end
   object BtClr: TBitBtn
-    Left = 400
-    Height = 38
-    Top = 8
-    Width = 110
+    Left = 480
+    Height = 46
+    Top = 10
+    Width = 132
     Caption = 'Clear'
     OnClick = BtClrClick
     TabOrder = 1
