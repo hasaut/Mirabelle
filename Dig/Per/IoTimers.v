@@ -38,12 +38,13 @@ module IoTimer16A #(parameter CAddrBase=16'h0000)
  wire [15:0] FCounter, BCounter;
  wire        FCmpRes, BCmpRes;
  wire        FIrq, BIrq;
+ wire        FCmpReset, BCmpReset;
 
- MsDffList #(.CRegLen(8+16+16+1+1)) ULocalVars
+ MsDffList #(.CRegLen(8+16+16+1+1+1)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BCtrl, BCmpA, BCounter, BCmpRes, BIrq}),
-   .ADataO({FCtrl, FCmpA, FCounter, FCmpRes, FIrq})
+   .ADataI({BCtrl, BCmpA, BCounter, BCmpRes, BIrq, BCmpReset}),
+   .ADataO({FCtrl, FCmpA, FCounter, FCmpRes, FIrq, FCmpReset})
   );
 
  // Aliases
@@ -52,7 +53,7 @@ module IoTimer16A #(parameter CAddrBase=16'h0000)
  assign BCtrl = BIoAccess[IoSizeB+IoOperW+0] ? AIoMosi[ 7:0] : FCtrl;
  assign BCmpA = BIoAccess[IoSizeW+IoOperW+1] ? AIoMosi[15:0] : FCmpA;
 
- wire BCmpReset = BIoAccess[IoSizeB+IoOperW+3] & AIoMosi[0];
+ assign BCmpReset = BIoAccess[IoSizeB+IoOperW+3] & AIoMosi[0];
 
  assign AIoMiso =
   (BIoAccess[IoSizeW+IoOperR+3] ? {48'h0, FCounter} : 64'h0) |
@@ -65,12 +66,12 @@ module IoTimer16A #(parameter CAddrBase=16'h0000)
 
  wire BIncEn = |(BSyncSel[3:1] & {1'b1, ASync1M, ASync1K});
  wire BCmpResA = (FCounter==FCmpA) & BIncEn;
- assign BCmpRes  = BCmpResA | (FCmpRes & ~BCmpReset);
- assign BIrq     = BCmpRes & FCtrl[0] & ~BCmpReset;
+ assign BCmpRes  = BCmpResA | (FCmpRes & ~FCmpReset);
+ assign BIrq     = BCmpRes & FCtrl[0] & ~FCmpReset;
 
  assign BCounter = (BSyncSel[0] | BCmpResA) ? 16'h0 : FCounter + {15'h0, BIncEn};
 
- assign ATest = {AClkH, BTimerSrcNZ, BIncEn, BCmpResA, BCmpRes, BIrq, FIrq, FCmpRes};
+ assign ATest = {AClkH, BTimerSrcNZ, BIncEn, BCmpResA, BCmpRes, FIrq, FCmpReset, FCmpRes};
 
  // External
  assign AIrq = FIrq;

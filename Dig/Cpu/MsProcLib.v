@@ -134,8 +134,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  // IRQ
  // ** Irq
  assign BIrqIn = AIrq;
- //wire [CIrqCnt-1:0] BIrqRise = BIrqIn & ~FIrqIn;
- assign BIrqAll = FIrqIn | (FIrqAll & ~(FStateSys[IStIrqEndA] ? FIrqThis : {CIrqCnt{1'b0}})); // Accumulates requests and keeps them till IStIrqEndA. Then clears the corresponding bit
+ assign BIrqAll = (FIrqIn & ~AIrqBusyList) | (FIrqAll & ~(FStateSys[IStIrqEndA] ? FIrqThis : {CIrqCnt{1'b0}})); // Accumulates requests and keeps them till IStIrqEndA. Then clears the corresponding bit
  wire BIrqAllNZ  = |FIrqAll;
  wire BIrqThisNZ = |FIrqThis;
  wire BIrqLatch = BIrqAllNZ & ~BIrqThisNZ; // Avoid IRQ change during execution
@@ -143,7 +142,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  MsPrioritize #(.CLineCnt(CIrqCnt)) UPrtyIrq
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI(BIrqLatch ? (FIrqAll & ~AIrqBusyList) : {CIrqCnt{1'b0}}), .ADataO(BIrqAllPrty)
+   .ADataI(BIrqLatch ? FIrqAll : {CIrqCnt{1'b0}}), .ADataO(BIrqAllPrty)
   );
 
  // FIrqThis is latched and prioritized IRQ. Only 1 bit is set. Cleared by IStIrqEndA.
@@ -307,7 +306,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  assign AContPtrWrEn  = (FStateSys[IStSysSwtD] | FStateSys[IStIrqSwtD]) &  ARamAck;
  assign AIrqToProcess = FStateSys[IStIrqSwtD] ? FIrqThis : {CIrqCnt{1'b0}};
 
- assign ATest = {AClkH, 1'b0, |AIrqEn, |AIrqBusyList, BIrqThisNZ, FIrqThis[0], FIrqAll[0], AIrq[0]};
+ assign ATest = {ASysCoreSel, AContPtrWrEn, AIrqBusyList[0], FStateSys[IStIrqEndA], FIrqThis[0], FIrqAll[0], FIrqIn[0]};
 endmodule
 
 module MsUnityCtrl #(parameter CLineCnt=2)

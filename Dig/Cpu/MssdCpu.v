@@ -201,7 +201,7 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
   };
  wire BRReqDevB = |{MAluSelU, MAluSelF, MMioWrRdEn}; // RReq = "Resource request"
  wire BPendDevB = |BDevBPendAny;
- wire BConflictAny = |{BConflictColRow, BRReqDevB & BPendDevB, BEipUpdateAny, BPendMask==12'h701, BPendAnyA & (|MSysReq), LSysReq};
+ wire BConflictAny = |{BConflictColRow, BRReqDevB & BPendDevB, BEipUpdateAny, BPendMask==12'h701, BPendAnyA & (|MSysReq), LSysReq, FSysReq};
  assign BCmdLenValid = (BQueLen>=MCmdLen) & BQueLenNZ;
  assign BCmdValid = BStateNZ | (&{BCmdLenValid, ~BConflictAny, AExecEn, ACoreEn});
  assign BState = BCmdValid ? BStepNextM : CStateNil;
@@ -225,7 +225,7 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
 
  // Sys
  assign BContPtr = (ASysCoreSel & AContPtrWrEn) ? ADataMiso[31:3] : FContPtr;
- assign BIrqBusyList = (ASysCoreSel & AContPtrWrEn) ? AIrqToProcess : FIrqBusyList;
+ assign BIrqBusyList = (ASysCoreSel & AContPtrWrEn) ? AIrqToProcess : FIrqBusyList; // Inform CpuCtrl which IRQ is executed (to avoid re-enterance). Clear when SWT
 
  // Registers
  MssdRegTask URegTask

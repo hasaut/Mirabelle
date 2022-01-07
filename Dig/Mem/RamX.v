@@ -18,12 +18,12 @@ module RamSX #(parameter CAddrLen=13, CDataLen=128)
 
  assign BRdEn = ARdEn;
 
- reg [CDataLen-1:0] FRam[2**CAddrLen-1:0];
+ reg [CDataLen-1:0] FMem[2**CAddrLen-1:0];
 
  always @ (posedge AClkH)
   begin
-  BMiso<=FRam[AAddr];
-  if (AWrEn) FRam[AAddr] <= AMosi;
+  BMiso<=FMem[AAddr];
+  if (AWrEn) FMem[AAddr] <= AMosi;
   end
 
  assign AMiso = {CDataLen{FRdEn}} & BMiso;
@@ -53,12 +53,12 @@ module RamSX_Part #(parameter CAddrLen=13, CDataLen=128, CMemSize=2**CAddrLen)
 
  assign BRdEn = ARdEn;
 
- reg [CDataLen-1:0] FRam[CMemSize-1:0];
+ reg [CDataLen-1:0] FMem[CMemSize-1:0];
 
  always @ (posedge AClkH)
   begin
-  BMiso<=FRam[AAddr];
-  if (AWrEn) FRam[AAddr] <= AMosi;
+  BMiso<=FMem[AAddr];
+  if (AWrEn) FMem[AAddr] <= AMosi;
   end
 
  assign AMiso = {CDataLen{FRdEn}} & BMiso;
@@ -96,18 +96,18 @@ module RamDX #(parameter CAddrLen=11, CDataLen=8)
  assign BRdEnA = ARdEnA;
  assign BRdEnB = ARdEnB;
 
- reg [CDataLen-1:0] FRam[2**CAddrLen-1:0] /* synthesis ramstyle = "no_rw_check" */;
+ reg [CDataLen-1:0] FMem[2**CAddrLen-1:0] /* synthesis ramstyle = "no_rw_check" */;
 
  always @(posedge AClkA)
   begin
-  BMisoA<=FRam[AAddrA];
-  if (AWrEnA) FRam[AAddrA]<=AMosiA;
+  BMisoA<=FMem[AAddrA];
+  if (AWrEnA) FMem[AAddrA]<=AMosiA;
   end
 
  always @(posedge AClkB)
   begin
-  BMisoB<=FRam[AAddrB];
-  if (AWrEnB) FRam[AAddrB]<=AMosiB;
+  BMisoB<=FMem[AAddrB];
+  if (AWrEnB) FMem[AAddrB]<=AMosiB;
   end
 
  assign AMisoA = {CDataLen{FRdEnA}} & BMisoA;
@@ -124,12 +124,12 @@ module RamSDP #(parameter CAddrLen=13, CDataLen=128)
  localparam ZData = {CDataLen{1'b0}};
 
  reg [CDataLen-1:0] BMiso;
- reg [CDataLen-1:0] FRam[2**CAddrLen-1:0];
+ reg [CDataLen-1:0] FMem[2**CAddrLen-1:0];
 
  always @(posedge AClkH)
   begin
-  BMiso<=FRam[AAddrRd];
-  if (AWrEn) FRam[AAddrWr]<=AMosi;
+  BMiso<=FMem[AAddrRd];
+  if (AWrEn) FMem[AAddrWr]<=AMosi;
   end
 
  assign AMiso = BMiso;

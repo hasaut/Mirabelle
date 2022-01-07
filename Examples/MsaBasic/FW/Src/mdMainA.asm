@@ -36,12 +36,12 @@ ProcMainA:
 
         mov     al,0x00
         mov     [IobTimerACtrl],al
-        mov     ax,999
+        mov     ax,499
         mov     [IowTimerACmpA],ax
         mov     al,0x15
         mov     [IobTimerACtrl],al
         mov     ax,0x0001
-        ;mov     [IowIrqEn],ax
+        mov     [IowIrqEn],ax
 
         mov     al,0x90
         setfl
@@ -53,8 +53,12 @@ ProcMainA:
 
 TimerAWait:
         enter   awx,0
-        swt     tawNext
-   tawNext:
+        ; Wait for IRQ
+   tawWait:
+        mov     al,[IobTimerACtrl]
+        test    al,0x01
+        swt_z   tawWait
+        ; Reset TimerIrq flag
         mov     al,0x01
         mov     [IobTimerAIrqR],al
         leave   awx,0,0

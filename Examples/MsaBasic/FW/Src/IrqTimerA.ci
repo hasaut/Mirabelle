@@ -10,12 +10,26 @@ void IrqTimerA ( void )
  FActive=1;
  BLedY=0x00;
  LedYSet(BLedY);
+ TimerAWait();
 
  while (FActive)
   {
-   TimerAWait();
-   LedYSet(BLedY);
-   BLedY++;
+   // SHL
+   BLedY=0x01;
+   while (BLedY)
+    {
+     LedYSet(BLedY);
+     TimerAWait();
+     BLedY<<=1;
+    }
+   // SHR
+   BLedY=0x80;
+   while (BLedY)
+    {
+     LedYSet(BLedY);
+     TimerAWait();
+     BLedY>>=1;
+    }
   }
 }
 

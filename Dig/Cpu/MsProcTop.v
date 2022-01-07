@@ -36,7 +36,7 @@ module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, C
    .ARegMosi(BRegMosi), .ARegMiso(BRegMiso), .ARegWrIdx(BRegWrIdx), .ARegRdIdx(BRegRdIdx),
    .ARomAddr(BCtrlRomAddr), .ARomMiso(ARomMiso), .ARomRdEn(BCtrlRomRdEn),
    .ARamAddr(BCtrlRamAddr), .ARamMiso(ARamMiso), .ARamMosi(BCtrlRamMosi), .ARamWrSize(BCtrlRamWrSize), .ARamRdSize(BCtrlRamRdSize), .ARamAck(BCtrlRamAck),
-   .ATest()
+   .ATest(ATest)
   );
 
  wire [CCoreCnt-1:0] BUnityReq, BUnityAck;
@@ -106,7 +106,7 @@ module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, C
    .AIrqEn(BIrqEn)
   );
 
- assign ATest = {|BUnityReq, |BUnityAck, &BUnityReq, &BUnityAck, BUnityReq, BUnityAck};
+ //assign ATest = {|BUnityReq, |BUnityAck, &BUnityReq, &BUnityAck, BUnityReq, BUnityAck};
 
  assign BDataAddr = {BCtrlRamAddr, BDataAddrA};
  assign BDataMosi = {BCtrlRamMosi, BDataMosiA};
