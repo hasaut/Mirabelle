@@ -10,6 +10,8 @@ uses
   AsmTypes_sd, InfoViewBase_sd;
 
 type
+  TOnGetFlashLog = Function : TStringList of object;
+
 
   TSectUsage = (suAll, suUsed, suUnused);
 
@@ -25,7 +27,9 @@ type
     BtRead: TSpeedButton;
     BtReset: TSpeedButton;
     BtDel: TSpeedButton;
+    BtLog: TSpeedButton;
     Splitter1: TSplitter;
+    procedure BtLogClick(Sender: TObject);
     procedure BtReadClick(Sender: TObject);
     procedure BtReflashClick(Sender: TObject);
     procedure BtDelClick(Sender: TObject);
@@ -46,12 +50,15 @@ type
     FEditingRow,
     FEditingCol     : Integer;
 
+    FGetFlashLog     : TOnGetFlashLog;
+
     Procedure UpdateTabName;
+    Procedure ViewLog ( Const ADataS : string );
   public
     Constructor Create ( AOwner : TComponent ); Override;
     Destructor Destroy; Override;
 
-    Procedure Init ( ASheet : TTabSheet; AOnProcAny : TOnProcAny );
+    Procedure Init ( ASheet : TTabSheet; AOnProcAny : TOnProcAny; AOnGetFlashLog : TOnGetFlashLog );
     Procedure Done;
     Procedure ViewAny ( Const AMessage : string );
 
@@ -77,10 +84,10 @@ Begin
  Inherited;
 End;
 
-Procedure TWndFpgaSd.Init ( ASheet : TTabSheet; AOnProcAny : TOnProcAny );
+Procedure TWndFpgaSd.Init ( ASheet : TTabSheet; AOnProcAny : TOnProcAny; AOnGetFlashLog : TOnGetFlashLog );
 Begin
  FResizeLock:=TRUE;
- FSheet:=ASheet; FOnProcAny:=AOnProcAny;
+ FSheet:=ASheet; FOnProcAny:=AOnProcAny; FGetFlashLog:=AOnGetFlashLog;
  FSheet.InsertControl(Self);
  SgSectList.Align:=alClient;
  FInfoView:=TInfoViewBase.Create(Self); InsertControl(FInfoView); FInfoView.Align:=alClient;
@@ -99,8 +106,12 @@ End;
 
 Procedure TWndFpgaSd.ViewAny ( Const AMessage : string );
 Begin
- FInfoView.AppendAny(AMessage);
+ repeat
+ if AMessage='' then break;
+ if AMessage[1]='l' then ViewLog(AMessage)
+ else FInfoView.AppendAny(AMessage);
  UpdateTabName;
+ until TRUE;
 End;
 
 Procedure TWndFpgaSd.Clear;
@@ -234,6 +245,15 @@ Begin
  until TRUE;
 End;
 
+Procedure TWndFpgaSd.BtLogClick(Sender: TObject);
+Begin
+ Clear;
+ repeat
+ if Assigned(FOnProcAny)=FALSE then break;
+ FOnProcAny('Fl');
+ until TRUE;
+End;
+
 Procedure TWndFpgaSd.BtReadClick(Sender: TObject);
 Var
   BSectList     : string;
@@ -314,6 +334,23 @@ Begin
  if (BColIdx=0) and (BRowIdx>0) and (BRowIdx<SgSectList.RowCount) and (Button=mbLeft) then
   begin
   if SgSectList.Cells[BColIdx,BRowIdx]='' then SgSectList.Cells[BColIdx,BRowIdx]:='+' else SgSectList.Cells[BColIdx,BRowIdx]:='';
+  end;
+ until TRUE;
+End;
+
+Procedure TWndFpgaSd.ViewLog ( Const ADataS : string );
+Var
+  BIndex    : Integer;
+  BList     : TStringList;
+Begin
+ repeat
+ if Assigned(FGetFlashLog)=FALSE then break;
+ BList:=FGetFlashLog(); if BList=nil then break;
+ BIndex:=0;
+ while BIndex<BList.Count do
+  begin
+  FInfoView.AppendAny('-'+BList.Strings[BIndex]);
+  inc(BIndex);
   end;
  until TRUE;
 End;

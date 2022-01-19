@@ -47,10 +47,13 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../Src;../Lib;../Frames;../../../Src/MirLib;../../../Src/Board;../../../Src/Build;../../../Src/Model;../../../Src/Comp;../../../Src/Comp/Lin;../../../Ext/Synapse/source/lib"/>
+      <OtherUnitFiles Value="../Src;../Lib;../Frames;../../../Src/MirLib;../../../Src/Board;../../../Src/Build;../../../Src/Model;../../../../../../UtilL/Comp;../../../../../../UtilL/Comp/Lin"/>
       <UnitOutputDirectory Value="/home/ozh/ZukHL/Projects/Mirabelle/UtilM/Out/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
+      <Debugging>
+        <DebugInfoType Value="dsDwarf2Set"/>
+      </Debugging>
       <Options>
         <Win32>
           <GraphicApplication Value="True"/>

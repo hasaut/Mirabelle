@@ -129,7 +129,7 @@ Type
     FCmdParams      : TCmdParams;
 
     // Threads
-    FMsProcess  : TMsProcess;
+    FMsProcess      : TMsProcess;
 
     // Params
     FPlayerParams   : string;
@@ -185,6 +185,7 @@ Type
 
     // Helpers
     Procedure ReqSegData ( Const ASegName : string );
+    Function GetFlashLog : TStringList;
 
   public
     Constructor Create ( AOwner : TComponent ); Override;
@@ -294,7 +295,7 @@ Begin
  FWndLtoR:=TWndLtoRSd.Create(Self); FWndLtoR.Init(TsLtoR,@LocalizeErrorA);
  FWndCDbg:=TWndCDbgSd.Create(Self); FWndCDbg.Init(TsCDbg,FParams);
  FWndMemV:=TWndMemVSd.Create(Self); FWndMemV.Init(TsMemV,@ReqSegData);
- FWndFpga:=TWndFpgaSd.Create(Self); FWndFpga.Init(TsFpga,@ProcAny);
+ FWndFpga:=TWndFpgaSd.Create(Self); FWndFpga.Init(TsFpga,@ProcAny,@GetFlashLog);
 
  // Thread
  FMsProcess:=TMsProcess.Create(TRUE);
@@ -1223,6 +1224,11 @@ End;
 Procedure TSdMainForm.ReqSegData ( Const ASegName : string );
 Begin
  FMsProcess.AppendCmd('g '+ASegName);
+End;
+
+Function TSdMainForm.GetFlashLog : TStringList;
+Begin
+ Result:=FMsProcess.FlashLog;
 End;
 
 // Ext interface

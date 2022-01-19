@@ -5,7 +5,7 @@ unit MsProcess;
 interface
 
 uses
-  Classes, SysUtils, synaser, AsmTypes_sd, BuildBase_sd, BuildCpuX_sd, ProcModel_sd,
+  Classes, SysUtils, ComPort, AsmTypes_sd, BuildBase_sd, BuildCpuX_sd, ProcModel_sd,
   MemSeg_sd, MemSegHelper_sd, DasmBase_sd, DasmMs_sd, DasmRV_sd, DasmWA_sd, DataFiles;
 
 Type
@@ -14,7 +14,7 @@ Type
 
   TMsProcess = class(TThread)
   private
-    FComStream      : TBlockSerial;
+    FComStream      : TComPort;
     FIsEnded        : boolean;
     FCmdList,
     FCmdListA       : TStringList;
@@ -72,6 +72,9 @@ Type
     FBatchCount,
     FBatchFail      : Integer;
 
+    FFlashLog       : TStringList;
+    FFlashLogKeep   : boolean;
+
     Procedure ViewAny ( Const AMessage : string );
     Procedure CloseAll;
     Procedure OpenAny;
@@ -79,7 +82,7 @@ Type
     Function FormatCommState : string;
     Procedure SetCommState ( ANewState : TCommState );
 
-    Function CanReadAny : boolean;
+    //Function CanReadAny : boolean;
     Function RecvByteAny ( Out AData : byte; ATimeOut : Cardinal ) : boolean;
     Function RecvByteAny ( Out AData : byte ) : boolean;
     Procedure SendByteAny ( AData : byte );
@@ -89,7 +92,7 @@ Type
     Function SendS ( AAddr : word; Const ADataS : string ) : boolean;
     Function RecvS ( AAddr : word; ASize : word ) : string;
     Function SendRecvS ( AAddr : word; Var ADataS : string ) : boolean;
-    Function SendRecvS2 ( AAddr : word; Var ADataSA, ADataSB : string ) : boolean;
+    //Function SendRecvS2 ( AAddr : word; Var ADataSA, ADataSB : string ) : boolean;
     Procedure SendDataOpti ( AAddr : word; Const ADataS : string );
     Function RecvDataOpti ( Var ADataS : string ) : boolean;
 
@@ -177,6 +180,9 @@ Type
     Function FpgaWriteReg ( AAddr : Cardinal; Const ADataS : string ) : boolean;
 
     Function DasmMissing ( AIpPrev, AIpThis : Cardinal ) : boolean;
+
+    Procedure FlashLogS ( Const ADataS : string );
+    Procedure FlashLogR ( Const ADataS : string );
   protected
     Procedure Execute; Override;
   public
@@ -192,6 +198,7 @@ Type
     property OnViewAny : TOnViewAny read FOnViewAny write FOnViewAny;
     property IsEnded : boolean read FIsEnded;
     property ProcModel : TProcModel read FProcModel;
+    property FlashLog : TStringList read FFlashLog;
   end;
 
 Const
@@ -233,6 +240,7 @@ Begin
  FProcModel:=TProcModel.Create; FProcModel.OnViewAny:=@ViewAny;
  FBuild:=TBuildCpuX.Create; FBuild.OnAppendError:=@ViewAny;
  FExecLog:=TStringList.Create; FExecLogIsIn:=FALSE;
+ FFlashLog:=TStringList.Create;
  FIsEnded:=FALSE;
  FWait:=250;
  BData:=10;
@@ -243,6 +251,7 @@ Destructor TMsProcess.Destroy;
 Begin
  FOnViewAny:=nil;
  CloseAll;
+ FFlashLog.Free;
  FExecLog.Free;
  FBuild.Free;
  FProcModel.Free;
@@ -271,7 +280,7 @@ Procedure TMsProcess.CloseAll;
 Begin
  if FComStream<>nil then
   begin
-  FComStream.CloseSocket;
+  FComStream.Close;
   FComStream.Free;
   FComStream:=nil;
   end;
@@ -523,13 +532,13 @@ Begin
  case BPlayer of
   'f',
   'b': begin
-       FComStream:=TBlockSerial.Create;
+       FComStream:=TComPort.Create;
        SetCommState(csConnecting);
        FComStream.Connect(ReadParamStr(BPlayerParams));
-       if FComStream.LastError<>0 then begin ViewAny('se'+FormatCommState+': '+#13+FormatCommError(FComStream.LastErrorDesc)); break; end;
+       if FComStream.LastError<>0 then begin ViewAny('se'+FormatCommState+': '+#13+FormatCommError(FComStream.GetErrorDesc)); break; end;
        if TryStrToInt(ReadParamStr(BPlayerParams),BBaud)=FALSE then begin ViewAny('se'+FormatCommState+': '+#13+'Invalid baud rate'); break; end;
-       FComStream.Config(BBaud,8,'N',2,FALSE,FALSE);
-       if FComStream.LastError<>0 then begin ViewAny('se'+FormatCommState+': '+#13+FormatCommError(FComStream.LastErrorDesc)); break; end;
+       FComStream.Config(BBaud);
+       if FComStream.LastError<>0 then begin ViewAny('se'+FormatCommState+': '+#13+FormatCommError(FComStream.GetErrorDesc)); break; end;
        BResult:=TRUE;
        SetCommState(csConnected);
        end;
@@ -542,7 +551,7 @@ Begin
  if (BResult=FALSE) and (FComStream<>nil) then begin Sleep(500); CloseAll; end;
 End;
 
-Function TMsProcess.CanReadAny : boolean;
+{Function TMsProcess.CanReadAny : boolean;
 Begin
  if FComStream<>nil then Result:=FComStream.CanRead(0)
  else Result:=FALSE;
@@ -564,6 +573,15 @@ Begin
  if FComStream.LastError<>sOK then break;
  Result:=TRUE;
  until TRUE;
+End;}
+
+Function TMsProcess.RecvByteAny ( Out AData : byte; ATimeOut : Cardinal ) : boolean;
+Begin
+ Result:=FALSE; AData:=0;
+ repeat
+ if FComStream=nil then break;
+ Result:=FComStream.RecvByte(AData,ATimeOut);
+ until TRUE;
 End;
 
 Function TMsProcess.RecvByteAny ( Out AData : byte ) : boolean;
@@ -573,12 +591,12 @@ End;
 
 Procedure TMsProcess.SendByteAny ( AData : byte );
 Begin
- if FComStream<>nil then FComStream.SendByte(AData);
+ if FComStream<>nil then FComStream.SendData(Chr(AData));
 End;
 
 Procedure TMsProcess.SendStringAny ( Const AData : string );
 Begin
- if FComStream<>nil then FComStream.SendString(AData);
+ if FComStream<>nil then FComStream.SendData(AData);
 End;
 
 Function TMsProcess.RecvByteA ( ASenseAtt : boolean; Out AData : byte ) : boolean;
@@ -605,7 +623,7 @@ Begin
  if FComStream=nil then break;
  BLen:=Length(ADataS);
  BDataS:=Chr($C0 or ((AAddr shr 8) and $F))+Chr(AAddr and $FF)+Chr(BLen and $FF)+Chr(BLen shr 8)+ADataS;
- FComStream.SendString(BDataS);
+ FComStream.SendData(BDataS);
  if RecvByteA(TRUE,BByte)=FALSE then break;
  if BByte<>$00 then break;
  Result:=TRUE;
@@ -622,7 +640,7 @@ Begin
  repeat
  if FComStream=nil then break;
  BDataS:=Chr($80 or ((AAddr shr 8) and $F))+Chr(AAddr and $FF)+Chr(ASize and $FF)+Chr(ASize shr 8);
- FComStream.SendString(BDataS);
+ FComStream.SendData(BDataS);
  if RecvByteA(TRUE,BByte)=FALSE then break;
  if BByte<>$00 then break;
  SetLength(Result,ASize);
@@ -649,7 +667,7 @@ Begin
  if FComStream=nil then break;
  BLen:=Length(ADataS);
  BDataS:=Chr($D0 or ((AAddr shr 8) and $F))+Chr(AAddr and $FF)+Chr(BLen and $FF)+Chr(BLen shr 8)+ADataS;
- FComStream.SendString(BDataS);
+ FComStream.SendData(BDataS);
  BIndex:=0;
  while BIndex<BLen do
   begin
@@ -669,7 +687,7 @@ Var
 Begin
  BLen:=Length(ADataS);
  BDataS:=Chr($D0 or ((AAddr shr 8) and $F))+Chr(AAddr and $FF)+Chr(BLen and $FF)+Chr(BLen shr 8)+ADataS;
- FComStream.SendString(BDataS);
+ FComStream.SendData(BDataS); FlashLogS(BDataS);
 End;
 
 Function TMsProcess.RecvDataOpti ( Var ADataS : string ) : boolean;
@@ -687,11 +705,12 @@ Begin
   inc(BIndex);
   end;
  if BIndex<>Length(ADataS) then break;
+ FlashLogR(ADataS);
  Result:=TRUE;
  until TRUE;
 End;
 
-Function TMsProcess.SendRecvS2 ( AAddr : word; Var ADataSA, ADataSB : string ) : boolean;
+{Function TMsProcess.SendRecvS2 ( AAddr : word; Var ADataSA, ADataSB : string ) : boolean;
 Begin
  Result:=FALSE;
  repeat
@@ -705,7 +724,7 @@ Begin
 
  Result:=TRUE;
  until TRUE;
-End;
+End;}
 
 Function TMsProcess.SendB ( AAddr : word; AData : byte ) : boolean;
 Var
@@ -792,7 +811,9 @@ End;
 
 Function TMsProcess.SendRecvSpi ( Var ADataBin : string ) : boolean;
 Begin
+ FlashLogS(ADataBin);
  Result:=SendRecvS($101,ADataBin);
+ if Result then FlashLogR(ADataBin);
 End;
 
 Procedure TMsProcess.CpuIdWarn ( Const AMessage : string );
@@ -892,6 +913,8 @@ Var
 Begin
  ViewAny('u0');
  BTickHs:=GetTickCount64;
+
+ Priority:=tpHigher;
 
  repeat
  if FMcxActive and (FPlayer=plIss) then RtlEventWaitFor(FProcAnyEvt,10)
@@ -1120,7 +1143,7 @@ Begin
   begin
   BCopySize:=AMemSeg.HwSize-BMemIdx;
   if BCopySize>CBlockSize then BCopySize:=CBlockSize;
-  SetLength(BDataS,BCopySize);
+  BDataS:=''; SetLength(BDataS,BCopySize);
   BCopyIdx:=0;
   while BCopyIdx<BCopySize do
    begin
@@ -1256,8 +1279,14 @@ Begin
    'o': ReadStack(BReadS);
    'u': ViewAny('u'+BReadS); // Echo
    'F': begin
-        if (BReadS<>'') and (BReadS[1]='n') then FpgaReset
+        repeat
+        if BReadS='' then break;
+        case BReadS[1] of
+         'n': FpgaReset;
+         'l': ViewAny('fl'+IntToHex(Cardinal(@FFlashLog),8));
         else FpgaFlashOp(BReadS);
+        end; // case
+        until TRUE;
         end;
    'A': ProcessCmdExt(BReadS);
    else begin
@@ -1587,7 +1616,7 @@ Begin
     end;
   plFpga:
     begin
-    SetLength(BSendData,8*4);
+    BSendData:=''; SetLength(BSendData,8*4);
     Move(FBreakList[0],BSendData[1],8*4);
     if SendS(CDbgBrkListWr,BSendData)=FALSE then break;
     end;
@@ -1953,13 +1982,13 @@ End;
 Procedure TMsProcess.FpgaFlashOp ( Const ASectList : string );
 Var
   BDataBin      : string;
-  BRegData      : byte;
   BSectList     : string;
   BSectThis     : string;
   BCmd          : char;
   BSuccess      : boolean;
   BResetNeeded  : boolean;
 Begin
+ FFlashLog.Clear; FFlashLogKeep:=TRUE;
  repeat
  if FCommState<>csActive then begin ViewAny('feCommunication with the board is not established [R:TMsProcess.FpgaFlashOp]'); break; end;
  case FPlayer of
@@ -1980,7 +2009,7 @@ Begin
      if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot obtain Flash ID [R:TMsProcess.FpgaFlashOp]'); break; end;
      ViewAny('fiDevice Flash ID: '+IntToHex(Ord(BDataBin[2]),2)+IntToHex(Ord(BDataBin[3]),2)+IntToHex(Ord(BDataBin[4]),2)+' [R:TMsProcess.FpgaFlashOp]');
      // Erase Fail flag if set
-     BDataBin:=#$07+#$FF;
+     {BDataBin:=#$07+#$FF;
      if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error [R:TMsProcess.FpgaFlashOp]'); break; end;
      BRegData:=Ord(BDataBin[2]);
      if (BRegData and $60)<>0 then
@@ -1995,7 +2024,7 @@ Begin
       begin
       BDataBin:=#$30;
       SendRecvSpi(BDataBin);
-      end;
+      end;}
      BSectList:=ASectList; if BSectList='' then break;
      BCmd:=BSectList[1]; Delete(BSectList,1,1);
      BResetNeeded:=FALSE;
@@ -2034,6 +2063,7 @@ Begin
      end;
  end;
  until TRUE;
+ FFlashLogKeep:=FALSE;
 End;
 
 Procedure TMsProcess.FpgaReset;
@@ -2154,6 +2184,50 @@ Var
   BDataBinE,
   BDataBinW     : string;
   BRegData      : byte;
+  BRepeat       : Integer;
+Begin
+ Result:=FALSE;
+
+ repeat
+ // Verify flag from previous time: this is somewhat faster
+ BRepeat:=100;
+ Result:=FALSE;
+ while BRepeat>0 do
+  begin
+  BDataBinF:=#$05+#$FF;
+  if SendRecvSpi(BDataBinF)=FALSE then begin ViewAny('feCommunication error (Write block) [R:TMsProcess.ProgramFlashPageGen]'); break; end;
+  BRegData:=Ord(BDataBinF[2]);
+  if (BRegData and $01)=0 then begin Result:=TRUE; break; end;
+  Sleep(1);
+  dec(BRepeat);
+  end;
+ if Result=FALSE then break;
+ Result:=FALSE;
+
+ // Program this page
+ BDataBinE:=#$06;
+ BDataBinW:=
+   #$02+
+   Chr((AAddr shr 16) and $FF)+
+   Chr((AAddr shr 8) and $FF)+
+   Chr(AAddr and $FF)+
+   APageData;
+
+ SendDataOpti($101,BDataBinE);
+ SendDataOpti($101,BDataBinW);
+ if RecvDataOpti(BDataBinE)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
+ if RecvDataOpti(BDataBinW)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
+
+ Result:=TRUE;
+ until TRUE;
+End;
+
+{Function TMsProcess.WriteFlashPageGen ( AAddr : Cardinal; Const APageData : string ) : boolean;
+Var
+  BDataBinF,
+  BDataBinE,
+  BDataBinW     : string;
+  BRegData      : byte;
 Begin
  Result:=FALSE;
  repeat
@@ -2169,14 +2243,14 @@ Begin
  SendDataOpti($101,BDataBinF);
  SendDataOpti($101,BDataBinE);
  SendDataOpti($101,BDataBinW);
- if RecvDataOpti(BDataBinF)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.EraseFlashBlockGen]'); break; end;
- if RecvDataOpti(BDataBinE)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.EraseFlashBlockGen]'); break; end;
- if RecvDataOpti(BDataBinW)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.EraseFlashBlockGen]'); break; end;
+ if RecvDataOpti(BDataBinF)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
+ if RecvDataOpti(BDataBinE)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
+ if RecvDataOpti(BDataBinW)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
 
  BRegData:=Ord(BDataBinF[2]);
  Result:=(BRegData and $01)=0;
  until TRUE;
-End;
+End;}
 
 Function TMsProcess.ReadFlashGen ( AAddr : Cardinal; ASize : Cardinal; Out ADataS : string ) : boolean;
 Var
@@ -2186,7 +2260,7 @@ Begin
  Result:=FALSE; ADataS:='';
 
  repeat
- SetLength(BDataS,ASize+4);
+ BDataS:=''; SetLength(BDataS,ASize+4);
  BDataS[1]:=#$03;
  BDataS[2]:=Chr((AAddr shr 16) and $FF);
  BDataS[3]:=Chr((AAddr shr 8) and $FF);
@@ -2205,7 +2279,7 @@ Var
   BDataS    : string;
   BDataIdx  : Integer;
 Begin
- SetLength(BDataS,ASize+4);
+ BDataS:=''; SetLength(BDataS,ASize+4);
  BDataS[1]:=#$03;
  BDataS[2]:=Chr((AAddr shr 16) and $FF);
  BDataS[3]:=Chr((AAddr shr 8) and $FF);
@@ -2222,7 +2296,7 @@ Begin
  Result:=FALSE; ADataS:='';
 
  repeat
- SetLength(BDataS,ASize+4);
+ BDataS:=''; SetLength(BDataS,ASize+4);
  if RecvDataOpti(BDataS)=FALSE then begin ViewAny('feCommunication error (Read block) [R:TMsProcess.ReadFlashGenR]'); break; end;
  Delete(BDataS,1,4);
  ADataS:=BDataS;
@@ -2614,6 +2688,16 @@ Function TMsProcess.TextDbg : TStringList;
 Begin
  if FBuild=nil then Result:=nil
  else Result:=FBuild.Dbg;
+End;
+
+Procedure TMsProcess.FlashLogS ( Const ADataS : string );
+Begin
+ if FFlashLogKeep then FFlashLog.Append(StrBinToHex(ADataS)+' ->');
+End;
+
+Procedure TMsProcess.FlashLogR ( Const ADataS : string );
+Begin
+ if FFlashLogKeep then FFlashLog.Append(' <- '+StrBinToHex(ADataS));
 End;
 
 {

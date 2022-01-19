@@ -1,0 +1,783 @@
+;@M TestUart
+;@S C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c
+
+        .option nopic                              # 
+        .text                                      # 
+.Ltext0:                                           # 
+        .align  1                                  # 
+        .globl  UartRecvA                          # 
+        .type   UartRecvA, @function               # 
+UartRecvA:                                         # 
+        addi    sp,sp,-20                          # 
+        sw      ra,16(sp)                          # 
+        sw      s0,12(sp)                          # 
+        sw      s1,8(sp)                           # 
+.L9:                                               # 
+        call    UartGetData                        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:20,16]
+        li      a5,85                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:20,34]
+        bne     a0,a5,.L3                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:20,34]
+        lui     a5,%hi(FRecvLen)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:21,18]
+        lbu     s0,%lo(FRecvLen)(a5)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:21,18]
+        andi    a5,s0,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:21,18]
+        sw      a5,0(sp)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:21,18]
+        call    UartGetData                        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:23,16]
+        li      a5,255                             # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:23,34]
+        bgtu    a0,a5,.L3                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:23,34]
+        andi    s0,a0,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:24,10]
+        mv      s1,s0                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:24,10]
+        li      a4,0                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:27,6]
+.L5:                                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:27,6]
+        andi    a2,a4,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:27,6]
+        bgtu    s0,a2,.L7                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:27,6]
+        call    UartGetData                        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:36,16]
+        li      a4,255                             # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:36,34]
+        bgtu    a0,a4,.L3                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:36,34]
+        bne     s1,a0,.L3                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:37,9]
+        lw      a5,0(sp)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:38,9]
+        bne     a5,zero,.L3                        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:38,9]
+        lui     a5,%hi(FRecvLen)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:39,14]
+        sb      s0,%lo(FRecvLen)(a5)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:39,14]
+.L3:                                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:39,14]
+        lui     a5,%hi(FUartActive)                # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:45,11]
+        lbu     a5,%lo(FUartActive)(a5)            # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:45,3]
+        bne     a5,zero,.L9                        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:45,3]
+        lw      ra,16(sp)                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:46,1]
+        lw      s0,12(sp)                          # 
+        lw      s1,8(sp)                           # 
+        addi    sp,sp,20                           # 
+        jr      ra                                 # 
+.L7:                                               # 
+        sw      a4,4(sp)                           # 
+        call    UartGetData                        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:29,18]
+        li      a2,255                             # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:29,36]
+        bgtu    a0,a2,.L3                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:29,36]
+        lw      a5,0(sp)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:32,11]
+        andi    a0,a0,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:30,13]
+        add     a3,s1,a0                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:31,12]
+        lw      a4,4(sp)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:32,11]
+        andi    s1,a3,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:31,12]
+        lui     a1,%hi(.LANCHOR0)                  # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:32,11]
+        bne     a5,zero,.L6                        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:32,11]
+        addi    a2,a1,%lo(.LANCHOR0)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:32,39]
+        add     a2,a2,a4                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:32,39]
+        sb      a0,0(a2)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:32,39]
+.L6:                                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:32,39]
+        addi    a4,a4,1                            # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:27,34]
+        j       .L5                                # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:27,34]
+        .size   UartRecvA, .-UartRecvA             # 
+        .align  1                                  # 
+        .globl  UartRecvB                          # 
+        .type   UartRecvB, @function               # 
+UartRecvB:                                         # 
+        addi    sp,sp,-12                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:59,1]
+        sw      ra,8(sp)                           # 
+        call    UartGetData                        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:66,14]
+        li      a5,255                             # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:67,7]
+        lui     a4,%hi(FState)                     # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:67,7]
+        bleu    a0,a5,.L17                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:67,7]
+.L38:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:67,7]
+        sb      zero,%lo(FState)(a4)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:104,14]
+        j       .L16                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:107,1]
+.L17:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:107,1]
+        lbu     a5,%lo(FState)(a4)                 # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:69,4]
+        li      a3,2                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:69,4]
+        andi    a5,a5,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:69,4]
+        beq     a5,a3,.L19                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:69,4]
+        bgtu    a5,a3,.L20                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:69,4]
+        bne     a5,zero,.L37                       # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:69,4]
+        li      a5,85                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:72,11]
+        bne     a0,a5,.L16                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:72,11]
+        li      a5,1                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:73,14]
+.L40:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:73,14]
+        sb      a5,%lo(FState)(a4)                 # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,34]
+        j       .L16                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,34]
+.L20:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,34]
+        li      a3,3                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:69,4]
+        bne     a5,a3,.L38                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:69,4]
+        sb      zero,%lo(FState)(a4)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:96,14]
+        lui     a5,%hi(FWorkSaveData)              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:97,25]
+        lbu     a5,%lo(FWorkSaveData)(a5)          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:97,25]
+        andi    a5,a5,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:97,25]
+        beq     a5,zero,.L16                       # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:97,11]
+        lui     a5,%hi(FWorkSum)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:99,17]
+        lbu     a5,%lo(FWorkSum)(a5)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:99,17]
+        andi    a0,a0,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:99,11]
+        andi    a5,a5,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:99,17]
+        bne     a5,a0,.L16                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:99,11]
+        lui     a5,%hi(FWorkLen)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:100,16]
+        lbu     a5,%lo(FWorkLen)(a5)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:100,16]
+        lui     a4,%hi(FRecvLen)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:100,16]
+        andi    a5,a5,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:100,16]
+        sb      a5,%lo(FRecvLen)(a4)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:100,16]
+        j       .L16                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:101,8]
+.L37:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:101,8]
+        lui     a5,%hi(FWorkLen)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:78,16]
+        andi    a3,a0,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:77,12]
+        sb      a3,%lo(FWorkLen)(a5)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:78,16]
+        lui     a5,%hi(FRecvLen)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,20]
+        lbu     a5,%lo(FRecvLen)(a5)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,20]
+        lui     a2,%hi(FWorkSaveData)              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,20]
+        andi    a5,a5,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,20]
+        bne     a5,zero,.L26                       # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,11]
+        li      a5,1                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,38]
+        sb      a5,%lo(FWorkSaveData)(a2)          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,38]
+.L27:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,38]
+        lui     a5,%hi(FWorkSum)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:80,16]
+        sb      a3,%lo(FWorkSum)(a5)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:80,16]
+        lui     a5,%hi(FWorkIdx)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:81,16]
+        sb      zero,%lo(FWorkIdx)(a5)             # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:81,16]
+        li      a5,2                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:82,47]
+        bne     a0,zero,.L40                       # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:82,11]
+.L41:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:82,11]
+        li      a5,3                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,34]
+        j       .L40                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,34]
+.L26:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,34]
+        sb      zero,%lo(FWorkSaveData)(a2)        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,60]
+        j       .L27                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,60]
+.L19:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:79,60]
+        lui     a2,%hi(FWorkIdx)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:87,12]
+        lui     a3,%hi(FWorkSaveData)              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:88,12]
+        lbu     a5,%lo(FWorkIdx)(a2)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:87,12]
+        lbu     a3,%lo(FWorkSaveData)(a3)          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:88,12]
+        andi    a0,a0,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:86,13]
+        andi    a5,a5,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:87,12]
+        andi    a3,a3,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:88,12]
+        beq     a3,zero,.L29                       # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:88,11]
+        lui     a3,%hi(.LANCHOR0)                  # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:88,41]
+        addi    a3,a3,%lo(.LANCHOR0)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:88,41]
+        add     a3,a3,a5                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:88,41]
+        sb      a0,0(a3)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:88,41]
+.L29:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:88,41]
+        lui     a3,%hi(FWorkSum)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:90,16]
+        lbu     a1,%lo(FWorkSum)(a3)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:90,16]
+        addi    a5,a5,1                            # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:89,12]
+        andi    a5,a5,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:89,12]
+        add     a0,a0,a1                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:90,16]
+        andi    a0,a0,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:90,16]
+        sb      a0,%lo(FWorkSum)(a3)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:90,16]
+        sb      a5,%lo(FWorkIdx)(a2)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:91,16]
+        lui     a3,%hi(FWorkLen)                   # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,16]
+        lbu     a3,%lo(FWorkLen)(a3)               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,16]
+        andi    a3,a3,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,16]
+        bleu    a3,a5,.L41                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,11]
+.L16:                                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:92,11]
+        lw      ra,8(sp)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Test\TestUart.c][SrcPos:107,1]
+        addi    sp,sp,12                           # 
+        jr      ra                                 # 
+        .size   UartRecvB, .-UartRecvB             # 
+        .globl  FWorkSaveData                      # 
+        .globl  FWorkSum                           # 
+        .globl  FWorkIdx                           # 
+        .globl  FWorkLen                           # 
+        .globl  FState                             # 
+        .globl  FUartActive                        # 
+        .globl  FRecvBuf                           # 
+        .globl  FRecvLen                           # 
+        .bss                                       # 
+        .align  2                                  # 
+        .set    .LANCHOR0,. + 0                    # 
+        .type   FRecvBuf, @object                  # 
+        .size   FRecvBuf, 256                      # 
+FRecvBuf:                                          # 
+        .zero   256                                # 
+        .section        .sbss,"aw",@nobits         # 
+        .type   FWorkSaveData, @object             # 
+        .size   FWorkSaveData, 1                   # 
+FWorkSaveData:                                     # 
+        .zero   1                                  # 
+        .type   FWorkSum, @object                  # 
+        .size   FWorkSum, 1                        # 
+FWorkSum:                                          # 
+        .zero   1                                  # 
+        .type   FWorkIdx, @object                  # 
+        .size   FWorkIdx, 1                        # 
+FWorkIdx:                                          # 
+        .zero   1                                  # 
+        .type   FWorkLen, @object                  # 
+        .size   FWorkLen, 1                        # 
+FWorkLen:                                          # 
+        .zero   1                                  # 
+        .type   FState, @object                    # 
+        .size   FState, 1                          # 
+FState:                                            # 
+        .zero   1                                  # 
+        .type   FUartActive, @object               # 
+        .size   FUartActive, 1                     # 
+FUartActive:                                       # 
+        .zero   1                                  # 
+        .type   FRecvLen, @object                  # 
+        .size   FRecvLen, 1                        # 
+FRecvLen:                                          # 
+        .zero   1                                  # 
+        .text                                      # 
+.Letext0:                                          # 
+        .section        .debug_info,"",@progbits   # 
+.Ldebug_info0:                                     # 
+        .4byte  0x1e1                              # 
+        .2byte  0x4                                # 
+        .4byte  .Ldebug_abbrev0                    # 
+        .byte   0x4                                # 
+        .byte   0x1                                # 
+        .4byte  .LASF20                            # 
+        .byte   0xc                                # 
+        .4byte  .LASF21                            # 
+        .4byte  .LASF22                            # 
+        .4byte  .Ltext0                            # 
+        .4byte  .Letext0-.Ltext0                   # 
+        .4byte  .Ldebug_line0                      # 
+        .byte   0x2                                # 
+        .4byte  .LASF2                             # 
+        .byte   0x1                                # 
+        .byte   0x1                                # 
+        .byte   0x18                               # 
+        .4byte  0x3e                               # 
+        .byte   0x5                                # 
+        .byte   0x3                                # 
+        .4byte  FRecvLen                           # 
+        .byte   0x3                                # 
+        .byte   0x1                                # 
+        .byte   0x8                                # 
+        .4byte  .LASF0                             # 
+        .byte   0x4                                # 
+        .4byte  0x37                               # 
+        .byte   0x5                                # 
+        .4byte  0x37                               # 
+        .4byte  0x53                               # 
+        .byte   0x6                                # 
+        .4byte  0x53                               # 
+        .byte   0xff                               # 
+        .byte   0                                  # 
+        .byte   0x3                                # 
+        .byte   0x4                                # 
+        .byte   0x7                                # 
+        .4byte  .LASF1                             # 
+        .byte   0x2                                # 
+        .4byte  .LASF3                             # 
+        .byte   0x1                                # 
+        .byte   0x2                                # 
+        .byte   0xf                                # 
+        .4byte  0x43                               # 
+        .byte   0x5                                # 
+        .byte   0x3                                # 
+        .4byte  FRecvBuf                           # 
+        .byte   0x2                                # 
+        .4byte  .LASF4                             # 
+        .byte   0x1                                # 
+        .byte   0x6                                # 
+        .byte   0xf                                # 
+        .4byte  0x37                               # 
+        .byte   0x5                                # 
+        .byte   0x3                                # 
+        .4byte  FUartActive                        # 
+        .byte   0x2                                # 
+        .4byte  .LASF5                             # 
+        .byte   0x1                                # 
+        .byte   0x36                               # 
+        .byte   0x18                               # 
+        .4byte  0x3e                               # 
+        .byte   0x5                                # 
+        .byte   0x3                                # 
+        .4byte  FState                             # 
+        .byte   0x2                                # 
+        .4byte  .LASF6                             # 
+        .byte   0x1                                # 
+        .byte   0x37                               # 
+        .byte   0x18                               # 
+        .4byte  0x3e                               # 
+        .byte   0x5                                # 
+        .byte   0x3                                # 
+        .4byte  FWorkLen                           # 
+        .byte   0x2                                # 
+        .4byte  .LASF7                             # 
+        .byte   0x1                                # 
+        .byte   0x37                               # 
+        .byte   0x22                               # 
+        .4byte  0x3e                               # 
+        .byte   0x5                                # 
+        .byte   0x3                                # 
+        .4byte  FWorkIdx                           # 
+        .byte   0x2                                # 
+        .4byte  .LASF8                             # 
+        .byte   0x1                                # 
+        .byte   0x37                               # 
+        .byte   0x2c                               # 
+        .4byte  0x3e                               # 
+        .byte   0x5                                # 
+        .byte   0x3                                # 
+        .4byte  FWorkSum                           # 
+        .byte   0x2                                # 
+        .4byte  .LASF9                             # 
+        .byte   0x1                                # 
+        .byte   0x38                               # 
+        .byte   0x18                               # 
+        .4byte  0x3e                               # 
+        .byte   0x5                                # 
+        .byte   0x3                                # 
+        .4byte  FWorkSaveData                      # 
+        .byte   0x7                                # 
+        .4byte  .LASF15                            # 
+        .byte   0x1                                # 
+        .byte   0x3a                               # 
+        .byte   0x6                                # 
+        .4byte  .LFB1                              # 
+        .4byte  .LFE1-.LFB1                        # 
+        .byte   0x1                                # 
+        .byte   0x9c                               # 
+        .4byte  0x138                              # 
+        .byte   0x8                                # 
+        .4byte  .LASF10                            # 
+        .byte   0x1                                # 
+        .byte   0x3c                               # 
+        .byte   0x11                               # 
+        .4byte  0x138                              # 
+        .4byte  .LLST5                             # 
+        .byte   0x8                                # 
+        .4byte  .LASF11                            # 
+        .byte   0x1                                # 
+        .byte   0x3d                               # 
+        .byte   0x10                               # 
+        .4byte  0x37                               # 
+        .4byte  .LLST6                             # 
+        .byte   0x8                                # 
+        .4byte  .LASF12                            # 
+        .byte   0x1                                # 
+        .byte   0x3d                               # 
+        .byte   0x16                               # 
+        .4byte  0x37                               # 
+        .4byte  .LLST7                             # 
+        .byte   0x8                                # 
+        .4byte  .LASF13                            # 
+        .byte   0x1                                # 
+        .byte   0x3e                               # 
+        .byte   0x10                               # 
+        .4byte  0x37                               # 
+        .4byte  .LLST8                             # 
+        .byte   0x9                                # 
+        .4byte  .LVL13                             # 
+        .4byte  0x1d8                              # 
+        .byte   0                                  # 
+        .byte   0x3                                # 
+        .byte   0x2                                # 
+        .byte   0x7                                # 
+        .4byte  .LASF14                            # 
+        .byte   0x7                                # 
+        .4byte  .LASF16                            # 
+        .byte   0x1                                # 
+        .byte   0x8                                # 
+        .byte   0x6                                # 
+        .4byte  .LFB0                              # 
+        .4byte  .LFE0-.LFB0                        # 
+        .byte   0x1                                # 
+        .byte   0x9c                               # 
+        .4byte  0x1d8                              # 
+        .byte   0x8                                # 
+        .4byte  .LASF10                            # 
+        .byte   0x1                                # 
+        .byte   0xa                                # 
+        .byte   0x11                               # 
+        .4byte  0x138                              # 
+        .4byte  .LLST0                             # 
+        .byte   0x8                                # 
+        .4byte  .LASF11                            # 
+        .byte   0x1                                # 
+        .byte   0xb                                # 
+        .byte   0x10                               # 
+        .4byte  0x37                               # 
+        .4byte  .LLST1                             # 
+        .byte   0xa                                # 
+        .4byte  .LASF13                            # 
+        .byte   0x1                                # 
+        .byte   0xb                                # 
+        .byte   0x16                               # 
+        .4byte  0x37                               # 
+        .byte   0x1                                # 
+        .byte   0x5a                               # 
+        .byte   0x8                                # 
+        .4byte  .LASF17                            # 
+        .byte   0x1                                # 
+        .byte   0xb                                # 
+        .byte   0x1d                               # 
+        .4byte  0x37                               # 
+        .4byte  .LLST2                             # 
+        .byte   0x8                                # 
+        .4byte  .LASF18                            # 
+        .byte   0x1                                # 
+        .byte   0xc                                # 
+        .byte   0x10                               # 
+        .4byte  0x37                               # 
+        .4byte  .LLST3                             # 
+        .byte   0x8                                # 
+        .4byte  .LASF19                            # 
+        .byte   0x1                                # 
+        .byte   0xd                                # 
+        .byte   0x10                               # 
+        .4byte  0x37                               # 
+        .4byte  .LLST4                             # 
+        .byte   0x9                                # 
+        .4byte  .LVL0                              # 
+        .4byte  0x1d8                              # 
+        .byte   0x9                                # 
+        .4byte  .LVL2                              # 
+        .4byte  0x1d8                              # 
+        .byte   0x9                                # 
+        .4byte  .LVL5                              # 
+        .4byte  0x1d8                              # 
+        .byte   0x9                                # 
+        .4byte  .LVL8                              # 
+        .4byte  0x1d8                              # 
+        .byte   0                                  # 
+        .byte   0xb                                # 
+        .4byte  .LASF23                            # 
+        .4byte  .LASF23                            # 
+        .byte   0x1                                # 
+        .byte   0x4                                # 
+        .byte   0x10                               # 
+        .byte   0                                  # 
+        .section        .debug_abbrev,"",@progbits # 
+.Ldebug_abbrev0:                                   # 
+        .byte   0x1                                # 
+        .byte   0x11                               # 
+        .byte   0x1                                # 
+        .byte   0x25                               # 
+        .byte   0xe                                # 
+        .byte   0x13                               # 
+        .byte   0xb                                # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x1b                               # 
+        .byte   0xe                                # 
+        .byte   0x11                               # 
+        .byte   0x1                                # 
+        .byte   0x12                               # 
+        .byte   0x6                                # 
+        .byte   0x10                               # 
+        .byte   0x17                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x2                                # 
+        .byte   0x34                               # 
+        .byte   0                                  # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x3a                               # 
+        .byte   0xb                                # 
+        .byte   0x3b                               # 
+        .byte   0xb                                # 
+        .byte   0x39                               # 
+        .byte   0xb                                # 
+        .byte   0x49                               # 
+        .byte   0x13                               # 
+        .byte   0x3f                               # 
+        .byte   0x19                               # 
+        .byte   0x2                                # 
+        .byte   0x18                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x3                                # 
+        .byte   0x24                               # 
+        .byte   0                                  # 
+        .byte   0xb                                # 
+        .byte   0xb                                # 
+        .byte   0x3e                               # 
+        .byte   0xb                                # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x4                                # 
+        .byte   0x35                               # 
+        .byte   0                                  # 
+        .byte   0x49                               # 
+        .byte   0x13                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x5                                # 
+        .byte   0x1                                # 
+        .byte   0x1                                # 
+        .byte   0x49                               # 
+        .byte   0x13                               # 
+        .byte   0x1                                # 
+        .byte   0x13                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x6                                # 
+        .byte   0x21                               # 
+        .byte   0                                  # 
+        .byte   0x49                               # 
+        .byte   0x13                               # 
+        .byte   0x2f                               # 
+        .byte   0xb                                # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x7                                # 
+        .byte   0x2e                               # 
+        .byte   0x1                                # 
+        .byte   0x3f                               # 
+        .byte   0x19                               # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x3a                               # 
+        .byte   0xb                                # 
+        .byte   0x3b                               # 
+        .byte   0xb                                # 
+        .byte   0x39                               # 
+        .byte   0xb                                # 
+        .byte   0x27                               # 
+        .byte   0x19                               # 
+        .byte   0x11                               # 
+        .byte   0x1                                # 
+        .byte   0x12                               # 
+        .byte   0x6                                # 
+        .byte   0x40                               # 
+        .byte   0x18                               # 
+        .byte   0x97,0x42                          # 
+        .byte   0x19                               # 
+        .byte   0x1                                # 
+        .byte   0x13                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x8                                # 
+        .byte   0x34                               # 
+        .byte   0                                  # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x3a                               # 
+        .byte   0xb                                # 
+        .byte   0x3b                               # 
+        .byte   0xb                                # 
+        .byte   0x39                               # 
+        .byte   0xb                                # 
+        .byte   0x49                               # 
+        .byte   0x13                               # 
+        .byte   0x2                                # 
+        .byte   0x17                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x9                                # 
+        .byte   0x89,0x82,0x1                      # 
+        .byte   0                                  # 
+        .byte   0x11                               # 
+        .byte   0x1                                # 
+        .byte   0x31                               # 
+        .byte   0x13                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0xa                                # 
+        .byte   0x34                               # 
+        .byte   0                                  # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x3a                               # 
+        .byte   0xb                                # 
+        .byte   0x3b                               # 
+        .byte   0xb                                # 
+        .byte   0x39                               # 
+        .byte   0xb                                # 
+        .byte   0x49                               # 
+        .byte   0x13                               # 
+        .byte   0x2                                # 
+        .byte   0x18                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0xb                                # 
+        .byte   0x2e                               # 
+        .byte   0                                  # 
+        .byte   0x3f                               # 
+        .byte   0x19                               # 
+        .byte   0x3c                               # 
+        .byte   0x19                               # 
+        .byte   0x6e                               # 
+        .byte   0xe                                # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x3a                               # 
+        .byte   0xb                                # 
+        .byte   0x3b                               # 
+        .byte   0xb                                # 
+        .byte   0x39                               # 
+        .byte   0xb                                # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .section        .debug_loc,"",@progbits    # 
+.Ldebug_loc0:                                      # 
+        .4byte  .LVL13-.Ltext0                     # 
+        .4byte  .LVL14-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  .LVL15-.Ltext0                     # 
+        .4byte  .LVL17-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  .LVL18-.Ltext0                     # 
+        .4byte  .LVL20-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  .LVL21-.Ltext0                     # 
+        .4byte  .LVL23-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .4byte  .LVL19-.Ltext0                     # 
+        .4byte  .LVL20-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5d                               # 
+        .4byte  .LVL21-.Ltext0                     # 
+        .4byte  .LVL22-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5d                               # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .4byte  .LVL24-.Ltext0                     # 
+        .4byte  .LVL25-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5f                               # 
+        .4byte  .LVL25-.Ltext0                     # 
+        .4byte  .LVL26-.Ltext0                     # 
+        .2byte  0x3                                # 
+        .byte   0x7f                               # 
+        .byte   0x7f                               # 
+        .byte   0x9f                               # 
+        .4byte  .LVL26-.Ltext0                     # 
+        .4byte  .LVL28-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5f                               # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .4byte  .LVL16-.Ltext0                     # 
+        .4byte  .LVL18-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  .LVL23-.Ltext0                     # 
+        .4byte  .LVL27-.Ltext0                     # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .4byte  .LVL0-.Ltext0                      # 
+        .4byte  .LVL2-1-.Ltext0                    # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  .LVL2-.Ltext0                      # 
+        .4byte  .LVL4-.Ltext0                      # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  .LVL5-.Ltext0                      # 
+        .4byte  .LVL7-.Ltext0                      # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  .LVL8-.Ltext0                      # 
+        .4byte  .LVL9-.Ltext0                      # 
+        .2byte  0x1                                # 
+        .byte   0x5a                               # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .4byte  .LVL3-.Ltext0                      # 
+        .4byte  .LVL6-.Ltext0                      # 
+        .2byte  0x1                                # 
+        .byte   0x58                               # 
+        .4byte  .LVL7-.Ltext0                      # 
+        .4byte  .LFE0-.Ltext0                      # 
+        .2byte  0x1                                # 
+        .byte   0x58                               # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .4byte  .LVL3-.Ltext0                      # 
+        .4byte  .LVL4-.Ltext0                      # 
+        .2byte  0x1                                # 
+        .byte   0x58                               # 
+        .4byte  .LVL4-.Ltext0                      # 
+        .4byte  .LVL6-.Ltext0                      # 
+        .2byte  0x1                                # 
+        .byte   0x59                               # 
+        .4byte  .LVL7-.Ltext0                      # 
+        .4byte  .LFE0-.Ltext0                      # 
+        .2byte  0x1                                # 
+        .byte   0x59                               # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .4byte  .LVL3-.Ltext0                      # 
+        .4byte  .LVL4-.Ltext0                      # 
+        .2byte  0x2                                # 
+        .byte   0x30                               # 
+        .byte   0x9f                               # 
+        .4byte  .LVL4-.Ltext0                      # 
+        .4byte  .LVL5-1-.Ltext0                    # 
+        .2byte  0x1                                # 
+        .byte   0x5e                               # 
+        .4byte  .LVL7-.Ltext0                      # 
+        .4byte  .LVL8-1-.Ltext0                    # 
+        .2byte  0x1                                # 
+        .byte   0x5e                               # 
+        .4byte  .LVL11-.Ltext0                     # 
+        .4byte  .LVL12-.Ltext0                     # 
+        .2byte  0x3                                # 
+        .byte   0x7e                               # 
+        .byte   0x1                                # 
+        .byte   0x9f                               # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .4byte  .LVL1-.Ltext0                      # 
+        .4byte  .LVL6-.Ltext0                      # 
+        .2byte  0x7                                # 
+        .byte   0x72                               # 
+        .byte   0                                  # 
+        .byte   0x94                               # 
+        .byte   0x1                                # 
+        .byte   0x30                               # 
+        .byte   0x29                               # 
+        .byte   0x9f                               # 
+        .4byte  .LVL7-.Ltext0                      # 
+        .4byte  .LFE0-.Ltext0                      # 
+        .2byte  0x7                                # 
+        .byte   0x72                               # 
+        .byte   0                                  # 
+        .byte   0x94                               # 
+        .byte   0x1                                # 
+        .byte   0x30                               # 
+        .byte   0x29                               # 
+        .byte   0x9f                               # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .section        .debug_aranges,"",@progbits # 
+        .4byte  0x1c                               # 
+        .2byte  0x2                                # 
+        .4byte  .Ldebug_info0                      # 
+        .byte   0x4                                # 
+        .byte   0                                  # 
+        .2byte  0                                  # 
+        .2byte  0                                  # 
+        .4byte  .Ltext0                            # 
+        .4byte  .Letext0-.Ltext0                   # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .section        .debug_line,"",@progbits   # 
+.Ldebug_line0:                                     # 
+        .section        .debug_str,"MS",@progbits,1 # 
+        .string "FWorkLen"                         # 
+        .string "short unsigned int"               # 
+        .string "unsigned int"                     # 
+        .string "BData"                            # 
+        .string "BSum"                             # 
+        .string "FRecvLen"                         # 
+        .string "C:\\ZukH\\Projects\\Mirabelle\\Examples\\MsaBasic_V5\\FW\\Out" # 
+        .string "FWorkSaveData"                    # 
+        .string "C:\\ZukH\\Projects\\Mirabelle\\Examples\\MsaBasic_V5\\FW\\Test\\TestUart.c" # 
+        .string "BLen"                             # 
+        .string "unsigned char"                    # 
+        .string "BIndex"                           # 
+        .string "UartRecvA"                        # 
+        .string "UartRecvB"                        # 
+        .string "FState"                           # 
+        .string "GNU C99 10.2.0 -march=rv32emac -mabi=ilp32e -march=rv32emac -g -Os -std=gnu99 -fno-inline" # 
+        .string "BUartData"                        # 
+        .string "FWorkSum"                         # 
+        .string "FRecvBuf"                         # 
+        .string "BIdx"                             # 
+        .string "FUartActive"                      # 
+        .string "UartGetData"                      # 
+        .string "BSaveData"                        # 
+        .string "FWorkIdx"                         # 
+        .ident  "GCC: (xPack GNU RISC-V Embedded GCC x86_64) 10.2.0" # 
+

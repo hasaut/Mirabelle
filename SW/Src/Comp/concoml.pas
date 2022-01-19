@@ -60,6 +60,7 @@ Function HexToByteCheck ( Const AStr : string; Out AData : Byte ) : boolean;
 Function HexToWordCheck ( Const AStr : string; Out AData : Word ) : boolean;
 Function HexToDWordCheck ( Const AStr : string; Out AData : Cardinal ) : boolean;
 Function HexToQWordCheck ( Const AStr : string; Out AData : QWord ) : boolean;
+Function Bin2ToByteCheck ( Const AStr : string; Out AData : Byte ) : boolean;
 Function StringToCardinal ( Const AStr : string; Var AData : Cardinal ) : boolean;
 Function CardinalToString ( AData : Cardinal ) : string;
 Function BinToInt ( Const AStr : string; Out AData : Cardinal ) : boolean;
@@ -974,6 +975,40 @@ Begin
   inc(i);
   end;
  if i<>BLength then break;
+
+ AData:=BData;
+ Result:=TRUE;
+ until TRUE;
+End;
+
+Function Bin2ToByteCheck ( Const AStr : string; Out AData : byte ) : boolean;
+Var
+  BStr          : string;
+  BIndex        : Integer;
+  BChar         : char;
+  BData         : byte;
+  BLength       : Integer;
+Begin
+ Result:=FALSE;
+ BStr:=AStr;
+ AData:=0;
+ repeat
+ if BStr='' then break;
+ BLength:=Length(BStr);
+ if BLength>8 then break;
+ while BLength<>8 do begin BStr:='0'+BStr; inc(BLength); end;
+
+ BData:=0;
+ BIndex:=0;
+ while BIndex<BLength do
+  begin
+  BChar:=BStr[1+BIndex];
+  if BChar in ['0'..'1'] then
+  else break;
+  BData:=(BData shl 1) + (Ord(BChar)-Ord('0'));
+  inc(BIndex);
+  end;
+ if BIndex<>BLength then break;
 
  AData:=BData;
  Result:=TRUE;

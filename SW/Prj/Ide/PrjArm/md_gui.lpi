@@ -47,8 +47,8 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../Src;../Lib;../Frames;../../../Src/MirLib;../../../Src/Board;../../../Src/Build;../../../Src/Model;../../../Src/Comp;../../../Src/Comp/Lin;../../../../../../../../ZukHL/Synapse/source/lib"/>
-      <UnitOutputDirectory Value="/home/pi/ZukHL/Projects/Mirabelle/UtilM/Out/$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="../Src;../Lib;../Frames;../../../Src/MirLib;../../../Src/Board;../../../Src/Build;../../../Src/Model;../../../Src/Comp;../../../Src/Comp/Arm"/>
+      <UnitOutputDirectory Value="../../../Out/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
       <Debugging>

@@ -1,0 +1,43 @@
+.globl ProcMainC
+.globl FRegsMainC
+.globl WDResetRV
+
+.data
+        .Align 8
+FRegsMainC:
+        dd 0 dup(20)
+
+
+        dd 0 dup(16)
+FStack:
+
+
+.text
+ProcMainC:
+        lui     t0,%hi(FStack)
+        addi    sp,t0,%lo(FStack)
+
+    pmcSwtTest:
+
+        li      t0,130
+    pmcWait:
+        addi    t0,t0,-1
+        bne     t0,zero,pmcWait
+
+        addi    sp,sp,-12
+        addi    sp,sp,12
+
+        addi    t1,t0,0x10
+        addi    t1,t1,0x02
+
+        call    MainC
+
+    prLoop:
+        swt     pmcSwtTest
+
+
+WDResetRV:
+        swt     wdrrRet
+   wdrrRet:
+        ret
+

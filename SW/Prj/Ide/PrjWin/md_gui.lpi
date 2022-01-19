@@ -107,11 +107,12 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\Src;..\Lib;..\Frames;..\..\..\Src\Model;..\..\..\Src\Board;..\..\..\Src\Build;..\..\..\Src\MirLib;..\..\..\Src\Comp;..\..\..\Src\Comp\Win;..\..\..\Ext\Synapse\source\lib"/>
+      <OtherUnitFiles Value="..\Src;..\Lib;..\Frames;..\..\..\Src\Model;..\..\..\Src\Board;..\..\..\Src\Build;..\..\..\Src\MirLib;..\..\..\Src\Comp;..\..\..\Src\Comp\Win"/>
       <UnitOutputDirectory Value="..\..\..\Out\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
       <Debugging>
+        <GenerateDebugInfo Value="False"/>
         <DebugInfoType Value="dsDwarf2Set"/>
       </Debugging>
       <Options>

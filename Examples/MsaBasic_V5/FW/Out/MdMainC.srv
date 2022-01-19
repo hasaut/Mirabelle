@@ -1,0 +1,220 @@
+;@M MdMainC
+;@S C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c
+
+        .option nopic                              # 
+        .text                                      # 
+.Ltext0:                                           # 
+        .align  1                                  # 
+        .globl  MainC                              # 
+        .type   MainC, @function                   # 
+MainC:                                             # 
+        addi    sp,sp,-12                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:6,1]
+        lui     a5,%hi(FActive)                    # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:7,9]
+        li      a4,1                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:7,9]
+        sw      s0,4(sp)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:6,1]
+        sw      ra,8(sp)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:6,1]
+        sb      a4,%lo(FActive)(a5)                # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:7,9]
+        mv      s0,a5                              # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:7,9]
+.L2:                                               # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:7,9]
+        call    WDResetRV                          # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:10,4]
+        lbu     a5,%lo(FActive)(s0)                # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:11,11]
+        andi    a5,a5,0xff                         # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:11,11]
+        bne     a5,zero,.L2                        # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:11,3]
+        lw      ra,8(sp)                           # [SrcFile:C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Src\MdMainC.c][SrcPos:12,1]
+        lw      s0,4(sp)                           # 
+        addi    sp,sp,12                           # 
+        jr      ra                                 # 
+        .size   MainC, .-MainC                     # 
+        .section        .sbss,"aw",@nobits         # 
+        .type   FActive, @object                   # 
+        .size   FActive, 1                         # 
+FActive:                                           # 
+        .zero   1                                  # 
+        .text                                      # 
+.Letext0:                                          # 
+        .section        .debug_info,"",@progbits   # 
+.Ldebug_info0:                                     # 
+        .4byte  0x6c                               # 
+        .2byte  0x4                                # 
+        .4byte  .Ldebug_abbrev0                    # 
+        .byte   0x4                                # 
+        .byte   0x1                                # 
+        .4byte  .LASF0                             # 
+        .byte   0xc                                # 
+        .4byte  .LASF1                             # 
+        .4byte  .LASF2                             # 
+        .4byte  .Ltext0                            # 
+        .4byte  .Letext0-.Ltext0                   # 
+        .4byte  .Ldebug_line0                      # 
+        .byte   0x2                                # 
+        .4byte  .LASF3                             # 
+        .byte   0x1                                # 
+        .byte   0x1                                # 
+        .byte   0x1f                               # 
+        .4byte  0x3e                               # 
+        .byte   0x5                                # 
+        .byte   0x3                                # 
+        .4byte  FActive                            # 
+        .byte   0x3                                # 
+        .byte   0x1                                # 
+        .byte   0x8                                # 
+        .4byte  .LASF4                             # 
+        .byte   0x4                                # 
+        .4byte  0x37                               # 
+        .byte   0x5                                # 
+        .4byte  .LASF5                             # 
+        .byte   0x1                                # 
+        .byte   0x5                                # 
+        .byte   0x6                                # 
+        .4byte  .LFB0                              # 
+        .4byte  .LFE0-.LFB0                        # 
+        .byte   0x1                                # 
+        .byte   0x9c                               # 
+        .4byte  0x63                               # 
+        .byte   0x6                                # 
+        .4byte  .LVL0                              # 
+        .4byte  0x63                               # 
+        .byte   0                                  # 
+        .byte   0x7                                # 
+        .4byte  .LASF6                             # 
+        .4byte  .LASF6                             # 
+        .byte   0x1                                # 
+        .byte   0x3                                # 
+        .byte   0x6                                # 
+        .byte   0                                  # 
+        .section        .debug_abbrev,"",@progbits # 
+.Ldebug_abbrev0:                                   # 
+        .byte   0x1                                # 
+        .byte   0x11                               # 
+        .byte   0x1                                # 
+        .byte   0x25                               # 
+        .byte   0xe                                # 
+        .byte   0x13                               # 
+        .byte   0xb                                # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x1b                               # 
+        .byte   0xe                                # 
+        .byte   0x11                               # 
+        .byte   0x1                                # 
+        .byte   0x12                               # 
+        .byte   0x6                                # 
+        .byte   0x10                               # 
+        .byte   0x17                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x2                                # 
+        .byte   0x34                               # 
+        .byte   0                                  # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x3a                               # 
+        .byte   0xb                                # 
+        .byte   0x3b                               # 
+        .byte   0xb                                # 
+        .byte   0x39                               # 
+        .byte   0xb                                # 
+        .byte   0x49                               # 
+        .byte   0x13                               # 
+        .byte   0x2                                # 
+        .byte   0x18                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x3                                # 
+        .byte   0x24                               # 
+        .byte   0                                  # 
+        .byte   0xb                                # 
+        .byte   0xb                                # 
+        .byte   0x3e                               # 
+        .byte   0xb                                # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x4                                # 
+        .byte   0x35                               # 
+        .byte   0                                  # 
+        .byte   0x49                               # 
+        .byte   0x13                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x5                                # 
+        .byte   0x2e                               # 
+        .byte   0x1                                # 
+        .byte   0x3f                               # 
+        .byte   0x19                               # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x3a                               # 
+        .byte   0xb                                # 
+        .byte   0x3b                               # 
+        .byte   0xb                                # 
+        .byte   0x39                               # 
+        .byte   0xb                                # 
+        .byte   0x27                               # 
+        .byte   0x19                               # 
+        .byte   0x11                               # 
+        .byte   0x1                                # 
+        .byte   0x12                               # 
+        .byte   0x6                                # 
+        .byte   0x40                               # 
+        .byte   0x18                               # 
+        .byte   0x97,0x42                          # 
+        .byte   0x19                               # 
+        .byte   0x1                                # 
+        .byte   0x13                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x6                                # 
+        .byte   0x89,0x82,0x1                      # 
+        .byte   0                                  # 
+        .byte   0x11                               # 
+        .byte   0x1                                # 
+        .byte   0x31                               # 
+        .byte   0x13                               # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0x7                                # 
+        .byte   0x2e                               # 
+        .byte   0                                  # 
+        .byte   0x3f                               # 
+        .byte   0x19                               # 
+        .byte   0x3c                               # 
+        .byte   0x19                               # 
+        .byte   0x6e                               # 
+        .byte   0xe                                # 
+        .byte   0x3                                # 
+        .byte   0xe                                # 
+        .byte   0x3a                               # 
+        .byte   0xb                                # 
+        .byte   0x3b                               # 
+        .byte   0xb                                # 
+        .byte   0x39                               # 
+        .byte   0xb                                # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .byte   0                                  # 
+        .section        .debug_aranges,"",@progbits # 
+        .4byte  0x1c                               # 
+        .2byte  0x2                                # 
+        .4byte  .Ldebug_info0                      # 
+        .byte   0x4                                # 
+        .byte   0                                  # 
+        .2byte  0                                  # 
+        .2byte  0                                  # 
+        .4byte  .Ltext0                            # 
+        .4byte  .Letext0-.Ltext0                   # 
+        .4byte  0                                  # 
+        .4byte  0                                  # 
+        .section        .debug_line,"",@progbits   # 
+.Ldebug_line0:                                     # 
+        .section        .debug_str,"MS",@progbits,1 # 
+        .string "WDResetRV"                        # 
+        .string "unsigned char"                    # 
+        .string "C:\\ZukH\\Projects\\Mirabelle\\Examples\\MsaBasic_V5\\FW\\Src\\MdMainC.c" # 
+        .string "C:\\ZukH\\Projects\\Mirabelle\\Examples\\MsaBasic_V5\\FW\\Out" # 
+        .string "MainC"                            # 
+        .string "GNU C99 10.2.0 -march=rv32emac -mabi=ilp32e -march=rv32emac -g -Os -std=gnu99 -fno-inline" # 
+        .string "FActive"                          # 
+        .ident  "GCC: (xPack GNU RISC-V Embedded GCC x86_64) 10.2.0" # 
+

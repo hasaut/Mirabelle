@@ -13,30 +13,30 @@ object WndFpgaSd: TWndFpgaSd
     Cursor = crVSplit
     Left = 0
     Height = 2
-    Top = 122
+    Top = 166
     Width = 671
     Align = alTop
     ResizeAnchor = akTop
   end
   object Panel1: TPanel
     Left = 0
-    Height = 122
+    Height = 166
     Top = 0
     Width = 671
     Align = alTop
     BevelOuter = bvNone
-    ClientHeight = 122
+    ClientHeight = 166
     ClientWidth = 671
     ParentFont = False
     TabOrder = 1
     object PnlBtn: TPanel
       Left = 0
-      Height = 122
+      Height = 166
       Top = 0
       Width = 35
       Align = alLeft
       BevelOuter = bvLowered
-      ClientHeight = 122
+      ClientHeight = 166
       ClientWidth = 35
       ParentFont = False
       TabOrder = 0
@@ -71,7 +71,7 @@ object WndFpgaSd: TWndFpgaSd
         Height = 22
         Hint = 'Reset device'
         Top = 58
-        Width = 23
+        Width = 22
         Images = ImageList2
         ImageIndex = 3
         OnClick = BtResetClick
@@ -83,7 +83,7 @@ object WndFpgaSd: TWndFpgaSd
         Left = 6
         Height = 22
         Hint = 'Delete selected'
-        Top = 83
+        Top = 84
         Width = 22
         Images = ImageList2
         ImageIndex = 1
@@ -91,6 +91,15 @@ object WndFpgaSd: TWndFpgaSd
         ShowHint = True
         ParentFont = False
         ParentShowHint = False
+      end
+      object BtLog: TSpeedButton
+        Left = 6
+        Height = 22
+        Hint = 'View log'
+        Top = 110
+        Width = 22
+        Caption = 'L'
+        OnClick = BtLogClick
       end
     end
     object SgSectList: TStringGrid

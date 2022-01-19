@@ -1,0 +1,35 @@
+static volatile unsigned char FActive;
+
+void TimerAWait ( void );
+void LedYSet ( unsigned char AData );
+
+void IrqTimerA ( void )
+{
+ unsigned char BLedY;
+
+ FActive=1;
+ BLedY=0x00;
+ LedYSet(BLedY);
+ TimerAWait();
+
+ while (FActive)
+  {
+   // SHL
+   BLedY=0x01;
+   while (BLedY)
+    {
+     LedYSet(BLedY);
+     TimerAWait();
+     BLedY<<=1;
+    }
+   // SHR
+   BLedY=0x80;
+   while (BLedY)
+    {
+     LedYSet(BLedY);
+     TimerAWait();
+     BLedY>>=1;
+    }
+  }
+}
+

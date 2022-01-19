@@ -1,0 +1,28 @@
+Player fCom12 921600
+GdbRsp 
+CpuF se
+MemF code 09 008000 08000 08 00
+MemF data 03 001000 1000 08 00
+MemF io 03 000000 0100 08 00
+IncF Inc
+OutF Out
+SrcF Src\mdStartup.asm
+SrcF Src\mdMainA.asm
+SrcF Src\MdMainA.pas
+SrcF Src\IrqTimerA.ci
+SrcF Src\mdMainB.asm
+SrcF Src\mdMainC.srv
+SrcF Src\mdMainD.srv
+SrcF Src\MdMainB.ci
+SrcF Src\MdMainC.c
+SrcF ..\..\FwLib\SysLib.asm
+SrcF ..\..\FwLib\SysLib.pas
+SrcF ..\..\FwLib\MsBase.asm
+SrcF Test\TestUartA.asm
+RvcF C:\Risc-V_Embedded_GCC\10.2.0-1.2\bin\riscv-none-embed-gcc.exe -g -S -Os -Wall -Wextra -fno-inline -march=rv32emac -mabi=ilp32e -std=gnu99 %Src% -o %Dst%
+LnkF lto
+GroupTree True
+Brkp 
+Fpga  0x800000 0x700000 C:\ZukHL\Projects\ZmpThil\AltCX\output_files\ZmpThil_auto.rpd; 0xF00000 0x100000 C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Out\MsaBasic_win_code.hex; 0x800000 0x700000 C:\ZukHL\Projects\Mlx90377AD_dp_v4x\AltCX\output_files\Mlx90377AD_dp_v4x_auto.rpd; 0x000000 0x700000 C:\ZukHL\Projects\ZmpThilV9B\output_files\ZmpThil_auto.rpd;
+OpenFiles Src\mdStartup.asm Src\mdMainA.asm Src\mdMainB.asm Inc\IoIda.h ..\Sim\Sim.v ..\AltCX_Top\MsFpga.v ..\AltCX_Top\MsTop.v ..\..\..\Dig\Cpu\MsDebugL.v ..\..\..\Dig\Lib\TestBridges.v ..\..\..\Dig\Cpu\MsProcTop.v ..\..\..\Dig\Cpu\MsProcLib.v ..\..\..\Dig\Cpu\MssdCpu.v ..\..\..\Dig\Cpu\MsrvCmdDec.v Src\mdMainC.srv Src\mdMainD.srv Src\MdMainB.ci Src\MdMainA.pas ..\..\FwLib\MsBase.asm ..\..\FwLib\SysLib.asm
+ActiveFile ..\..\..\Dig\Cpu\MsDebugL.v

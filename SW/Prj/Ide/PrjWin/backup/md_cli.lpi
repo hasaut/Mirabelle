@@ -43,13 +43,18 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="C:\ZukHL\Projects\Mirabelle\UtilM\Out\$(TargetCPU)-$(TargetOS)\md_cli"/>
+      <Filename Value="..\..\..\Out\$(TargetCPU)-$(TargetOS)\md_cli"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\Src;..\Lib;..\Frames;..\..\MirLib;..\..\Board;..\..\Build;..\..\Model;..\..\..\..\..\UtilL\Comp;..\..\..\..\..\UtilL\Comp\Win;C:\ZukHL\UtilL\Synapse\source\lib\"/>
-      <UnitOutputDirectory Value="C:\ZukHL\Projects\Mirabelle\UtilM\Out\$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="..\Src;..\Lib;..\Frames;..\..\..\Src\Model;..\..\..\Src\Board;..\..\..\Src\Build;..\..\..\Src\MirLib;..\..\..\..\..\..\UtilL\Comp;..\..\..\..\..\..\UtilL\Comp\Lin"/>
+      <UnitOutputDirectory Value="..\..\..\Out\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
+    <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="False"/>
+      </Debugging>
+    </Linking>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">
