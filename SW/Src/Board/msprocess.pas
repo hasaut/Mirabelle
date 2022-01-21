@@ -12,6 +12,8 @@ Type
   TCommState = (csNone, csClosed, csConnecting, csConnected, csActive, csSimulator);
   TPlayer = (plNone, plFpga, plIss, plComb);
 
+  TFlashSize = (fsUnknown, fs64M, fs128M, fs256M, fs512M, fs01G, fs02G);
+
   TMsProcess = class(TThread)
   private
     FComStream      : TComPort;
@@ -74,6 +76,11 @@ Type
 
     FFlashLog       : TStringList;
     FFlashLogKeep   : boolean;
+    FFlashSize      : TFlashSize;
+    FFlashAddrLen   : byte;
+    FFlashCmdEr,
+    FFlashCmdRd,
+    FFlashCmdWr     : byte;
 
     Procedure ViewAny ( Const AMessage : string );
     Procedure CloseAll;
@@ -163,6 +170,8 @@ Type
     Function FpgaResetA ( ASrc : byte ) : boolean;
     Procedure ReadSegData ( Const ASegParams : string );
     Procedure ReadStack ( Const AParams : string );
+    Function GetFlashSize ( AFlashSizeCode : byte ) : boolean;
+    Function FlashAddrToStr ( AAddr : Cardinal ) : string;
     Procedure FpgaFlashOp ( Const ASectList : string );
     Procedure FpgaReset;
 
@@ -173,8 +182,8 @@ Type
     Function ReadFlashFlagGen : boolean;
     Function WriteFlashPageGen ( AAddr : Cardinal; Const APageData : string ) : boolean;
     Function ReadFlashGen ( AAddr : Cardinal; ASize : Cardinal; Out ADataS : string ) : boolean;
-    Procedure ReadFlashGenS ( AAddr : Cardinal; ASize : Cardinal );
-    Function ReadFlashGenR ( ASize : Cardinal; Out ADataS : string ) : boolean;
+    //Procedure ReadFlashGenS ( AAddr : Cardinal; ASize : Cardinal );
+    //Function ReadFlashGenR ( ASize : Cardinal; Out ADataS : string ) : boolean;
     Function FpgaReflashSect ( Const ASectInfo : string ) : boolean;
     Function FpgaReadSect ( Const ASectInfo : string ) : boolean;
     Function FpgaWriteReg ( AAddr : Cardinal; Const ADataS : string ) : boolean;
@@ -242,7 +251,7 @@ Begin
  FExecLog:=TStringList.Create; FExecLogIsIn:=FALSE;
  FFlashLog:=TStringList.Create;
  FIsEnded:=FALSE;
- FWait:=250;
+ FWait:=1000;
  BData:=10;
  if Self=nil then ProbaA(BData); // Very strange bug, coming perhaps from the Intel CPU
 End;
@@ -675,7 +684,7 @@ Begin
   ADataS[1+BIndex]:=Chr(BByte);
   inc(BIndex);
   end;
- if BIndex<>BLen then break;
+ if BIndex<>BLen then begin ViewAny('fe'+IntToStr(BLen)+' bytes expected, '+IntToStr(BIndex)+' bytes received'); break; end;
  Result:=TRUE;
  until TRUE;
 End;
@@ -1979,6 +1988,34 @@ Begin
  until TRUE;
 End;
 
+Function TMsProcess.GetFlashSize ( AFlashSizeCode : byte ) : boolean;
+Begin
+ Result:=FALSE; FFlashSize:=fsUnknown;
+ FFlashAddrLen:=3; FFlashCmdEr:=$D8; FFlashCmdWr:=$02; FFlashCmdRd:=$03;
+ repeat
+ case AFlashSizeCode of
+   $17: FFlashSize:=fs64M;
+   $18: FFlashSize:=fs128M;
+   $19: FFlashSize:=fs256M;
+   $20: FFlashSize:=fs512M;
+   $21: FFlashSize:=fs01G;
+   $22: FFlashSize:=fs02G;
+   else break;
+ end;
+ if FFlashSize>fs128M then begin FFlashAddrLen:=4; FFlashCmdEr:=$DC; FFlashCmdWr:=$12; FFlashCmdRd:=$13;  end;
+ Result:=TRUE;
+ until TRUE;
+End;
+
+Function TMsProcess.FlashAddrToStr ( AAddr : Cardinal ) : string;
+Begin
+ Result:=
+   Chr((AAddr shr 16) and $FF)+
+   Chr((AAddr shr 8) and $FF)+
+   Chr(AAddr and $FF);
+ if FFlashSize>fs128M then Result:=Chr((AAddr shr 24) and $FF)+Result;
+End;
+
 Procedure TMsProcess.FpgaFlashOp ( Const ASectList : string );
 Var
   BDataBin      : string;
@@ -2000,14 +2037,24 @@ Begin
    plComb:
      begin
      BSuccess:=FALSE;
-     // Exit sleep mode and get device ID
-     BDataBin:=#$AB+#$FF+#$FF+#$FF+#$FF;
-     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot obtain Flash ID [R:TMsProcess.FpgaFlashOp]'); break; end;
-     ViewAny('fiDevice ID: '+IntToHex(Ord(BDataBin[5]),2)+' [R:TMsProcess.FpgaFlashOp]');
-     // Read ID (For S25FL128 must be 012018)
+     // Device reset
+     BDataBin:=#$66;
+     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot reset device [R:TMsProcess.FpgaFlashOp]'); break; end;
+     BDataBin:=#$99;
+     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot reset device [R:TMsProcess.FpgaFlashOp]'); break; end;
+     Sleep(1);
+     // Exit sleep mode
+     BDataBin:=#$AB;
+     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot exit Sleep mode [R:TMsProcess.FpgaFlashOp]'); break; end;
+     // Read ID
+     //            Manufacturer MemoryType MemorySize [17h = 64M, 18h = 128M and so on]
+     // S25FL128  = 012018
+     // W25Q128   = 176018 178018
+     // MT25QL01G = 20BA21
      BDataBin:=#$9F+#$FF+#$FF+#$FF;
      if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot obtain Flash ID [R:TMsProcess.FpgaFlashOp]'); break; end;
      ViewAny('fiDevice Flash ID: '+IntToHex(Ord(BDataBin[2]),2)+IntToHex(Ord(BDataBin[3]),2)+IntToHex(Ord(BDataBin[4]),2)+' [R:TMsProcess.FpgaFlashOp]');
+     if GetFlashSize(Ord(BDataBin[4]))=FALSE then begin ViewAny('feUnsupported memory size [R:TMsProcess.FpgaFlashOp]'); break; end;
      // Erase Fail flag if set
      {BDataBin:=#$07+#$FF;
      if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error [R:TMsProcess.FpgaFlashOp]'); break; end;
@@ -2134,11 +2181,7 @@ Begin
  if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error (Erase block) [R:TMsProcess.EraseFlashBlockGen]'); break; end;
 
  // Program page
- BDataBin:=
-   #$D8+
-   Chr((AAddr shr 16) and $FF)+
-   Chr((AAddr shr 8) and $FF)+
-   Chr(AAddr and $FF);
+ BDataBin:=Chr(FFlashCmdEr)+FlashAddrToStr(AAddr);
  if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error (Erase block) [R:TMsProcess.EraseFlashBlockGen]'); break; end;
 
  // Read flag
@@ -2190,15 +2233,15 @@ Begin
 
  repeat
  // Verify flag from previous time: this is somewhat faster
- BRepeat:=100;
+ BRepeat:=1000;
  Result:=FALSE;
  while BRepeat>0 do
   begin
   BDataBinF:=#$05+#$FF;
-  if SendRecvSpi(BDataBinF)=FALSE then begin ViewAny('feCommunication error (Write block) [R:TMsProcess.ProgramFlashPageGen]'); break; end;
+  if SendRecvSpi(BDataBinF)=FALSE then begin ViewAny('feCommunication error (Ready flag reading) [R:TMsProcess.ProgramFlashPageGen]'); break; end;
   BRegData:=Ord(BDataBinF[2]);
   if (BRegData and $01)=0 then begin Result:=TRUE; break; end;
-  Sleep(1);
+  //Sleep(1);
   dec(BRepeat);
   end;
  if Result=FALSE then break;
@@ -2206,23 +2249,18 @@ Begin
 
  // Program this page
  BDataBinE:=#$06;
- BDataBinW:=
-   #$02+
-   Chr((AAddr shr 16) and $FF)+
-   Chr((AAddr shr 8) and $FF)+
-   Chr(AAddr and $FF)+
-   APageData;
+ BDataBinW:=Chr(FFlashCmdWr)+FlashAddrToStr(AAddr)+APageData;
 
- SendDataOpti($101,BDataBinE);
- SendDataOpti($101,BDataBinW);
- if RecvDataOpti(BDataBinE)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
- if RecvDataOpti(BDataBinW)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
+ if SendRecvSpi(BDataBinE)=FALSE then begin ViewAny('feCommunication error (Program block Enable) [R:TMsProcess.WriteFlashPageGen]'); break; end;
+ if SendRecvSpi(BDataBinW)=FALSE then begin ViewAny('feCommunication error (Program block Write) [R:TMsProcess.WriteFlashPageGen]'); break; end;
 
  Result:=TRUE;
  until TRUE;
 End;
 
-{Function TMsProcess.WriteFlashPageGen ( AAddr : Cardinal; Const APageData : string ) : boolean;
+{ Older version with only one check (at the beginning). Does not work with fast link
+
+Function TMsProcess.WriteFlashPageGen ( AAddr : Cardinal; Const APageData : string ) : boolean;
 Var
   BDataBinF,
   BDataBinE,
@@ -2260,32 +2298,22 @@ Begin
  Result:=FALSE; ADataS:='';
 
  repeat
- BDataS:=''; SetLength(BDataS,ASize+4);
- BDataS[1]:=#$03;
- BDataS[2]:=Chr((AAddr shr 16) and $FF);
- BDataS[3]:=Chr((AAddr shr 8) and $FF);
- BDataS[4]:=Chr(AAddr and $FF);
-
- BDataIdx:=0; while BDataIdx<ASize do begin BDataS[5+BDataIdx]:=#$FF; inc(BDataIdx); end;
+ BDataS:=Chr(FFlashCmdRd)+FlashAddrToStr(AAddr);
+ BDataIdx:=0; while BDataIdx<ASize do begin BDataS:=BDataS+#$FF; inc(BDataIdx); end;
  if SendRecvSpi(BDataS)=FALSE then begin ViewAny('feCommunication error (Reading flash) [R:TMsProcess.ReadFlashGen]'); break; end;
- Delete(BDataS,1,4);
+ Delete(BDataS,1,1+FFlashAddrLen);
  ADataS:=BDataS;
  Result:=TRUE;
  until TRUE;
 End;
-
+{
 Procedure TMsProcess.ReadFlashGenS ( AAddr : Cardinal; ASize : Cardinal );
 Var
   BDataS    : string;
   BDataIdx  : Integer;
 Begin
- BDataS:=''; SetLength(BDataS,ASize+4);
- BDataS[1]:=#$03;
- BDataS[2]:=Chr((AAddr shr 16) and $FF);
- BDataS[3]:=Chr((AAddr shr 8) and $FF);
- BDataS[4]:=Chr(AAddr and $FF);
-
- BDataIdx:=0; while BDataIdx<ASize do begin BDataS[5+BDataIdx]:=#$FF; inc(BDataIdx); end;
+ BDataS:=Chr(FFlashCmdRd)+FlashAddrToStr(AAddr);
+ BDataIdx:=0; while BDataIdx<ASize do begin BDataS:=BDataS+#$FF; inc(BDataIdx); end;
  SendDataOpti($101,BDataS);
 End;
 
@@ -2303,7 +2331,7 @@ Begin
  Result:=TRUE;
  until TRUE;
 End;
-
+}
 Procedure AddSizeChsOpti ( Var ADataS : string; ASize : Cardinal; AChs : word );
 Var
   BIndex    : Integer;
@@ -2404,8 +2432,8 @@ Var
   BChecksum     : word;
   BDataVer      : string;
   BExtraBlock   : string;
-  BBlockLenS,
-  BBlockLenR    : Cardinal;
+  //BBlockLenS,
+  //BBlockLenR    : Cardinal;
   BWriteS       : string;
   BViewIdx      : byte;
   BVerifError   : boolean;
@@ -2509,8 +2537,8 @@ Begin
   //Sleep(10);
   inc(BDataIdx,$100); inc(BViewIdx);
   end;
- if ReadFlashFlagGen=FALSE then begin ViewAny('feFlash writing error (ready flag reading error) [R:TMsProcess.FpgaReflashSect]'); break; end;
  if BDataIdx<BBinLenWr then break;
+ if ReadFlashFlagGen=FALSE then begin ViewAny('feFlash writing error (ready flag reading error) [R:TMsProcess.FpgaReflashSect]'); break; end;
  if BExtraBlock<>'' then
   begin
   if WriteFlashPageGen(BAddr+BSize-256,BExtraBlock)=FALSE then break;
@@ -2521,11 +2549,25 @@ Begin
 
  // Verifying flash
  BVerifError:=FALSE;
- BBlockLenS:=CVerifBlockLen;
- BBlockLenR:=CVerifBlockLen;
+ //BBlockLenS:=CVerifBlockLen;
+ //BBlockLenR:=CVerifBlockLen;
  ViewAny('fiVerifying flash [R:TMsProcess.FpgaReflashSect]');
  ViewAny('p0 '+CColorFLS+' Verifying flash');
  BDataIdx:=0; BViewIdx:=0;
+ while BDataIdx<BBinLenWr do
+  begin
+  if ReadFlashGen(BAddr+BDataIdx,$100,BDataVer)=FALSE then break;
+  if (BDataVer<>Copy(BDataBin,1+BDataIdx,$100)) and (BVerifError=FALSE) then
+   begin
+   ViewAny('feDevice verification error [R:TMsProcess.FpgaReflashSect]');
+   ViewAny('t'+StrBinToHex(Copy(BDataBin,1+BDataIdx,$100)));
+   ViewAny('t'+StrBinToHex(BDataVer));
+   BVerifError:=TRUE;
+   end;
+  if (BViewIdx and $0F)=0 then ViewAny('p'+FloatToStr(BDataIdx/BBinLenWr)+' '+CColorFLS+' Verifying flash');
+  inc(BDataIdx,$100); inc(BViewIdx);
+  end;
+ {
  if BBlockLenS>(BBinLenWr-BDataIdx) then BBlockLenS:=256;
  if BDataIdx<BBinLenWr then
   begin
@@ -2550,7 +2592,7 @@ Begin
   if (BViewIdx and $07)=0 then ViewAny('p'+FloatToStr(BDataIdx/BBinLenWr)+' '+CColorFLS+' Verifying flash');
   BBlockLenR:=BBlockLenS;
   inc(BDataIdx,BBlockLenS); inc(BViewIdx);
-  end;
+  end;}
  if (BDataIdx<BBinLenWr) or BVerifError then break;
  if BExtraBlock<>'' then
   begin

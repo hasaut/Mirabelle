@@ -3,7 +3,7 @@ module TestBridgeUartA
   input AClkH, input AResetHN, input AClkHEn,
   input ADbgRx, output ADbgTx, output ADbgTxFlush,
   input ASync1M, ASync1K,
-  output [11:0] ADbioAddr, output [63:0] ADbioMosi, input [63:0] ADbioMiso, output [3:0] ADbioMosiIdx, ADbioMisoIdx, output ADbioMosi1st, output ADbioMiso1st, output ADbioDataLenNZ, input ADbioIdxReset,
+  output [11:0] ADbioAddr, output [63:0] ADbioMosi, input [63:0] ADbioMiso, output [3:0] ADbioMosiIdx, ADbioMisoIdx, output ADbioMosi1st, output ADbioMiso1st, output [15:0] ADbioDataLen, output ADbioDataLenNZ, input ADbioIdxReset,
   input [7:0] ADbioSbData, input ADbioSbNow, input ADbioSbActive, // Data to be sent back immediately
   input ADbgAttReq,
   output [7:0] ATest
@@ -42,6 +42,7 @@ module TestBridgeUartA
  wire [15:0] FBaud, BBaud;
  // Data
  wire [15:0] FDataLen, BDataLen;
+ wire [15:0] FDbioDataLen, BDbioDataLen; // This does not decrement
  // TimeOut
  wire [9:0] FTimeOut, BTimeOut;
  // Dbio
@@ -54,11 +55,11 @@ module TestBridgeUartA
  // AttReq
  wire [6:0] FAttTimer, BAttTimer;
 
- MsDffList #(.CRegLen(CStLen+16+16+16+10+12+64+64+4+4+1+7)) ULocalVars
+ MsDffList #(.CRegLen(CStLen+16+16+16+16+10+12+64+64+4+4+1+7)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BState, BRecvCtrl, BBaud, BDataLen, BTimeOut, BDbioAddr, BDbioMosi, BDbioMiso, BDbioMosiIdx, BDbioMisoIdx, BDbioMosi1st, BAttTimer}),
-   .ADataO({FState, FRecvCtrl, FBaud, FDataLen, FTimeOut, FDbioAddr, FDbioMosi, FDbioMiso, FDbioMosiIdx, FDbioMisoIdx, FDbioMosi1st, FAttTimer})
+   .ADataI({BState, BRecvCtrl, BBaud, BDataLen, BDbioDataLen, BTimeOut, BDbioAddr, BDbioMosi, BDbioMiso, BDbioMosiIdx, BDbioMisoIdx, BDbioMosi1st, BAttTimer}),
+   .ADataO({FState, FRecvCtrl, FBaud, FDataLen, FDbioDataLen, FTimeOut, FDbioAddr, FDbioMosi, FDbioMiso, FDbioMosiIdx, FDbioMisoIdx, FDbioMosi1st, FAttTimer})
   );
 
  // Common
@@ -168,6 +169,10 @@ module TestBridgeUartA
   (BLenRecvH ? {BUartRecvData, FDataLen[7:0]} : 16'h0) |
   (BLenDec   ? FDataLen-16'h1 : 16'h0) |
   ((BLenRecvL | BLenRecvH | BLenDec) ? 16'h0 : FDataLen);
+ assign BDbioDataLen =
+  (BLenRecvL ? {8'h0, BUartRecvData} : 16'h0) |
+  (BLenRecvH ? {BUartRecvData, FDbioDataLen[7:0]} : 16'h0) |
+  ((BLenRecvL | BLenRecvH) ? 16'h0 : FDbioDataLen);
 
  assign BDbioAddr = (FState[IStMisoA] | FState[IStMosiA]) ? FRecvCtrl[11:0] : FDbioAddr;
 
@@ -200,6 +205,7 @@ module TestBridgeUartA
  assign ADbioMosiIdx = FDbioMosiIdx;
  assign ADbioMisoIdx = FDbioMisoIdx;
  assign ADbioDataLenNZ = BDataLenNZ;
+ assign ADbioDataLen = FDbioDataLen;
 
  assign ATest = {4'h0, BStateNZ, BTimeOutNZ, FState[IStCommA], AResetHN};
 endmodule
@@ -209,7 +215,7 @@ module TestBridgeFtdi
   input AClkH, input AResetHN, input AClkHEn,
   input [7:0] ADbgDataI, output [7:0] ADbgDataO, output ADbgDataOE, input ADbgRF, ADbgTE, output ADbgWr, ADbgRd, ADbgSiwu,
   input ASync1M, ASync1K,
-  output [11:0] ADbioAddr, output [63:0] ADbioMosi, input [63:0] ADbioMiso, output [3:0] ADbioMosiIdx, ADbioMisoIdx, output ADbioMosi1st, output ADbioMiso1st, output ADbioDataLenNZ, input ADbioIdxReset,
+  output [11:0] ADbioAddr, output [63:0] ADbioMosi, input [63:0] ADbioMiso, output [3:0] ADbioMosiIdx, ADbioMisoIdx, output ADbioMosi1st, output ADbioMiso1st, output [15:0] ADbioDataLen, output ADbioDataLenNZ, input ADbioIdxReset,
   input [7:0] ADbioSbData, input ADbioSbNow, input ADbioSbActive, // Data to be sent back immediately
   input ADbgAttReq,
   output [7:0] ATest
@@ -260,6 +266,7 @@ module TestBridgeFtdi
  wire [15:0] FRecvCtrl, BRecvCtrl;
  // Data
  wire [15:0] FDataLen, BDataLen;
+ wire [15:0] FDbioDataLen, BDbioDataLen; // This does not decrement
  // TimeOut
  wire [9:0] FTimeOut, BTimeOut;
  // Dbio
@@ -272,11 +279,11 @@ module TestBridgeFtdi
  // AttReq
  wire [6:0] FAttTimer, BAttTimer;
 
- MsDffList #(.CRegLen(1+1+1+8+CFStLen+CStLen+16+16+10+12+64+64+4+4+1+7)) ULocalVars
+ MsDffList #(.CRegLen(1+1+1+8+CFStLen+CStLen+16+16+16+10+12+64+64+4+4+1+7)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BDbgRF, BDbgTE, BDbgDataOE, BFtdiRecvData, BFtdiState, BState, BRecvCtrl, BDataLen, BTimeOut, BDbioAddr, BDbioMosi, BDbioMiso, BDbioMosiIdx, BDbioMisoIdx, BDbioMosi1st, BAttTimer}),
-   .ADataO({FDbgRF, FDbgTE, FDbgDataOE, FFtdiRecvData, FFtdiState, FState, FRecvCtrl, FDataLen, FTimeOut, FDbioAddr, FDbioMosi, FDbioMiso, FDbioMosiIdx, FDbioMisoIdx, FDbioMosi1st, FAttTimer})
+   .ADataI({BDbgRF, BDbgTE, BDbgDataOE, BFtdiRecvData, BFtdiState, BState, BRecvCtrl, BDataLen, BDbioDataLen, BTimeOut, BDbioAddr, BDbioMosi, BDbioMiso, BDbioMosiIdx, BDbioMisoIdx, BDbioMosi1st, BAttTimer}),
+   .ADataO({FDbgRF, FDbgTE, FDbgDataOE, FFtdiRecvData, FFtdiState, FState, FRecvCtrl, FDataLen, FDbioDataLen, FTimeOut, FDbioAddr, FDbioMosi, FDbioMiso, FDbioMosiIdx, FDbioMisoIdx, FDbioMosi1st, FAttTimer})
   );
 
  assign {BDbgRF, BDbgTE} = {ADbgRF, ADbgTE};
@@ -385,6 +392,10 @@ module TestBridgeFtdi
   (BLenRecvH ? {FFtdiRecvData, FDataLen[7:0]} : 16'h0) |
   (BLenDec   ? FDataLen-16'h1 : 16'h0) |
   ((BLenRecvL | BLenRecvH | BLenDec) ? 16'h0 : FDataLen);
+ assign BDbioDataLen =
+  (BLenRecvL ? {8'h0, FFtdiRecvData} : 16'h0) |
+  (BLenRecvH ? {FFtdiRecvData, FDbioDataLen[7:0]} : 16'h0) |
+  ((BLenRecvL | BLenRecvH) ? 16'h0 : FDbioDataLen);
 
  assign BDbioAddr = (FState[IStMisoA] | FState[IStMosiA]) ? FRecvCtrl[11:0] : FDbioAddr;
 
@@ -417,6 +428,7 @@ module TestBridgeFtdi
  assign ADbioMosiIdx = FDbioMosiIdx;
  assign ADbioMisoIdx = FDbioMisoIdx;
  assign ADbioDataLenNZ = BDataLenNZ;
+ assign ADbioDataLen = FDbioDataLen;
 
  assign ATest = {4'h0, BStateNZ, BTimeOutNZ, FState[IStCommA], AResetHN};
 endmodule
