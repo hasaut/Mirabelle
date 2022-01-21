@@ -1,0 +1,255 @@
+object PrjOptionsForm: TPrjOptionsForm
+  Left = 789
+  Height = 521
+  Top = 165
+  Width = 450
+  BorderIcons = []
+  Caption = 'Project options'
+  ClientHeight = 521
+  ClientWidth = 450
+  DesignTimePPI = 120
+  OnClose = FormClose
+  OnShow = FormShow
+  Position = poScreenCenter
+  LCLVersion = '1.8.4.0'
+  object BvMemWidth: TBevel
+    Left = 4
+    Height = 50
+    Top = 16
+    Width = 261
+    Shape = bsFrame
+  end
+  object LbMemWidth: TLabel
+    Left = 88
+    Height = 20
+    Top = 28
+    Width = 35
+    Caption = 'bytes'
+    ParentColor = False
+  end
+  object LbHintMemWidth: TLabel
+    Left = 12
+    Height = 20
+    Top = 48
+    Width = 289
+    Caption = 'Target memory width depends on CPU type'
+    ParentColor = False
+  end
+  object BtOk: TSpeedButton
+    Left = 237
+    Height = 22
+    Top = 466
+    Width = 57
+    Caption = 'OK'
+    OnClick = BtOkClick
+  end
+  object BtCancel: TSpeedButton
+    Left = 301
+    Height = 22
+    Top = 466
+    Width = 57
+    Caption = 'Cancel'
+    OnClick = BtCancelClick
+  end
+  object LbHdrMemWidth: TLabel
+    Left = 16
+    Height = 20
+    Top = 8
+    Width = 104
+    Caption = ' Memory width '
+    Color = clBtnFace
+    ParentColor = False
+    Transparent = False
+  end
+  object EdMemWidth: TEdit
+    Left = 16
+    Height = 28
+    Top = 24
+    Width = 65
+    OnChange = EdMemWidthChange
+    TabOrder = 0
+    Text = 'EdMemWidth'
+  end
+  object BvMemSize: TBevel
+    Left = 4
+    Height = 50
+    Top = 80
+    Width = 261
+    Shape = bsFrame
+  end
+  object LbHdrMemSize: TLabel
+    Left = 16
+    Height = 20
+    Top = 72
+    Width = 162
+    Caption = ' Memory size (in words) '
+    Color = clBtnFace
+    ParentColor = False
+    Transparent = False
+  end
+  object EdMemSize: TEdit
+    Left = 16
+    Height = 28
+    Top = 88
+    Width = 65
+    OnChange = EdMemSizeChange
+    TabOrder = 1
+    Text = 'EdMemSize'
+  end
+  object LbMemSize: TLabel
+    Left = 88
+    Height = 20
+    Top = 91
+    Width = 40
+    Caption = 'words'
+    ParentColor = False
+  end
+  object CbOpenDebug: TCheckBox
+    Left = 4
+    Height = 24
+    Top = 138
+    Width = 282
+    Caption = 'Open debug window after compilation'
+    OnChange = CbOpenDebugChange
+    TabOrder = 2
+  end
+  object BvPasCompStr: TBevel
+    Left = 4
+    Height = 34
+    Top = 176
+    Width = 261
+    Shape = bsFrame
+  end
+  object LbPasCompStr: TLabel
+    Left = 16
+    Height = 20
+    Top = 168
+    Width = 174
+    Caption = ' Pascal compilation string '
+    Color = clBtnFace
+    ParentColor = False
+    Transparent = False
+  end
+  object EdCompPas: TEdit
+    Left = 9
+    Height = 28
+    Top = 184
+    Width = 251
+    TabOrder = 3
+    Text = 'EdCompPas'
+  end
+  object BvCppCompStr: TBevel
+    Left = 4
+    Height = 34
+    Top = 224
+    Width = 261
+    Shape = bsFrame
+  end
+  object LbCppCompStr: TLabel
+    Left = 16
+    Height = 20
+    Top = 216
+    Width = 142
+    Caption = ' C compilation string '
+    Color = clBtnFace
+    ParentColor = False
+    Transparent = False
+  end
+  object EdCompCpp: TEdit
+    Left = 9
+    Height = 28
+    Top = 232
+    Width = 251
+    TabOrder = 4
+    Text = 'EdCompCpp'
+  end
+  object RgMemType: TRadioGroup
+    Left = 0
+    Height = 73
+    Top = 320
+    Width = 316
+    AutoFill = True
+    AutoSize = True
+    Caption = 'Memory type'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 48
+    ClientWidth = 312
+    Items.Strings = (
+      'Internal Flash (like in Max10 FPGA)'
+      'External EEPROM (Cyclone-based boards)'
+    )
+    TabOrder = 5
+  end
+  object BvMonFile: TBevel
+    Left = 0
+    Height = 72
+    Top = 384
+    Width = 261
+    Shape = bsFrame
+  end
+  object LbMonFile: TLabel
+    Left = 21
+    Height = 20
+    Top = 376
+    Width = 236
+    Caption = ' File to trigger compilation and run '
+    Color = clBtnFace
+    ParentColor = False
+    Transparent = False
+  end
+  object EdMonFile: TEdit
+    Left = 5
+    Height = 28
+    Top = 392
+    Width = 251
+    TabOrder = 6
+    Text = 'EdMonFile'
+  end
+  object LbMonFileA: TLabel
+    Left = 8
+    Height = 20
+    Top = 416
+    Width = 453
+    Caption = 'Compilation will automatically start when this file is changed on disk'
+    ParentColor = False
+  end
+  object LbMonFileB: TLabel
+    Left = 8
+    Height = 20
+    Top = 432
+    Width = 215
+    Caption = 'Enter an empty string if not used'
+    ParentColor = False
+  end
+  object BvCrvCompStr: TBevel
+    Left = 5
+    Height = 34
+    Top = 272
+    Width = 261
+    Shape = bsFrame
+  end
+  object LbCrvCompStr: TLabel
+    Left = 17
+    Height = 20
+    Top = 264
+    Width = 142
+    Caption = ' C compilation string '
+    Color = clBtnFace
+    ParentColor = False
+    Transparent = False
+  end
+  object EdCompCrv: TEdit
+    Left = 10
+    Height = 28
+    Top = 280
+    Width = 251
+    TabOrder = 7
+    Text = 'EdCompCrv'
+  end
+end

@@ -1,0 +1,65 @@
+object DbgOptionsForm: TDbgOptionsForm
+  Left = 582
+  Height = 87
+  Top = 219
+  Width = 213
+  BorderIcons = []
+  BorderStyle = bsSingle
+  Caption = 'Debugger options'
+  ClientHeight = 87
+  ClientWidth = 213
+  OnClose = FormClose
+  OnShow = FormShow
+  Position = poOwnerFormCenter
+  LCLVersion = '2.0.4.0'
+  object BtOk: TSpeedButton
+    Left = 90
+    Height = 22
+    Top = 63
+    Width = 57
+    Anchors = [akRight, akBottom]
+    Caption = 'OK'
+    OnClick = BtOkClick
+  end
+  object BtCancel: TSpeedButton
+    Left = 154
+    Height = 22
+    Top = 63
+    Width = 57
+    Anchors = [akRight, akBottom]
+    Caption = 'Cancel'
+    OnClick = BtCancelClick
+  end
+  object EComName: TEdit
+    Left = 89
+    Height = 26
+    Top = 8
+    Width = 103
+    TabOrder = 0
+    Text = 'EComName'
+  end
+  object EComBaud: TEdit
+    Left = 89
+    Height = 26
+    Top = 33
+    Width = 88
+    TabOrder = 1
+    Text = 'EComBaud'
+  end
+  object LComName: TLabel
+    Left = 7
+    Height = 16
+    Top = 12
+    Width = 68
+    Caption = 'LComName'
+    ParentColor = False
+  end
+  object LComBaud: TLabel
+    Left = 7
+    Height = 16
+    Top = 36
+    Width = 65
+    Caption = 'LComBaud'
+    ParentColor = False
+  end
+end

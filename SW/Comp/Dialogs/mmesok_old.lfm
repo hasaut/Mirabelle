@@ -1,0 +1,36 @@
+object MesOkForm: TMesOkForm
+  Left = 325
+  Height = 66
+  Top = 290
+  Width = 256
+  BorderStyle = bsDialog
+  Caption = 'MesOkForm'
+  ClientHeight = 66
+  ClientWidth = 256
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnKeyDown = FormKeyDown
+  Position = poScreenCenter
+  LCLVersion = '0.9.31'
+  object Label1: TLabel
+    Left = 0
+    Height = 13
+    Top = 8
+    Width = 256
+    Alignment = taCenter
+    Anchors = [akTop, akLeft, akRight]
+    AutoSize = False
+    Caption = 'Label1'
+    ParentColor = False
+  end
+  object SpeedButton1: TSpeedButton
+    Left = 95
+    Height = 22
+    Top = 40
+    Width = 65
+    Anchors = [akTop]
+    Caption = 'OK'
+    NumGlyphs = 0
+    OnClick = ZSpeedButton1Click
+  end
+end

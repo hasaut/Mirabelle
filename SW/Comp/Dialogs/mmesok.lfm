@@ -1,0 +1,33 @@
+object MesOkForm: TMesOkForm
+  Left = 234
+  Height = 64
+  Top = 307
+  Width = 272
+  BorderStyle = bsDialog
+  Caption = 'MesOkForm'
+  ClientHeight = 64
+  ClientWidth = 272
+  FormStyle = fsStayOnTop
+  OnKeyDown = FormKeyDown
+  OnShow = FormShow
+  Position = poOwnerFormCenter
+  LCLVersion = '1.6.2.0'
+  object Label1: TLabel
+    Left = 0
+    Height = 20
+    Top = 0
+    Width = 272
+    Align = alTop
+    Alignment = taCenter
+    Caption = 'Label1'
+    ParentColor = False
+  end
+  object BtOk: TSpeedButton
+    Left = 102
+    Height = 22
+    Top = 32
+    Width = 65
+    Caption = 'OK'
+    OnClick = BtOkClick
+  end
+end

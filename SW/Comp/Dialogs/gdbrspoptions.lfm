@@ -1,0 +1,82 @@
+object GdbRspOptionsForm: TGdbRspOptionsForm
+  Left = 582
+  Height = 125
+  Top = 219
+  Width = 272
+  BorderIcons = []
+  BorderStyle = bsSingle
+  Caption = 'Debugger options'
+  ClientHeight = 125
+  ClientWidth = 272
+  DesignTimePPI = 120
+  OnClose = FormClose
+  OnShow = FormShow
+  Position = poOwnerFormCenter
+  LCLVersion = '1.8.4.0'
+  object BtOk: TSpeedButton
+    Left = 149
+    Height = 22
+    Top = 101
+    Width = 57
+    Anchors = [akRight, akBottom]
+    Caption = 'OK'
+    OnClick = BtOkClick
+  end
+  object BtCancel: TSpeedButton
+    Left = 213
+    Height = 22
+    Top = 101
+    Width = 57
+    Anchors = [akRight, akBottom]
+    Caption = 'Cancel'
+    OnClick = BtCancelClick
+  end
+  object EPort: TEdit
+    Left = 87
+    Height = 28
+    Top = 40
+    Width = 125
+    TabOrder = 1
+    Text = 'EPort'
+  end
+  object ETOut: TEdit
+    Left = 89
+    Height = 28
+    Top = 65
+    Width = 125
+    TabOrder = 2
+    Text = 'ETOut'
+  end
+  object LPort: TLabel
+    Left = 7
+    Height = 20
+    Top = 44
+    Width = 34
+    Caption = 'LPort'
+    ParentColor = False
+  end
+  object LTOut: TLabel
+    Left = 7
+    Height = 20
+    Top = 68
+    Width = 39
+    Caption = 'LTOut'
+    ParentColor = False
+  end
+  object LHost: TLabel
+    Left = 9
+    Height = 20
+    Top = 12
+    Width = 38
+    Caption = 'LHost'
+    ParentColor = False
+  end
+  object EHost: TEdit
+    Left = 87
+    Height = 28
+    Top = 12
+    Width = 125
+    TabOrder = 0
+    Text = 'EHost'
+  end
+end

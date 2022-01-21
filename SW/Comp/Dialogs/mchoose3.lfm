@@ -1,0 +1,31 @@
+object MChooseForm: TMChooseForm
+  Left = 389
+  Height = 64
+  Top = 427
+  Width = 254
+  BorderIcons = []
+  BorderStyle = bsSingle
+  Caption = 'MChooseForm'
+  ClientHeight = 64
+  ClientWidth = 254
+  OnKeyDown = FormKeyDown
+  OnShow = FormShow
+  Position = poOwnerFormCenter
+  LCLVersion = '1.6.2.0'
+  object BtnOk: TSpeedButton
+    Left = 112
+    Height = 22
+    Top = 40
+    Width = 65
+    Caption = 'OK'
+    OnClick = BtnOkClick
+  end
+  object BtnCancel: TSpeedButton
+    Left = 185
+    Height = 22
+    Top = 40
+    Width = 65
+    Caption = 'Cancel'
+    OnClick = BtnCancelClick
+  end
+end

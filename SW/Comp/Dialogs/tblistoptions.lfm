@@ -1,0 +1,88 @@
+object TbListOptionsForm: TTbListOptionsForm
+  Left = 582
+  Height = 136
+  Top = 315
+  Width = 259
+  BorderIcons = []
+  Caption = 'Test Bench Listener'
+  ClientHeight = 136
+  ClientWidth = 259
+  OnClose = FormClose
+  OnShow = FormShow
+  Position = poOwnerFormCenter
+  LCLVersion = '2.0.8.0'
+  object BtOk: TSpeedButton
+    Left = 152
+    Height = 22
+    Top = 112
+    Width = 54
+    Anchors = [akRight, akBottom]
+    Caption = 'OK'
+    OnClick = BtOkClick
+    ParentFont = False
+  end
+  object BtCancel: TSpeedButton
+    Left = 211
+    Height = 22
+    Top = 112
+    Width = 46
+    Anchors = [akRight, akBottom]
+    Caption = 'Cancel'
+    OnClick = BtCancelClick
+    ParentFont = False
+  end
+  object EPort: TEdit
+    Left = 70
+    Height = 27
+    Top = 32
+    Width = 178
+    ParentFont = False
+    TabOrder = 1
+    Text = 'EPort'
+  end
+  object ETOut: TEdit
+    Left = 71
+    Height = 27
+    Top = 52
+    Width = 178
+    ParentFont = False
+    TabOrder = 2
+    Text = 'ETOut'
+  end
+  object LPort: TLabel
+    Left = 6
+    Height = 14
+    Top = 35
+    Width = 33
+    Caption = 'LPort'
+    ParentColor = False
+    ParentFont = False
+  end
+  object LTOut: TLabel
+    Left = 6
+    Height = 14
+    Top = 54
+    Width = 35
+    Caption = 'LTOut'
+    ParentColor = False
+    ParentFont = False
+  end
+  object LHost: TLabel
+    Left = 7
+    Height = 14
+    Top = 10
+    Width = 35
+    Caption = 'LHost'
+    ParentColor = False
+    ParentFont = False
+  end
+  object EHost: TEdit
+    Left = 70
+    Height = 27
+    Top = 10
+    Width = 178
+    ParentFont = False
+    TabOrder = 0
+    Text = 'EHost'
+  end
+end
