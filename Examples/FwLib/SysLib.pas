@@ -18,6 +18,10 @@ Procedure DbgSendHexT ( AData : byte );
 
 Function GetClock : Cardinal;
 
+Procedure TimerBStart ( ATime : word );
+Procedure TimerBStop;
+Function TimerBCheck : boolean;
+
 Implementation
 
 Procedure WDReset; External;
@@ -32,6 +36,10 @@ Procedure DbgMark; External;
 Procedure DbgSendByte ( AData : byte ); External;
 Procedure DbgSendHexT ( AData : byte ); External;
 Procedure SysStop; External;
+
+Procedure TimerBStart ( ATime : word ); External;
+Procedure TimerBStop; External;
+Function TimerBCheck : boolean; External;
 
 Procedure DbgSendStr ( Const AStr : string );
 Var

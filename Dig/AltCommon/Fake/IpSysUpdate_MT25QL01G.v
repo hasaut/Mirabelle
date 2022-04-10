@@ -13,6 +13,8 @@ module IpSysUpdate_MT25QL01G (
 	);
 
 assign busy = 1'b0;
-assign data_out = 32'h0;
+assign data_out = 
+ ((param==3'h0) ? 32'h3 : 32'h0) |
+ ((param==3'h4) ? 32'h01000000 : 32'h0);
 
 endmodule

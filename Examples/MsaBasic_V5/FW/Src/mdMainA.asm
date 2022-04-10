@@ -55,7 +55,7 @@ ProcMainA:
         mov     al,0x01
         mov     [FUartActive],al
         ;call    UartRecvA
-        call    UartRecvB
+        ;call    UartRecvB
 
      pmaWait:
         call    MainA

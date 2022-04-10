@@ -3,7 +3,7 @@
  * there are Uart-version and FTDI-parallel version of MsDebug
  */
 
-module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgStart=24'h800000)
+module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgStart=32'h00800000)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
@@ -59,6 +59,7 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
  MsTestFsm UTestFsm
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ARsuReady(1'b1),
    .ALoadFW(ALoadFW), .ALdrActive(BLdrActive),
    .ADbioAddr(BDbioAddrF), .ADbioMosi(BDbioMosiF), .ADbioMosiIdx(BDbioMosiIdxF), .ADbioMisoIdx(BDbioMisoIdxF), .ADbioMosi1st(BDbioMosi1stF), .ADbioMiso1st(BDbioMiso1stF),
    .AReady(BTestFsmReady),
@@ -103,13 +104,14 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
   );
 
  wire [7:0] BTestLdr;
- MsTestLdr #(.CBaudLen(CProgBaudLen), .CBaudDiv(CProgBaudDiv), .CRomBase(CRomBase), .CRomSize(CRomSize), .CProgStart(CProgStart)) UTestLdr
+ MsTestLdr #(.CBaudLen(CProgBaudLen), .CBaudDiv(CProgBaudDiv), .CRomBase(CRomBase), .CRomSize(CRomSize)) UTestLdr
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADbioAddr(BDbioAddr[7:0]), .ADbioMosi(BDbioMosi), .ADbioMiso(BDbioMisoL), .ADbioMosiIdx(BDbioTestLCS ? BDbioMosiIdx : 4'h0), .ADbioMisoIdx(BDbioTestLCS ? BDbioMisoIdx : 4'h0), .ADbioMosi1st(BDbioTestLCS & BDbioMosi1st), .ADbioMiso1st(BDbioTestLCS & BDbioMiso1st), .ADbioDataLen(BDbioTestLCS ? BDbioDataLen : 16'h0), .ADbioDataLenNZ(BDbioTestLCS & BDbioDataLenNZ), .ADbioIdxReset(BDbioIdxResetL),
    .ADbioSbData(BLdrSbData), .ADbioSbNow(BLdrSbNow),
    .AMemAccess(BMemAccessL), .AMemAddr(BMemAddrL), .AMemMiso(AMemMiso), .AMemMosi(BMemMosiL), .AMemWrEn(BMemWrEnL),
    .ASpiMaster(AFlashMaster), .ASpiMiso(AFlashMiso), .ASpiMosi(AFlashMosi), .ASpiSck(AFlashSck), .ASpiNCS(AFlashNCS),
+   .ALdrAddr(CProgStart),
    .AActive(BLdrActive), .ASbActive(BLdrSbActive),
    .ATest(BTestLdr)
   );
@@ -120,11 +122,11 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
    (BMemAccessL ? {BMemAddrL, BMemMosiL, BMemWrEnL, 1'b0} : {29'h0, 64'h0, 2'h0});
  assign AMemAccess = BMemAccessU | BMemAccessL;
 
- assign ATest = BTestBU;
+ assign ATest = BTestLdr;
 endmodule
 
 // FTDI version of MsDebug (almost completely copy-paste of UART version)
-module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgStart=24'h800000)
+module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgBootOffs=32'h300000)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
@@ -135,12 +137,16 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
   // Mem
   output AMemAccess, output [31:3] AMemAddr, input [63:0] AMemMiso, output [63:0] AMemMosi, output [1:0] AMemWrRdEn,
   // Dbg bridge
-  input [7:0] ADbgDataI, output [7:0] ADbgDataO, output ADbgDataOE, input ADbgRF, ADbgTE, output ADbgWr, ADbgRd, ADbgSiwu,
+  input [7:0] ADbgDataI, output [7:0] ADbgDataO, output ADbgDataOE, input ADbgRF, ADbgTE, output ADbgWr, ADbgRd, ADbgSiwu, output [1:0] ADbgLed,
   // Sync
   input ASync1M, input ASync1K,
   // Flash
   input ALoadFW,
   output AFlashMaster, input AFlashMiso, output AFlashMosi, output AFlashSck, output AFlashNCS,
+  // RSU
+  input ARsuReady, input [31:0] ARsuBootAddr,
+  // Fpga reflash
+  input [3:0] AStartupI, output [3:0] AStartupO, output [3:0] AStartupE,
   // Test
   output [7:0] ATest
  );
@@ -167,7 +173,7 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
  TestBridgeFtdi UTestBridge
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADbgDataI(ADbgDataI), .ADbgDataO(ADbgDataO), .ADbgDataOE(ADbgDataOE), .ADbgRF(ADbgRF), .ADbgTE(ADbgTE), .ADbgWr(ADbgWr), .ADbgRd(ADbgRd), .ADbgSiwu(ADbgSiwu),
+   .ADbgDataI(ADbgDataI), .ADbgDataO(ADbgDataO), .ADbgDataOE(ADbgDataOE), .ADbgRF(ADbgRF), .ADbgTE(ADbgTE), .ADbgWr(ADbgWr), .ADbgRd(ADbgRd), .ADbgSiwu(ADbgSiwu), .ADbgLed(ADbgLed),
    .ASync1M(ASync1M), .ASync1K(ASync1K),
    .ADbioAddr(BDbioAddrU), .ADbioMosi(BDbioMosiU), .ADbioMiso(BDbioMiso), .ADbioMosiIdx(BDbioMosiIdxU), .ADbioMisoIdx(BDbioMisoIdxU), .ADbioMosi1st(BDbioMosi1stU), .ADbioMiso1st(BDbioMiso1stU), .ADbioDataLen(BDbioDataLenU), .ADbioDataLenNZ(BDbioDataLenNZU), .ADbioIdxReset(BDbioIdxReset),
    .ADbioSbData(BLdrSbData), .ADbioSbNow(BLdrSbNow), .ADbioSbActive(BLdrSbActive),
@@ -178,6 +184,7 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
  MsTestFsm UTestFsm
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ARsuReady(ARsuReady),
    .ALoadFW(ALoadFW), .ALdrActive(BLdrActive),
    .ADbioAddr(BDbioAddrF), .ADbioMosi(BDbioMosiF), .ADbioMosiIdx(BDbioMosiIdxF), .ADbioMisoIdx(BDbioMisoIdxF), .ADbioMosi1st(BDbioMosi1stF), .ADbioMiso1st(BDbioMiso1stF),
    .AReady(BTestFsmReady),
@@ -217,18 +224,19 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
    .AIpThis(AIpThis), .ACmdDecReady(ACmdDecReady),
    .ADbgCoreIdx(ADbgCoreIdx), .ADbgRegIdx(ADbgRegIdx), .ARegMiso(ARegMiso),
    .ATEndList(ATEndList), .ATrapList(ATrapList), .AAttReq(BDbgAttReq),
-   .AStartupI(4'h0), .AStartupO(), .AStartupE(),
+   .AStartupI(AStartupI), .AStartupO(AStartupO), .AStartupE(AStartupE),
    .ATest(BTestBU)
   );
 
  wire [7:0] BTestLdr;
- MsTestLdr #(.CBaudLen(CProgBaudLen), .CBaudDiv(CProgBaudDiv), .CRomBase(CRomBase), .CRomSize(CRomSize), .CProgStart(CProgStart)) UTestLdr
+ MsTestLdr #(.CBaudLen(CProgBaudLen), .CBaudDiv(CProgBaudDiv), .CRomBase(CRomBase), .CRomSize(CRomSize)) UTestLdr
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADbioAddr(BDbioAddr[7:0]), .ADbioMosi(BDbioMosi), .ADbioMiso(BDbioMisoL), .ADbioMosiIdx(BDbioTestLCS ? BDbioMosiIdx : 4'h0), .ADbioMisoIdx(BDbioTestLCS ? BDbioMisoIdx : 4'h0), .ADbioMosi1st(BDbioTestLCS & BDbioMosi1st), .ADbioMiso1st(BDbioTestLCS & BDbioMiso1st), .ADbioDataLen(BDbioTestLCS ? BDbioDataLen : 16'h0), .ADbioDataLenNZ(BDbioTestLCS & BDbioDataLenNZ), .ADbioIdxReset(BDbioIdxResetL),
    .ADbioSbData(BLdrSbData), .ADbioSbNow(BLdrSbNow),
    .AMemAccess(BMemAccessL), .AMemAddr(BMemAddrL), .AMemMiso(AMemMiso), .AMemMosi(BMemMosiL), .AMemWrEn(BMemWrEnL),
    .ASpiMaster(AFlashMaster), .ASpiMiso(AFlashMiso), .ASpiMosi(AFlashMosi), .ASpiSck(AFlashSck), .ASpiNCS(AFlashNCS),
+   .ALdrAddr(ARsuBootAddr+CProgBootOffs),
    .AActive(BLdrActive), .ASbActive(BLdrSbActive),
    .ATest(BTestLdr)
   );
@@ -239,7 +247,7 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
    (BMemAccessL ? {BMemAddrL, BMemMosiL, BMemWrEnL, 1'b0} : {29'h0, 64'h0, 2'h0});
  assign AMemAccess = BMemAccessU | BMemAccessL;
 
- assign ATest = BTestBU;
+ assign ATest = BTestLdr;
 endmodule
 
 // Register A is sent first, then B and so on. StateWord at the end
@@ -451,13 +459,14 @@ module MsBrkCmp #(parameter CBrkCnt=9) ( input [31:0] ABrkIp, input [CBrkCnt*32-
  assign AIsBreak = |BBreakList;
 endmodule
 
-module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgStart=24'h800000)
+module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [7:0] ADbioAddr, input [63:0] ADbioMosi, output [63:0] ADbioMiso, input [3:0] ADbioMosiIdx, ADbioMisoIdx, input ADbioMosi1st, ADbioMiso1st, input [15:0] ADbioDataLen, input ADbioDataLenNZ, output ADbioIdxReset,
   output [7:0] ADbioSbData, output ADbioSbNow, // Data to be sent back immediately
   output AMemAccess, output [31:3] AMemAddr, input [63:0] AMemMiso, output [63:0] AMemMosi, output AMemWrEn,
   output ASpiMaster, input ASpiMiso, output ASpiMosi, output ASpiSck, output ASpiNCS,
+  input [31:0] ALdrAddr,
   output AActive, output ASbActive,
   output [7:0] ATest
  );
@@ -468,27 +477,33 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
  localparam CAddrProgTr = 8'h01;
 
  // FSM
- localparam CStLen        = 19;
+ localparam CStLen        = 25;
 
  localparam IStForiMux    =  0;
  localparam IStForiStart  =  1;
- localparam IStForiCmdA   =  2;
- localparam IStForiAddrC  =  3;
- localparam IStForiAddrB  =  4;
- localparam IStForiAddrA  =  5;
- localparam IStForiDataI  =  6;
- localparam IStForiDataA  =  7;
- localparam IStForiDataB  =  8;
- localparam IStForiRomWr  =  9;
- localparam IStForiIncA   = 10;
- localparam IStForiEnd    = 11;
- localparam IStFlMux      = 12;
- localparam IStFlStart    = 13;
- localparam IStFlLoopA    = 14;
- localparam IStFlLoopB    = 15;
- localparam IStFlLoopC    = 16;
- localparam IStFlEnd      = 17;
- localparam IStMuxDone    = 18;
+ localparam IStForiIdA    =  2;
+ localparam IStForiIdM    =  3;
+ localparam IStForiIdT    =  4;
+ localparam IStForiIdS    =  5;
+ localparam IStForiIdEnd  =  6;
+ localparam IStForiCmdA   =  7;
+ localparam IStForiAddrD  =  8;
+ localparam IStForiAddrC  =  9;
+ localparam IStForiAddrB  = 10;
+ localparam IStForiAddrA  = 11;
+ localparam IStForiDataI  = 12;
+ localparam IStForiDataA  = 13;
+ localparam IStForiDataB  = 14;
+ localparam IStForiRomWr  = 15;
+ localparam IStForiIncA   = 16;
+ localparam IStForiEnd    = 17;
+ localparam IStFlMux      = 18;
+ localparam IStFlStart    = 19;
+ localparam IStFlLoopA    = 20;
+ localparam IStFlLoopB    = 21;
+ localparam IStFlLoopC    = 22;
+ localparam IStFlEnd      = 23;
+ localparam IStMuxDone    = 24;
 
  wire [CStLen-1:0] FState, BState;
  wire FStateNZ, BStateNZ;
@@ -500,12 +515,13 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
  wire FActive, BActive;
  wire FSbActive, BSbActive;
  wire [15:0] FDbioDataLen, BDbioDataLen;
+ wire [7:0] FFlashSizeCode, BFlashSizeCode;
 
- MsDffList #(.CRegLen(CStLen+1+3+29+64+1+1+1+1+16)) ULocalVars
+ MsDffList #(.CRegLen(CStLen+1+3+29+64+1+1+1+1+16+8)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BState, BStateNZ, BByteIdx, BMemAddr, BMemMosi, BSpiMaster, BSpiCS, BActive, BSbActive, BDbioDataLen}),
-   .ADataO({FState, FStateNZ, FByteIdx, FMemAddr, FMemMosi, FSpiMaster, FSpiCS, FActive, FSbActive, FDbioDataLen})
+   .ADataI({BState, BStateNZ, BByteIdx, BMemAddr, BMemMosi, BSpiMaster, BSpiCS, BActive, BSbActive, BDbioDataLen, BFlashSizeCode}),
+   .ADataO({FState, FStateNZ, FByteIdx, FMemAddr, FMemMosi, FSpiMaster, FSpiCS, FActive, FSbActive, FDbioDataLen, FFlashSizeCode})
   );
 
  // Common
@@ -520,6 +536,8 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
  wire BDbioDataLenNZ = |FDbioDataLen;
  wire [7:0] BFifoFl;
  wire BFifoFlHasData;
+ wire BFlashAddr4b = FFlashSizeCode > 8'h18;
+
 
  // DBIO
  wire BDbioCtrlWr = (ADbioAddr==CAddrCtrlWr) & ADbioMosiIdx[1]; assign BLdrCmd = BDbioCtrlWr ? ADbioMosi[1:0] : 2'h0;
@@ -539,43 +557,52 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
  assign BStateNZ = |FState;
  wire BDbioProgStart = (ADbioAddr==CAddrProgTr) & ADbioMosi1st;
 
- wire [CStLen-1:0] BGo;                                              wire [CStLen-1:0] BStay;
- // Part 1. Read flash, program ROM (Read command = 0x03)
- assign BGo[IStForiMux]   = ~BStateNZ & (BLdrCmd==2'h1);             assign BStay[IStForiMux]   = 1'b0;
- assign BGo[IStForiStart] =  FState[IStForiMux];                     assign BStay[IStForiStart] = 1'b0;
+ wire [CStLen-1:0] BGo;                                                           wire [CStLen-1:0] BStay;
+ // Part 1. Read flash, program ROM (Read command = 0x03/0x13)
+ assign BGo[IStForiMux]   = ~BStateNZ & (BLdrCmd==2'h1);                          assign BStay[IStForiMux]   = 1'b0;
+ assign BGo[IStForiStart] =  FState[IStForiMux];                                  assign BStay[IStForiStart] = 1'b0;
+ // Obtain flash size
+ assign BGo[IStForiIdA]   =  FState[IStForiStart];                                assign BStay[IStForiIdA]   = FState[IStForiIdA] & BSpiBusy;
+ assign BGo[IStForiIdM]   =  FState[IStForiIdA] & ~BSpiBusy;                      assign BStay[IStForiIdM]   = FState[IStForiIdM] & BSpiBusy;
+ assign BGo[IStForiIdT]   =  FState[IStForiIdM] & ~BSpiBusy;                      assign BStay[IStForiIdT]   = FState[IStForiIdT] & BSpiBusy;
+ assign BGo[IStForiIdS]   =  FState[IStForiIdT] & ~BSpiBusy;                      assign BStay[IStForiIdS]   = FState[IStForiIdS] & BSpiBusy;
+ assign BGo[IStForiIdEnd] =  FState[IStForiIdS] & ~BSpiBusy;                      assign BStay[IStForiIdEnd] = 1'b0;
  // Send command
- assign BGo[IStForiCmdA]  =  FState[IStForiStart];                   assign BStay[IStForiCmdA]  = FState[IStForiCmdA] & BSpiBusy;
+ assign BGo[IStForiCmdA]  =  FState[IStForiIdEnd];                                assign BStay[IStForiCmdA]  = FState[IStForiCmdA] & BSpiBusy;
  // Send 3 bytes of address
- assign BGo[IStForiAddrC] =  FState[IStForiCmdA]  & ~BSpiBusy;       assign BStay[IStForiAddrC] = FState[IStForiAddrC] & BSpiBusy;
- assign BGo[IStForiAddrB] =  FState[IStForiAddrC] & ~BSpiBusy;       assign BStay[IStForiAddrB] = FState[IStForiAddrB] & BSpiBusy;
- assign BGo[IStForiAddrA] =  FState[IStForiAddrB] & ~BSpiBusy;       assign BStay[IStForiAddrA] = FState[IStForiAddrA] & BSpiBusy;
+ assign BGo[IStForiAddrD] =  FState[IStForiCmdA] &  BFlashAddr4b & ~BSpiBusy;     assign BStay[IStForiAddrD] = FState[IStForiAddrD] & BSpiBusy;
+ assign BGo[IStForiAddrC] = (FState[IStForiCmdA] & ~BFlashAddr4b & ~BSpiBusy) |
+                            (FState[IStForiAddrD] & ~BSpiBusy);                   assign BStay[IStForiAddrC] = FState[IStForiAddrC] & BSpiBusy;
+
+ assign BGo[IStForiAddrB] =  FState[IStForiAddrC] & ~BSpiBusy;                    assign BStay[IStForiAddrB] = FState[IStForiAddrB] & BSpiBusy;
+ assign BGo[IStForiAddrA] =  FState[IStForiAddrB] & ~BSpiBusy;                    assign BStay[IStForiAddrA] = FState[IStForiAddrA] & BSpiBusy;
  // Start reading data
- assign BGo[IStForiDataI] =  FState[IStForiAddrA] & ~BSpiBusy;       assign BStay[IStForiDataI] = 1'b0;
+ assign BGo[IStForiDataI] =  FState[IStForiAddrA] & ~BSpiBusy;                    assign BStay[IStForiDataI] = 1'b0;
  // Read data byte
  assign BGo[IStForiDataA] =  FState[IStForiDataI] |
                             (FState[IStForiDataB] &  BByteIdxNZ) |
-                            (FState[IStForiIncA]  & ~BMemAddrEnd);   assign BStay[IStForiDataA] = FState[IStForiDataA] & BSpiBusy;
- assign BGo[IStForiDataB] =  FState[IStForiDataA] & ~BSpiBusy;       assign BStay[IStForiDataB] = 1'b0;
+                            (FState[IStForiIncA]  & ~BMemAddrEnd);                assign BStay[IStForiDataA] = FState[IStForiDataA] & BSpiBusy;
+ assign BGo[IStForiDataB] =  FState[IStForiDataA] & ~BSpiBusy;                    assign BStay[IStForiDataB] = 1'b0;
  // Write data to ROM
- assign BGo[IStForiRomWr] =  FState[IStForiDataB] & ~BByteIdxNZ;     assign BStay[IStForiRomWr] = 1'b0;
+ assign BGo[IStForiRomWr] =  FState[IStForiDataB] & ~BByteIdxNZ;                  assign BStay[IStForiRomWr] = 1'b0;
  // Inc address
- assign BGo[IStForiIncA]  =  FState[IStForiRomWr];                   assign BStay[IStForiIncA]  = 1'b0;
+ assign BGo[IStForiIncA]  =  FState[IStForiRomWr];                                assign BStay[IStForiIncA]  = 1'b0;
  // End of Fori (= "Flash Out Rom In")
- assign BGo[IStForiEnd]   =  FState[IStForiIncA]  &  BMemAddrEnd;    assign BStay[IStForiEnd]   = 1'b0;
+ assign BGo[IStForiEnd]   =  FState[IStForiIncA]  &  BMemAddrEnd;                 assign BStay[IStForiEnd]   = 1'b0;
  // Part 2. Send/Recv SPI commands
- assign BGo[IStFlMux]     = ~BStateNZ & BDbioProgStart;              assign BStay[IStFlMux]     = 1'b0;
- assign BGo[IStFlStart]   =  FState[IStFlMux];                       assign BStay[IStFlStart]   = 1'b0;
+ assign BGo[IStFlMux]     = ~BStateNZ & BDbioProgStart;                           assign BStay[IStFlMux]     = 1'b0;
+ assign BGo[IStFlStart]   =  FState[IStFlMux];                                    assign BStay[IStFlStart]   = 1'b0;
  // Send/Recv Loop
  assign BGo[IStFlLoopA]   = (FState[IStFlStart] & BDbioDataLenNZ) |
-                            (FState[IStFlLoopC] & BDbioDataLenNZ);   assign BStay[IStFlLoopA]   = FState[IStFlLoopA] & (ADbioAddr==CAddrProgTr) & ~BFifoFlHasData;
+                            (FState[IStFlLoopC] & BDbioDataLenNZ);                assign BStay[IStFlLoopA]   = FState[IStFlLoopA] & (ADbioAddr==CAddrProgTr) & ~BFifoFlHasData;
 
- assign BGo[IStFlLoopB]   =  FState[IStFlLoopA] & BFifoFlHasData;    assign BStay[IStFlLoopB]   = FState[IStFlLoopB] &  BSpiBusy;
- assign BGo[IStFlLoopC]   =  FState[IStFlLoopB] & ~BSpiBusy;         assign BStay[IStFlLoopC]   = 1'b0;
+ assign BGo[IStFlLoopB]   =  FState[IStFlLoopA] & BFifoFlHasData;                 assign BStay[IStFlLoopB]   = FState[IStFlLoopB] &  BSpiBusy;
+ assign BGo[IStFlLoopC]   =  FState[IStFlLoopB] & ~BSpiBusy;                      assign BStay[IStFlLoopC]   = 1'b0;
  // End of FL
  assign BGo[IStFlEnd]     = (FState[IStFlStart] & ~BDbioDataLenNZ) |
-                            (FState[IStFlLoopC] & ~BDbioDataLenNZ);  assign BStay[IStFlEnd]     = 1'b0;
+                            (FState[IStFlLoopC] & ~BDbioDataLenNZ);               assign BStay[IStFlEnd]     = 1'b0;
  // Common (FlashMux)
- assign BGo[IStMuxDone]   = |{FState[IStForiEnd], FState[IStFlEnd]}; assign BStay[IStMuxDone]   = 1'b0;
+ assign BGo[IStMuxDone]   = |{FState[IStForiEnd], FState[IStFlEnd]};              assign BStay[IStMuxDone]   = 1'b0;
 
  // State
  assign BState = BGo | BStay;
@@ -590,14 +617,27 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
    .ASpiMiso(ASpiMiso), .ASpiMosi(ASpiMosi), .ASpiSck(ASpiSck)
   );
 
- assign BSpiSend = |{BGo[IStForiCmdA], BGo[IStForiAddrA:IStForiAddrC], BGo[IStForiDataA], BGo[IStFlLoopB]};
+ assign BSpiSend =
+  |{
+    BGo[IStForiIdA], BGo[IStForiIdS:IStForiIdM],
+    BGo[IStForiCmdA], BGo[IStForiAddrA:IStForiAddrD],
+    BGo[IStForiDataA],
+    BGo[IStFlLoopB]
+   };
 
- wire [23:0] LProgStart = CProgStart;
+ assign BFlashSizeCode = (FState[IStForiIdS] & BSpiRecv) ? BSpiMiso : FFlashSizeCode;
+
+ wire [31:0] LProgStart = ALdrAddr;
  assign BSpiMosi =
+  (BGo[IStForiIdA]   ? 8'h9F : 8'h0) |
+  (BGo[IStForiIdM]   ? 8'hFF : 8'h0) |
+  (BGo[IStForiIdT]   ? 8'hFF : 8'h0) |
+  (BGo[IStForiIdS]   ? 8'hFF : 8'h0) |
+  (BGo[IStForiCmdA]  ? (BFlashAddr4b ? 8'h13 : 8'h03) : 8'h0) |
+  (BGo[IStForiAddrD] ? LProgStart[31:24] : 8'h0) |
   (BGo[IStForiAddrC] ? LProgStart[23:16] : 8'h0) |
   (BGo[IStForiAddrB] ? LProgStart[15: 8] : 8'h0) |
   (BGo[IStForiAddrA] ? LProgStart[ 7: 0] : 8'h0) |
-  (BGo[IStForiCmdA]  ? 8'h03 : 8'h0) |
   (BGo[IStForiDataA] ? 8'hFF : 8'h0) |
   (BGo[IStFlLoopB]   ? BFifoFl : 8'h0);
 
@@ -617,11 +657,12 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
   );
 
  // SPI
- assign BSpiMaster = |{BState[IStForiMux], BState[IStFlMux], BSpiCS, BState[IStMuxDone]};
+ assign BSpiMaster = |BState;
  assign BSpiCS =
   |{
-    BState[IStForiEnd:IStForiCmdA],
-    BState[IStFlEnd:IStFlStart]
+    BState[IStForiIdS:IStForiIdA],
+    BState[IStForiIncA:IStForiCmdA],
+    BState[IStFlLoopC:IStFlStart]
    };
 
  // External
@@ -641,12 +682,13 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
    BSpiSend,
    BSpiRecv,
    ADbioDataLenNZ,
-   FState[IStForiDataA],
-   FState[IStForiDataB],
-   FState[IStForiRomWr],
-   FState[IStForiIncA],
-   FState[IStForiEnd]
+   FState[IStFlStart],
+   FState[IStFlLoopA],
+   FState[IStFlLoopB],
+   FState[IStFlLoopC],
+   FState[IStFlEnd]
   };
 endmodule
+
 
 

@@ -16,6 +16,10 @@ Public PinDbgSet
 
 Public mtrunc
 
+Public TimerBStart
+Public TimerBStop
+Public TimerBCheck
+
 #include "IoIda.h"
 
 .seg code
@@ -298,6 +302,30 @@ DbgSendHexT:
         mov     al,'>'
         call    DbgSendByteA
         leave   awx,0,4
+
+TimerBStart:
+        enter   awx,0
+        mov     [IobTimerBCtrl],zl
+        mov     ax,[esp+8]
+        mov     [IowTimerBCmpA],ax
+        mov     al,0x14
+        mov     [IobTimerBCtrl],al
+        mov     al,0x01
+        mov     [IobTimerBIrqR],al
+        leave   awx,0,4
+
+TimerBStop:
+        enter   awx,0
+        mov     [IobTimerBCtrl],zl
+        mov     al,0x01
+        mov     [IobTimerBIrqR],al
+        leave   awx,0,0
+
+TimerBCheck:
+        enter   #,0
+        mov     al,[IobTimerBCtrl]
+        and     al,0x01
+        leave   #,0,0
 
 SysStop:
         enter   #,0

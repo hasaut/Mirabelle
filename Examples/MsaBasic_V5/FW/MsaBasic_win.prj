@@ -1,8 +1,8 @@
-Player fCom12 921600
+Player fCom4 921600
 GdbRsp 
-CpuF se
-MemF code 09 008000 08000 08 00
-MemF data 03 001000 1000 08 00
+CpuF s
+MemF code 09 008000 8000 08 00
+MemF data 03 001000 4000 08 00
 MemF io 03 000000 0100 08 00
 IncF Inc
 OutF Out
@@ -23,6 +23,6 @@ RvcF C:\Risc-V_Embedded_GCC\10.2.0-1.2\bin\riscv-none-embed-gcc.exe -g -S -Os -W
 LnkF lto
 GroupTree True
 Brkp 
-Fpga  0x800000 0x700000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V5\FPGA\output_files\MsaBasic_auto.rpd; 0xF00000 0x100000 C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Out\MsaBasic_win_code.hex; 0x700000 0x100000 C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Out\MsaBasic_win_code.hex; 0x000000 0x700000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V5\FPGA\output_files\MsaBasic_auto.rpd;
-OpenFiles Src\mdStartup.asm Src\mdMainA.asm Src\mdMainB.asm Inc\IoIda.h ..\Sim\Sim.v ..\AltCX_Top\MsFpga.v ..\AltCX_Top\MsTop.v ..\..\..\Dig\Cpu\MsDebugL.v ..\..\..\Dig\Per\IoCommM.v ..\..\..\Dig\Per\IoUartFtdi.v ..\..\..\Dig\Per\IoBase.v ..\..\..\Dig\Lib\TestBridges.v ..\..\..\Dig\Cpu\MsProcTop.v ..\..\..\Dig\Cpu\MsProcLib.v ..\..\..\Dig\Cpu\MssdCpu.v ..\..\..\Dig\Cpu\MsrvCmdDec.v Src\mdMainC.srv Src\mdMainD.srv Src\MdMainB.ci Src\MdMainA.pas ..\..\FwLib\MsBase.asm ..\..\FwLib\SysLib.asm
-ActiveFile Src\mdStartup.asm
+Fpga  0x800000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V5\FPGA\output_files\MsaBasic_auto.rpd; 0x700000 0x100000 C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Out\MsaBasic_win_code.hex; 0x300000 0x100000 C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V5\FW\Out\MsaBasic_win_code.hex; 0x000000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V5\FPGA\output_files\MsaBasic_auto.rpd; 0x400000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V5\FPGA\output_files\MsaBasic_auto.rpd;
+OpenFiles Src\mdStartup.asm Src\mdMainA.asm Src\mdMainB.asm Inc\IoIda.h ..\Sim\Sim.v ..\AltCX_Top\MsFpga.v ..\AltCX_Top\MsTop.v ..\..\..\Dig\Cpu\MsDebugL.v ..\..\..\Dig\Per\IoCommM.v ..\..\..\Dig\Per\IoUartFtdi.v ..\..\..\Dig\Per\IoBase.v ..\..\..\Dig\Per\IoSysUpdate.v ..\..\..\Dig\Lib\TestBridges.v ..\..\..\Dig\Cpu\MsProcTop.v ..\..\..\Dig\Cpu\MsTestFsm.v ..\..\..\Dig\Cpu\MsProcLib.v ..\..\..\Dig\Cpu\MssdCpu.v ..\..\..\Dig\Cpu\MsrvCmdDec.v ..\..\..\Dig\Cpu\MsFpuSA.v Src\mdMainC.srv Src\mdMainD.srv Src\MdMainB.ci Src\MdMainC.c Src\IrqTimerA.ci Src\MdMainA.pas Test\TestUartA.asm ..\..\FwLib\MsBase.asm ..\..\FwLib\SysLib.asm
+ActiveFile ..\..\..\Dig\Cpu\MsFpuSA.v

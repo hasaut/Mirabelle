@@ -134,9 +134,11 @@ module MsFpuSA
     BMantXA |
    (BOperIsItf ? {1'b0, (FDataD[31] ? ~FDataD[30:0]+31'h1 : FDataD[30:0])} : 32'h0);
  wire [31:0] BMantXB;
- wire [4:0] BShlIdx;
- MsFpuAlignL UMantX ( .ADataI(BAlignDataI), .ADataO(BMantXB), .AIdx(BShlIdx) );
- wire [23:0] BMantX = FZeroDiv ? 24'hFFFFFF : BMantXB[31:8]+{23'h0, BMantXB[7] & (|BMantXB[6:0])};
+ wire [4:0] BShlIdxC;
+ MsFpuAlignL UMantX ( .ADataI(BAlignDataI), .ADataO(BMantXB), .AIdx(BShlIdxC) );
+ wire [24:0] BMantXC = FZeroDiv ? 25'h1FFFFFF : {1'b0, BMantXB[31:8]} + {24'h0, BMantXB[7] & (|BMantXB[6:0])}; // LSB correction, but this can overflow
+ wire [4:0] BShlIdx = BShlIdxC + {4'h0, BMantXC[24]};
+ wire [23:0] BMantX = BMantXC[24] ? BMantXC[24:1] : BMantXC[23:0];
 
  // Exp
  /*

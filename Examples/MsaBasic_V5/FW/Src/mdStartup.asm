@@ -41,6 +41,8 @@ StartTable:
 ; If label is declared as external and locally, there no error is reported
 
 sCoreA:
+        mov     gwx,esp
+
         mov     [FStartFlags],zl
         mov     [IowIrqEn],zx
         mov     esp,FStackA
@@ -51,6 +53,20 @@ sCoreA:
         mov     ax,0x0101
         mov     [IowClkDivIda],ax
 
+        mov     awx,0.2
+        mov     bwx,10.0
+        fmul    awx,awx,bwx
+        mov     ar,2.0
+
+        mov     awx,0.02
+        mov     bwx,100.0
+        fmul    awx,awx,bwx
+        mov     ar,2.0
+
+        nop
+        trap
+        nop
+
         ; Set some leds
         mov     [IobLedPwr],zl
         mov     [IobLedRgb],zl
@@ -58,6 +74,42 @@ sCoreA:
         mov     [IobLedPwr],al
         mov     al,0x04                 ; Blue
         mov     [IobLedRgb],al
+
+        mov     bl,0x00
+        call    RsuRdParamA
+
+        cmp     al,zl
+        bne     sUserMode
+
+        ; Bit 4 (nconfig_source)—external configuration reset (nconfig) assertion.
+        ; Bit 3 (crcerror_source)—CRC error during application configuration.
+        ; Bit 2 (nstatus_source)—nstatus asserted by an external device as the result of an error.
+        ; Bit 1 (wdtimer_source)—User watchdog timer timeout.
+        ; Bit 0 (runconfig_source)—Configuration reset triggered from logic array.
+
+        ; // Write boot addr
+        mov     bl,0x04
+        mov     awx,0x400000
+        call    RsuWrParamA
+
+        ; // Write WD value
+        mov     bl,0x02
+        mov     awx,0x000001
+        call    RsuWrParamA
+        ; // Write WD Enable
+        mov     bl,0x03
+        mov     awx,0x000001
+        call    RsuWrParamA
+
+        ; // Reconfig
+        mov     al,0x01
+        mov     [IobRsuCtrl],al
+
+        nop
+        trap
+        nop
+
+    sUserMode:
 
         ; Build thread list
         mov     bwx,FThList
@@ -95,6 +147,9 @@ sCoreA:
         mov     al,0x55
         mov     [IobLedY],al
 
+        ; Check if there are other cores
+        cmp     gh,1
+        bbe     saSkipWait
         ; Set confirmation for other cores
         mov     al,0x01
         mov     [FStartFlags],al
@@ -103,6 +158,7 @@ sCoreA:
         cmp     al,0x03
         bne     saWaitA
         ; When confirmation is received, end this [startup] thread
+   saSkipWait:
         siend
 
 sCoreB:
@@ -117,5 +173,36 @@ sCoreB:
         mov     al,0x03
         mov     [FStartFlags],al
         siend
+
+RsuRdParamA:
+        enter   awx,0
+        mov     [IobRsuAddr],bl
+        mov     al,0x01
+        mov     [IobRsuOper],al
+    rrpaWait:
+        nop
+        nop
+        mov     al,[IobRsuOper]
+        test    al,0x01
+        bnz     rrpaWait
+        mov     awx,[IodRsuData]
+        mov     [esp+0],awx
+        leave   awx,0,0
+
+RsuWrParamA:
+        enter   awx,0
+        mov     [IobRsuAddr],bl
+        mov     [IodRsuData],awx
+        mov     al,0x02
+        mov     [IobRsuOper],al
+    rwpaWait:
+        nop
+        nop
+        mov     al,[IobRsuOper]
+        test    al,0x01
+        bnz     rwpaWait
+        leave   awx,0,0
+
+
 
 

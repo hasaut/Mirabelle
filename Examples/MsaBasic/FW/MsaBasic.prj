@@ -24,4 +24,4 @@ GroupTree True
 Brkp 
 Fpga  0x800000 0x700000 /home/ozh/smb/ZukH/Projects/Mirabelle/Examples/MsaBasic/FPGA/output_files/Basic_auto.rpd; 0x000000 0x700000 /home/ozh/smb/ZukHL/Projects/Mirabelle/MsLoader/AltCX/output_files/MsLoader_auto.rpd; 0x700000 0x100000 /home/ozh/smb/ZukH/Projects/Mirabelle/Examples/MsLoader/FW/Out/Fw_Ldr_code.hex; 0xF00000 0x100000 /home/ozh/smb/ZukH/Projects/Mirabelle/Examples/MsaBasic/FW/Out/MsaBasic_code.hex;
 OpenFiles Src/mdStartup.asm Src/mdMainA.asm Src/mdMainB.asm ../../../../Mlx90332AA_dp_v4x/FW/Src/ProcMlx.asm Inc/IoIda.h ../AltCX_Top/MsFpga.v ../AltCX_Top/MsTop.v ../../../Dig/Cpu/MsrvCmdDec.v ../../../Dig/Per/IoTimers.v ../../../Dig/Per/IoIrq.v ../../../Dig/Cpu/MsProcLib.v ../../../Dig/Cpu/MsProcTop.v ../../../Dig/Cpu/MssdCpu.v ../../../Dig/Cpu/MssdCmdDec.v Src/mdMainC.srv Src/mdMainD.srv Src/MdMainB.ci Src/IrqTimerA.ci Src/MdMainA.pas ../../FwLib/MsBase.asm ../../FwLib/SysLib.asm Src/MdMainC.c
-ActiveFile ../AltCX_Top/MsTop.v
+ActiveFile ../../FwLib/MsBase.asm

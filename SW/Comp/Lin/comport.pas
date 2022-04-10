@@ -25,6 +25,7 @@ Type
     FDeadlockTimeOut    : Cardinal;
 
     Procedure Purge;
+    //Procedure FlushData;
 
     Function GetRecvSize : Integer;
     Function RecvByteOpti ( ABytesRecv : Integer; Out AData : byte ) : boolean;
@@ -139,6 +140,15 @@ Procedure TComPort.Purge;
 Begin
  FpIOCtl(FHandle, TCFLSH, Pointer(PtrInt(TCIOFLUSH)));
 End;
+
+{Procedure TComPort.FlushData;
+Var
+  BModemStatus  : Cardinal;
+Begin
+ FpIOCtl(FHandle, TIOCMGET, @BModemStatus);
+ BModemStatus:=BModemStatus xor TIOCM_RTS;
+ FpIOCtl(FHandle, TIOCMSET, @BModemStatus);
+End;}
 
 Function TComPort.SendData ( Const ADataBin : string ) : boolean;
 Var

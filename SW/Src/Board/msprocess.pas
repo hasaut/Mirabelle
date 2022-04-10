@@ -2567,32 +2567,6 @@ Begin
   if (BViewIdx and $0F)=0 then ViewAny('p'+FloatToStr(BDataIdx/BBinLenWr)+' '+CColorFLS+' Verifying flash');
   inc(BDataIdx,$100); inc(BViewIdx);
   end;
- {
- if BBlockLenS>(BBinLenWr-BDataIdx) then BBlockLenS:=256;
- if BDataIdx<BBinLenWr then
-  begin
-  ReadFlashGenS(BAddr+BDataIdx,BBlockLenS);
-  BBlockLenR:=BBlockLenS;
-  end;
- while BDataIdx<BBinLenWr do
-  begin
-  if (BDataIdx+BBlockLenR)<BBinLenWr then
-   begin
-   if BBlockLenS>(BBinLenWr-(BDataIdx+BBlockLenR+BBlockLenS)) then BBlockLenS:=256;
-   ReadFlashGenS(BAddr+BDataIdx+BBlockLenR,BBlockLenS);
-   end;
-  if ReadFlashGenR(BBlockLenR,BDataVer)=FALSE then break;
-  if (BDataVer<>Copy(BDataBin,1+BDataIdx,BBlockLenR)) and (BVerifError=FALSE) then
-   begin
-   ViewAny('feDevice verification error [R:TMsProcess.FpgaReflashSect]');
-   ViewAny('t'+StrBinToHex(Copy(BDataBin,1+BDataIdx,BBlockLenR)));
-   ViewAny('t'+StrBinToHex(BDataVer));
-   BVerifError:=TRUE;
-   end;
-  if (BViewIdx and $07)=0 then ViewAny('p'+FloatToStr(BDataIdx/BBinLenWr)+' '+CColorFLS+' Verifying flash');
-  BBlockLenR:=BBlockLenS;
-  inc(BDataIdx,BBlockLenS); inc(BViewIdx);
-  end;}
  if (BDataIdx<BBinLenWr) or BVerifError then break;
  if BExtraBlock<>'' then
   begin

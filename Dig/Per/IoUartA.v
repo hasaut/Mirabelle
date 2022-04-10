@@ -3,7 +3,7 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
   input ASync1M, input ASync1K, output AIrq,
-  input ARxPin, output ATxPin,
+  input ARxPin, output ATxPin, output ASendBusy, input ASyncStart,
   output [7:0] ATest
  );
 
@@ -37,12 +37,13 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
  // Local vars (Autobaud)
  wire [15:0] FBaudResult, BBaudResult;
  wire FBaudUpdate, BBaudUpdate;
+ wire FSendBusyA, BSendBusyA;
 
- MsDffList #(.CRegLen(8+16+2+16+1)) ULocalVars
+ MsDffList #(.CRegLen(8+16+2+16+1+1)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BCtrl, BBaud, BFlags, BBaudResult, BBaudUpdate}),
-   .ADataO({FCtrl, FBaud, FFlags, FBaudResult, FBaudUpdate})
+   .ADataI({BCtrl, BBaud, BFlags, BBaudResult, BBaudUpdate, BSendBusyA}),
+   .ADataO({FCtrl, FBaud, FFlags, FBaudResult, FBaudUpdate, FSendBusyA})
   );
 
  // Aliases
@@ -103,11 +104,13 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ACfg2Stop(L2Stop), .ACfgTxEn(LTxEn), .ACfgRxEn(LRxEn),
    .ABaudI(FBaud), .ABaudO(BBaudResultA), .ABaudUpdate(BBaudUpdateA),
-   .AFifoSendData(BSendData), .AFifoSendReady(BSendReq), .AFifoSendRd(BSendAck), .ASendBusy(BSendBusy),
+   .AFifoSendData(BSendData), .AFifoSendReady(BSendReq), .AFifoSendRd(BSendAck), .ASendBusy(BSendBusy), .ASyncStart(ASyncStart),
    .AFifoRecvData(BRecvData), .AFifoRecvWr(BRecvNow),
    .ARx(ARxPin), .ATx(ATxPin),
    .ATest()
   );
+
+ assign BSendBusyA = BSendBusy | BSendReq;
 
  // Process (Timer)
  PerifTimer #(.CDataLen(16)) UTimer
@@ -119,6 +122,7 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
   );
 
  // Common part
+ assign ASendBusy = BSendBusy;
  assign AIrq = |(FFlags & LIrqEn);
 
  assign ATest = {ARxPin, ATxPin, 6'h0};
@@ -229,7 +233,7 @@ module IoUartAB_F256b #(parameter CAddrBase=16'h0000)
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ACfg2Stop(L2Stop), .ACfgTxEn(LTxEn), .ACfgRxEn(LRxEn),
    .ABaudI(FBaud), .ABaudO(BBaudResultA), .ABaudUpdate(BBaudUpdateA),
-   .AFifoSendData(BSendData), .AFifoSendReady(BSendReq), .AFifoSendRd(BSendAck), .ASendBusy(BSendBusy),
+   .AFifoSendData(BSendData), .AFifoSendReady(BSendReq), .AFifoSendRd(BSendAck), .ASendBusy(BSendBusy), .ASyncStart(1'b1),
    .AFifoRecvData(BRecvData), .AFifoRecvWr(BRecvNow),
    .ARx(ARxPin), .ATx(ATxPin),
    .ATest()
@@ -265,7 +269,7 @@ module UartACodec
  (
   input AClkH, input AResetHN, input AClkHEn,
   input ACfg2Stop, input ACfgTxEn, input ACfgRxEn,
-  input [15:0] ABaudI, output [15:0] ABaudO, output ABaudUpdate,
+  input [15:0] ABaudI, output [15:0] ABaudO, output ABaudUpdate, input ASyncStart,
   input [7:0] AFifoSendData, input AFifoSendReady, output AFifoSendRd, output ASendBusy,
   output [7:0] AFifoRecvData, output AFifoRecvWr,
   input ARx, output ATx,
@@ -309,7 +313,7 @@ module UartACodec
  wire BSendBitIdxNZ = |FSendBitIdx;
 
  wire BSendNextBit  = ~BSendBaudNZ &  BSendBitIdxNZ;
- wire BSendNextByte = ~BSendBaudNZ & ~BSendBitIdxNZ & AFifoSendReady;
+ wire BSendNextByte = ~BSendBaudNZ & ~BSendBitIdxNZ & AFifoSendReady & ASyncStart;
 
  wire [12:0] BSendBaudA = ABaudI[15:3]-{12'h0, ~BBaudCorrStatic[BSendBitIdx[2:0]] & ~FSendBitIdx[3]};
  assign BSendBaud   = BSendNextByte ? ABaudI[15:3] : (BSendNextBit ? BSendBaudA : FSendBaud-{12'h0, BSendBaudNZ});

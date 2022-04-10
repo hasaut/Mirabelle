@@ -213,7 +213,7 @@ endmodule
 module TestBridgeFtdi
  (
   input AClkH, input AResetHN, input AClkHEn,
-  input [7:0] ADbgDataI, output [7:0] ADbgDataO, output ADbgDataOE, input ADbgRF, ADbgTE, output ADbgWr, ADbgRd, ADbgSiwu,
+  input [7:0] ADbgDataI, output [7:0] ADbgDataO, output ADbgDataOE, input ADbgRF, ADbgTE, output ADbgWr, ADbgRd, ADbgSiwu, output [1:0] ADbgLed,
   input ASync1M, ASync1K,
   output [11:0] ADbioAddr, output [63:0] ADbioMosi, input [63:0] ADbioMiso, output [3:0] ADbioMosiIdx, ADbioMisoIdx, output ADbioMosi1st, output ADbioMiso1st, output [15:0] ADbioDataLen, output ADbioDataLenNZ, input ADbioIdxReset,
   input [7:0] ADbioSbData, input ADbioSbNow, input ADbioSbActive, // Data to be sent back immediately
@@ -321,6 +321,13 @@ module TestBridgeFtdi
  assign ADbgDataOE = FDbgDataOE;
  assign ADbgWr = FFtdiState[IFStSendB];
  assign ADbgRd = FFtdiState[IFStRecvA];
+
+ UartFtdiLeds #(.CDelayLen(12)) ULeds[1:0]
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ASync1M(ASync1M),
+   .ALedStart({FFtdiState[IFStSendA], FFtdiState[IFStRecvA]}), .ALedLit(ADbgLed)
+  );
 
  // Flush
  FtdiFlush UFlush

@@ -142,7 +142,7 @@ module Ram8a1d
 endmodule
 
 
-module RamDX #(parameter CAddrLen=11, CDataLen=8)
+module RamDX_Alt #(parameter CAddrLen=11, CDataLen=8)
  (
   input AClkA, input AResetAN, input AClkAEn,
   input [CAddrLen-1:0] AAddrA, input [CDataLen-1:0] AMosiA, output [CDataLen-1:0] AMisoA, input AWrEnA, input ARdEnA,

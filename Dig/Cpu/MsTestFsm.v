@@ -1,6 +1,7 @@
 module MsTestFsm
  (
   input AClkH, input AResetHN, input AClkHEn,
+  input ARsuReady,
   input ALoadFW, input ALdrActive,
   output [11:0] ADbioAddr, output [63:0] ADbioMosi, output [3:0] ADbioMosiIdx, ADbioMisoIdx, output ADbioMosi1st, output ADbioMiso1st,
   output AReady,
@@ -8,16 +9,18 @@ module MsTestFsm
  );
 
  // Params
- localparam CStLen = 7;
+ localparam CStLen = 9;
  localparam CStNil = {CStLen{1'b0}};
 
  localparam IStFsmStartA = 0;
- localparam IStLdrStartA = 1;
- localparam IStLdrWait   = 2;
- localparam IStCpuStartA = 3;
- localparam IStCpuStartB = 4;
- localparam IStCpuDebugA = 5;
- localparam IStFsmReady  = 6;
+ localparam IStRsuWait   = 1;
+ localparam IStRsuReady  = 2;
+ localparam IStLdrStartA = 3;
+ localparam IStLdrWait   = 4;
+ localparam IStCpuStartA = 5;
+ localparam IStCpuStartB = 6;
+ localparam IStCpuDebugA = 7;
+ localparam IStFsmReady  = 8;
 
  // Local vars
  // FSM
@@ -37,10 +40,13 @@ module MsTestFsm
 
  // FSM
  assign BState[IStFsmStartA] = ~BStateNZ;
- assign BState[IStLdrStartA] =  FState[IStFsmStartA] &  FLoadFW ;
+ assign BState[IStRsuWait]   =  FState[IStFsmStartA] |
+                               (FState[IStRsuWait] & ~ARsuReady);
+ assign BState[IStRsuReady]  =  FState[IStRsuWait] &  ARsuReady;
+ assign BState[IStLdrStartA] =  FState[IStRsuReady] &  FLoadFW ;
  assign BState[IStLdrWait]   =  FState[IStLdrStartA] |
                                (FState[IStLdrWait] &  ALdrActive);
- assign BState[IStCpuStartA] = (FState[IStFsmStartA] & ~FLoadFW) |
+ assign BState[IStCpuStartA] = (FState[IStRsuReady] & ~FLoadFW) |
                                (FState[IStLdrWait] & ~ALdrActive);
  assign BState[IStCpuStartB] =  FState[IStCpuStartA];
  assign BState[IStCpuDebugA] =  FState[IStCpuStartB];
@@ -56,6 +62,6 @@ module MsTestFsm
 //  (FState[IStCpuDebugA] ? {12'h006, 128'h0017, 5'h4, 5'h0, 1'b0, 1'b0} : 86'h0);
 
  assign AReady = FState[IStFsmReady];
- assign ATest = {ALoadFW, FState};
+ assign ATest = {ALoadFW, FState[6:0]};
 endmodule
 
