@@ -8,7 +8,7 @@ uses
   Classes, SysUtils;
 
 Type
-  TStartupMode = (smRun, smStep, smExit);
+  TStartupMode = (smRun, smStep, smExit, smStln);
 
   TCmdParams = class(TObject)
   private
@@ -174,7 +174,8 @@ Begin
 
  if BStartupS='step' then FStartupMode:=smStep
  else if BStartupS='run' then FStartupMode:=smRun
- else if BStartupS='exit' then FStartupMode:=smExit;
+ else if BStartupS='exit' then FStartupMode:=smExit
+ else if BStartupS='stln' then FStartupMode:=smStln;
 
  if BMaxAddrS<>'' then
   begin

@@ -163,7 +163,7 @@ Begin
  WritelnA('--hexf <path/name> = additional HEX file');
  WritelnA('--gdbf <path/name> = GDB index');
  WritelnA('--flash <addr> <size> <path/name> = FPGA flash section');
- WritelnA('--startup <run/step/exit> = startup mode (use "exit" together with "--flash" option if only FPGA reflash is needed)');
+ WritelnA('--startup <run/step/exit/stln> = startup mode (use "exit" together with "--flash" option if only FPGA reflash is needed)');
 End;
 
 Procedure TSdMain.WriteVersion;
@@ -353,7 +353,7 @@ Begin
 
  FMsState:=$0000;
  BDebugActions:='';
- if FCmdParams.StartupMode=smRun then begin BDebugActions:='RIMRnib.S'; FExecState:='e'; end
+ if FCmdParams.StartupMode in [smRun, smStln] then begin BDebugActions:='RIMRnib.S'; FExecState:='e'; end
  else if FCmdParams.StartupMode=smStep then begin BDebugActions:='RIMRnib.'; FExecState:='s'; end;
  if BDebugActions<>'' then
   begin
@@ -369,7 +369,7 @@ Begin
 
  BWrPrompt:=TRUE; BOutLog:=FALSE; BExitAll:=FALSE;
 
- if FCmdParams.StartupMode=smExit then
+ if FCmdParams.StartupMode in [smExit, smStln] then
   begin
   BAction:=FALSE;
   while FMsProcess.HasPendingCmd do

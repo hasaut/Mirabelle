@@ -41,12 +41,12 @@
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="..\..\..\Out\$(TargetCPU)-$(TargetOS)\md_cli"/>
+      <Filename Value="../../../Out/$(TargetCPU)-$(TargetOS)/md_cli"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\Src;..\Lib;..\Frames;..\..\..\Src\MirLib;..\..\..\Src\Board;..\..\..\Src\Build;..\..\..\Src\Model;..\..\..\..\..\..\UtilL\Comp;..\..\..\..\..\..\UtilL\Comp\Lin"/>
-      <UnitOutputDirectory Value="\home\ozh\ZukHL\Projects\Mirabelle\UtilM\Out\$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="../Src;../Lib;../Frames;../../../Src/MirLib;../../../Src/Board;../../../Src/Build;../../../Src/Model;../../../../../../UtilL/Comp;../../../../../../UtilL/Comp/Lin"/>
+      <UnitOutputDirectory Value="/home/ozh/ZukHL/Projects/Mirabelle/UtilM/Out/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
       <Debugging>
