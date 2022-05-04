@@ -198,7 +198,7 @@ Begin
 
  if (Pos('.',BNameS)<>0) and (Pos('..',BNameS)=0) then
   begin
-  if TryStrToFloat(BNameS,BDataF)=FALSE then break;
+  if TryStrToFloat(BNameS,BDataF,HParsFormat)=FALSE then break;
   Result:=CTagS+'c_f'+CTagM+BNameS+CTagE;
   break;
   end;

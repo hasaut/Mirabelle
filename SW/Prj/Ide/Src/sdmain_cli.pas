@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils,
-  MgCmdLine, ChangeLog_sd, MsProcess,
+  MgCmdLine, ChangeLog_sd, MsProcess, AsmTypes_sd,
   Keyboard, MemSeg_sd, DataFiles, ProcModel_sd, MemSegHelper_sd;
 
 Type
@@ -549,7 +549,7 @@ Begin
   WriteA('# p '+FProgressName+': ');
   FProgressPos:=0;
   end;
- TryStrToFloat(BPrPosS,BPrPosF);
+ TryStrToFloat(BPrPosS,BPrPosF,HParsFormat);
  BPrPosI:=Round(BPrPosF*20);
  EnterCriticalSection(FWriteLock);
  while FProgressPos<BPrPosI do

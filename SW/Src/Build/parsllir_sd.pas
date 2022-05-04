@@ -194,7 +194,7 @@ Begin
 
  if (Pos('.',BNameS)<>0) and (Pos('..',BNameS)=0) then
   begin
-  if TryStrToFloat(BNameS,BDataF)=FALSE then break;
+  if TryStrToFloat(BNameS,BDataF,HParsFormat)=FALSE then break;
   Result:=CTagS+'c_f'+CTagM+BNameS+CTagE;
   break;
   end;
@@ -214,7 +214,7 @@ Begin
   break;
   end;
 
- if (BNameS[1] in ['0'..'9']) and TryStrToFloat(BNameS,BDataF) then
+ if (BNameS[1] in ['0'..'9']) and TryStrToFloat(BNameS,BDataF,HParsFormat) then
   begin
   Result:=CTagS+'c_f'+CTagM+BNameS+CTagE;
   break;

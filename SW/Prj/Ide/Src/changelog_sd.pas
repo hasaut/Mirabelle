@@ -8,7 +8,7 @@ uses
   Classes, SysUtils;
 
 Const
-  CVersion = $01020101;
+  CVersion = $01020102;
 
   CChangeLog =
     '[2020.06.17] Version numeration started'+#13+
@@ -22,7 +22,8 @@ Const
     '[2020.07.13] ISS StepBack is implemented'+#13+
     '[2021.03.25] Start FP testing'+#13+
     '[2021.03.27] CSR counters are implemented in the simulator'+#13+
-    '[2021.08.16] ISS trap hit / StepOver bugfix'+#13;
+    '[2021.08.16] ISS trap hit / StepOver bugfix'+#13+
+    '[2022.05.04] Format settings are localized to unify decimal separator parse'+#13;
 
 
 implementation

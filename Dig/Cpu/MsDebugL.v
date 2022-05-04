@@ -3,7 +3,7 @@
  * there are Uart-version and FTDI-parallel version of MsDebug
  */
 
-module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgStart=32'h00800000)
+module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, CBrdVers=8'h5, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgStart=32'h00800000)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
@@ -88,7 +88,7 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
  wire BMemAccessU, BMemAccessL;
 
  wire [7:0] BTestBU;
- MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CCoreCnt(CCoreCnt)) UTestU
+ MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CCoreCnt(CCoreCnt), .CBrdVers(CBrdVers)) UTestU
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ASync1M(ASync1M),
@@ -126,7 +126,7 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
 endmodule
 
 // FTDI version of MsDebug (almost completely copy-paste of UART version)
-module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgBootOffs=32'h300000)
+module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, CBrdVers=8'h5, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgBootOffs=32'h300000)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
@@ -213,7 +213,7 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
  wire BMemAccessU, BMemAccessL;
 
  wire [7:0] BTestBU;
- MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CCoreCnt(CCoreCnt)) UTestU
+ MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CCoreCnt(CCoreCnt), .CBrdVers(CBrdVers)) UTestU
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ASync1M(ASync1M),
@@ -251,7 +251,7 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
 endmodule
 
 // Register A is sent first, then B and so on. StateWord at the end
-module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CCoreCnt=8'h2)
+module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CCoreCnt=8'h2, CBrdVers=8'h5)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input ASync1M,
@@ -396,10 +396,11 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CC
 
  wire [7:0] BCoreCnt = CCoreCnt[7:0];
  wire [7:0] BMcuType = CMcuType;
+ wire [7:0] BBrdVers = CBrdVers;
 
  assign ADbioMiso =
   (BCpuStatRd ? BCpuStat : 64'h0) |
-  (BCpuInfoRd ? {32'h0, 16'h0, BMcuType, BCoreCnt} : 64'h0) |
+  (BCpuInfoRd ? {32'h0, 8'h0, BBrdVers, BMcuType, BCoreCnt} : 64'h0) |
   (BMemDataRd ? AMemMiso : 64'h0) |
   (BMemAddrRd ? {32'h0, FMemAddr, 3'h0} : 64'h0) |
   (BCpuRegsRd ? ARegMiso : 64'h0) |

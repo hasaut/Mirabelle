@@ -957,8 +957,8 @@ Begin
 
  if ATypeR='f' then
   begin
-  if TryStrToFloat(BNameA,BValueFA)=FALSE then AppendError('Error converting string '+BNameA+' to value [R:TProcAtom.ProcConst2]');
-  if TryStrToFloat(BNameB,BValueFB)=FALSE then AppendError('Error converting string '+BNameB+' to value [R:TProcAtom.ProcConst2]');
+  if TryStrToFloat(BNameA,BValueFA,HParsFormat)=FALSE then AppendError('Error converting string '+BNameA+' to value [R:TProcAtom.ProcConst2]');
+  if TryStrToFloat(BNameB,BValueFB,HParsFormat)=FALSE then AppendError('Error converting string '+BNameB+' to value [R:TProcAtom.ProcConst2]');
   case AOper of
     'add': BValueFR:=BValueFA+BValueFB;
     'sub': BValueFR:=BValueFA-BValueFB;

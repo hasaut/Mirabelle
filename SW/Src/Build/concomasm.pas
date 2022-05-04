@@ -5,7 +5,7 @@ unit ConComAsm;
 interface
 
 uses
-  Classes, SysUtils, Math;
+  Classes, SysUtils, Math, AsmTypes_sd;
 
 { *** Common (Conversions) *** }
 Function IsFloat ( Const AStr : string; Out AConst : Double ) : boolean;
@@ -37,7 +37,7 @@ Begin
  if AStr='-Inf' then begin AConst:=NegInfinity; Result:=TRUE; break; end;
  BSign:=1;
  if Pos('-',BStr)=1 then begin BSign:=-1; Delete(BStr,1,1); end;
- if TryStrToFloat(BStr,BDataF)=FALSE then break;
+ if TryStrToFloat(BStr,BDataF,HParsFormat)=FALSE then break;
  AConst:=BDataF*BSign;
  Result:=TRUE;
  until TRUE;
@@ -127,7 +127,7 @@ Begin
   if StringToInteger(BStr,BDataI)=FALSE then break;
   AConst:=BDataIA;
   end
- else if TryStrToFloat(BStr,BDataF) then
+ else if TryStrToFloat(BStr,BDataF,HParsFormat) then
   begin
   AConst:=BDataFA;
   end

@@ -355,7 +355,7 @@ Begin
  if (Pos('.',BNameS)<>0) and (Pos('..',BNameS)=0) then
   begin
   ExtractWantedTypeD(BNameS,BWantedType);
-  if TryStrToFloat(BNameS,BDataF)=FALSE then break;
+  if TryStrToFloat(BNameS,BDataF,HParsFormat)=FALSE then break;
   Result:=CTagS+'c_f'+CTagM+BNameS+CTagE;
   ForceWantedType(Result,BWantedType);
   break;

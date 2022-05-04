@@ -926,6 +926,9 @@ Begin
   case AOper of
     'add': BValueR:=BValueA+BValueB;
     'sub': BValueR:=BValueA-BValueB;
+    'and': BValueR:=BValueA and BValueB;
+     'or': BValueR:=BValueA or BValueB;
+    'xor': BValueR:=BValueA xor BValueB;
     'mul': BValueR:=BValueA*BValueB;
     'div': begin
            if BValueB=0 then begin BValueR:=0; AppendError('Zero division [R:TProcAtom.ProcConst2]'); end
@@ -957,8 +960,8 @@ Begin
 
  if ATypeR='f' then
   begin
-  if TryStrToFloat(BNameA,BValueFA)=FALSE then AppendError('Error converting string '+BNameA+' to value [R:TProcAtom.ProcConst2]');
-  if TryStrToFloat(BNameB,BValueFB)=FALSE then AppendError('Error converting string '+BNameB+' to value [R:TProcAtom.ProcConst2]');
+  if TryStrToFloat(BNameA,BValueFA,HParsFormat)=FALSE then AppendError('Error converting string '+BNameA+' to value [R:TProcAtom.ProcConst2]');
+  if TryStrToFloat(BNameB,BValueFB,HParsFormat)=FALSE then AppendError('Error converting string '+BNameB+' to value [R:TProcAtom.ProcConst2]');
   case AOper of
     'add': BValueFR:=BValueFA+BValueFB;
     'sub': BValueFR:=BValueFA-BValueFB;

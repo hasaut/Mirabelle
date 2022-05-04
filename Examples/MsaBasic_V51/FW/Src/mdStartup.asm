@@ -45,6 +45,8 @@ sCoreA:
         mov     [IowIrqEn],zx
         mov     esp,FStackA
 
+        mov     awx,100.0
+
         mov     [IobLedPwr],zl
         mov     [IobLedRgb],zl
 

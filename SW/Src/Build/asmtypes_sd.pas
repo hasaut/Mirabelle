@@ -70,6 +70,9 @@ Const
    );
   CBasicTypes : string = ('l c b k w m d i p f');
 
+Var
+  HParsFormat   : TFormatSettings;
+
 Function FormatError ( Const AMessage : string; Const AFilename : string; ALine, APos : Integer ) : string;
 Function FormatError ( Const AMessage : string; Const AFilename : string; Const ALine : string ) : string;
 Procedure ParseError ( Const AErrorCode : string; Out AMessage : string;  Out AReporter : string; Out AFilename : string; Out ALine, APos : Integer );
@@ -132,6 +135,11 @@ Begin
  FLine:=AToken.FLine;
  FPos:=AToken.FPos;
 End;
+
+Initialization
+
+ HParsFormat:=DefaultFormatSettings;
+ HParsFormat.DecimalSeparator:='.';
 
 End.
 

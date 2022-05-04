@@ -236,6 +236,114 @@ implementation
 Uses
   ConComL, ConComS;
 
+// *** AUX ***
+Procedure AddSizeChsOpti ( Var ADataS : string; ASize : Cardinal; AChs : word );
+Var
+  BIndex    : Integer;
+  BData     : Cardinal;
+Begin
+ BIndex:=Length(ADataS)-8;
+ BData:=ASize;
+ ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
+ ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
+ ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
+ ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
+ BData:=0;
+ ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
+ ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
+ BData:=AChs;
+ ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
+ ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
+End;
+
+Const
+  CVerifBlockLen    = 256;
+
+Procedure InvertBytes ( Var ADataS : string );
+Var
+  BDataIdx,
+  BDataLen  : Integer;
+  BDataRd,
+  BDataWr   : byte;
+  BBitIdx   : Integer;
+Begin
+ BDataLen:=Length(ADataS);
+ BDataIdx:=0;
+ while BDataIdx<BDataLen do
+  begin
+  BDataRd:=Ord(ADataS[1+BDataIdx]);
+  BDataWr:=0;
+  for BBitIdx:=0 to 7 do
+   begin
+   BDataWr:=BDataWr shl 1;
+   if (BDataRd and $01)<>0 then BDataWr:=BDataWr or $01;
+   BDataRd:=BDataRd shr 1;
+   end;
+  ADataS[1+BDataIdx]:=Chr(BDataWr);
+  inc(BDataIdx);
+  end;
+End;
+
+Procedure CropJicFile ( Var ADataBin : string );
+Var
+  BPos,
+  BIndex    : Integer;
+Begin
+ repeat
+ BPos:=Pos(#$FF+#$FF+#$FF+#$FF+#$FF+#$FF+#$FF,ADataBin);
+ if BPos<>0 then Delete(ADataBin,1,BPos-1);
+ if ADataBin='' then break;
+ BIndex:=PosBack(#$FF+#$FF+#$FF+#$FF+#$FF+#$FF+#$FF,ADataBin)-1;
+ while BIndex>0 do
+  begin
+  if ADataBin[1+BIndex]<>#$FF then break;
+  dec(BIndex);
+  end;
+ if BIndex=0 then break;
+ BIndex:=BIndex+256;
+ if BIndex>=Length(ADataBin) then break;
+ Delete(ADataBin,1+BIndex,Length(ADataBin)-BIndex);
+ until TRUE;
+End;
+
+Function AllDataIsEmpty ( Const ADataS : string ) : boolean;
+Var
+  BIndex    : Integer;
+Begin
+ BIndex:=0;
+ while BIndex<Length(ADataS) do
+  begin
+  if Ord(ADataS[1+BIndex])<>$FF then break;
+  inc(BIndex);
+  end;
+ Result:=BIndex=Length(ADataS);
+End;
+
+Function RegBinToHex ( Const ASrc : string ) : string;
+Var
+  BColIdx,
+  BRowIdx   : Integer;
+Begin
+ Result:='';
+ repeat
+ if Length(ASrc)<>64 then
+  begin
+  for BColIdx:=0 to 63 do Result:=Result+'XX';
+  break;
+  end;
+ //Result:=StrBinToHex(ASrc);
+ for BRowIdx:=0 to 7 do
+  begin
+  for BColIdx:=0 to 7 do
+   begin
+   Result:=Result+IntToHex(Ord(ASrc[1+BRowIdx*8+7-BColIdx]),2);
+   end;
+  end;
+ until TRUE;
+End;
+
+// TMsProcess
+
 Constructor TMsProcess.Create ( CreateSuspended : boolean );
 Var
   BData     : byte;
@@ -1406,29 +1514,6 @@ Begin
  FMcxThis:=FMcxPrev; FMcxThis:='';
 End;
 
-Function RegBinToHex ( Const ASrc : string ) : string;
-Var
-  BColIdx,
-  BRowIdx   : Integer;
-Begin
- Result:='';
- repeat
- if Length(ASrc)<>64 then
-  begin
-  for BColIdx:=0 to 63 do Result:=Result+'XX';
-  break;
-  end;
- //Result:=StrBinToHex(ASrc);
- for BRowIdx:=0 to 7 do
-  begin
-  for BColIdx:=0 to 7 do
-   begin
-   Result:=Result+IntToHex(Ord(ASrc[1+BRowIdx*8+7-BColIdx]),2);
-   end;
-  end;
- until TRUE;
-End;
-
 Function TMsProcess.RecvMcxStateA ( Const ARegsBin : string ) : string;
 Var
   BRegsSrc,
@@ -1901,6 +1986,13 @@ Begin
  until TRUE;
 End;
 
+Procedure TMsProcess.FpgaReset;
+Begin
+ ViewAny('fiFPGA will be reset (it can take up to a few seconds for read a new configuration) [R:TMsProcess.FpgaReset]');
+ if FpgaResetA($00) then ViewAny('fiFPGA is reset [R:TMsProcess.FpgaReset]')
+ else ViewAny('fiFPGA reset error [R:TMsProcess.FpgaReset]');
+End;
+
 Procedure TMsProcess.ReadSegData ( Const ASegParams : string );
 Var
   BParams   : string;
@@ -2113,13 +2205,6 @@ Begin
  FFlashLogKeep:=FALSE;
 End;
 
-Procedure TMsProcess.FpgaReset;
-Begin
- ViewAny('fiFPGA will be reset (it can take up to a few seconds for read a new configuration) [R:TMsProcess.FpgaReset]');
- if FpgaResetA($00) then ViewAny('fiFPGA is reset [R:TMsProcess.FpgaReset]')
- else ViewAny('fiFPGA reset error [R:TMsProcess.FpgaReset]');
-End;
-
 Function TMsProcess.ReadBinFile ( Const AFilename : string; Out ADataBin : string ) : boolean;
 Var
   BStream   : TMemoryStream;
@@ -2258,38 +2343,6 @@ Begin
  until TRUE;
 End;
 
-{ Older version with only one check (at the beginning). Does not work with fast link
-
-Function TMsProcess.WriteFlashPageGen ( AAddr : Cardinal; Const APageData : string ) : boolean;
-Var
-  BDataBinF,
-  BDataBinE,
-  BDataBinW     : string;
-  BRegData      : byte;
-Begin
- Result:=FALSE;
- repeat
- BDataBinF:=#$05+#$FF;
- BDataBinE:=#$06;
- BDataBinW:=
-   #$02+
-   Chr((AAddr shr 16) and $FF)+
-   Chr((AAddr shr 8) and $FF)+
-   Chr(AAddr and $FF)+
-   APageData;
-
- SendDataOpti($101,BDataBinF);
- SendDataOpti($101,BDataBinE);
- SendDataOpti($101,BDataBinW);
- if RecvDataOpti(BDataBinF)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
- if RecvDataOpti(BDataBinE)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
- if RecvDataOpti(BDataBinW)=FALSE then begin ViewAny('feCommunication error (Program block) [R:TMsProcess.WriteFlashPageGen]'); break; end;
-
- BRegData:=Ord(BDataBinF[2]);
- Result:=(BRegData and $01)=0;
- until TRUE;
-End;}
-
 Function TMsProcess.ReadFlashGen ( AAddr : Cardinal; ASize : Cardinal; Out ADataS : string ) : boolean;
 Var
   BDataS    : string;
@@ -2332,88 +2385,6 @@ Begin
  until TRUE;
 End;
 }
-Procedure AddSizeChsOpti ( Var ADataS : string; ASize : Cardinal; AChs : word );
-Var
-  BIndex    : Integer;
-  BData     : Cardinal;
-Begin
- BIndex:=Length(ADataS)-8;
- BData:=ASize;
- ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
- ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
- ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
- ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
- BData:=0;
- ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
- ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
- BData:=AChs;
- ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
- ADataS[1+BIndex]:=Chr(BData and $FF); BData:=BData shr 8; inc(BIndex);
-End;
-
-Const
-  CVerifBlockLen    = 256;
-
-Procedure InvertBytes ( Var ADataS : string );
-Var
-  BDataIdx,
-  BDataLen  : Integer;
-  BDataRd,
-  BDataWr   : byte;
-  BBitIdx   : Integer;
-Begin
- BDataLen:=Length(ADataS);
- BDataIdx:=0;
- while BDataIdx<BDataLen do
-  begin
-  BDataRd:=Ord(ADataS[1+BDataIdx]);
-  BDataWr:=0;
-  for BBitIdx:=0 to 7 do
-   begin
-   BDataWr:=BDataWr shl 1;
-   if (BDataRd and $01)<>0 then BDataWr:=BDataWr or $01;
-   BDataRd:=BDataRd shr 1;
-   end;
-  ADataS[1+BDataIdx]:=Chr(BDataWr);
-  inc(BDataIdx);
-  end;
-End;
-
-Procedure CropJicFile ( Var ADataBin : string );
-Var
-  BPos,
-  BIndex    : Integer;
-Begin
- repeat
- BPos:=Pos(#$FF+#$FF+#$FF+#$FF+#$FF+#$FF+#$FF,ADataBin);
- if BPos<>0 then Delete(ADataBin,1,BPos-1);
- if ADataBin='' then break;
- BIndex:=PosBack(#$FF+#$FF+#$FF+#$FF+#$FF+#$FF+#$FF,ADataBin)-1;
- while BIndex>0 do
-  begin
-  if ADataBin[1+BIndex]<>#$FF then break;
-  dec(BIndex);
-  end;
- if BIndex=0 then break;
- BIndex:=BIndex+256;
- if BIndex>=Length(ADataBin) then break;
- Delete(ADataBin,1+BIndex,Length(ADataBin)-BIndex);
- until TRUE;
-End;
-
-Function AllDataIsEmpty ( Const ADataS : string ) : boolean;
-Var
-  BIndex    : Integer;
-Begin
- BIndex:=0;
- while BIndex<Length(ADataS) do
-  begin
-  if Ord(ADataS[1+BIndex])<>$FF then break;
-  inc(BIndex);
-  end;
- Result:=BIndex=Length(ADataS);
-End;
-
 Function TMsProcess.FpgaReflashSect ( Const ASectInfo : string ) : boolean;
 Var
   BSectInfo     : string;
