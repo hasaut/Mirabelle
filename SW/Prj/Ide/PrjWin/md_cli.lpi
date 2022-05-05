@@ -47,7 +47,7 @@
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
       <OtherUnitFiles Value="..\Src;..\Lib;..\Frames;..\..\..\Src\Model;..\..\..\Src\Board;..\..\..\Src\Build;..\..\..\Src\MirLib;..\..\..\Src\Comp;..\..\..\Src\Comp\Win"/>
-      <UnitOutputDirectory Value="..\..\..\Out\$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="C:\ZukHL\Projects\Mirabelle\UnitOut\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
       <Debugging>
