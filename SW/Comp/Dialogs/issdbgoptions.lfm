@@ -1,84 +1,95 @@
 object DbgOptionsForm: TDbgOptionsForm
   Left = 582
-  Height = 125
+  Height = 179
   Top = 219
-  Width = 272
+  Width = 218
   BorderIcons = []
   BorderStyle = bsSingle
   Caption = 'Debugger options'
-  ClientHeight = 125
-  ClientWidth = 272
-  DesignTimePPI = 120
+  ClientHeight = 179
+  ClientWidth = 218
   OnClose = FormClose
   OnShow = FormShow
   Position = poOwnerFormCenter
-  LCLVersion = '1.8.4.0'
+  LCLVersion = '2.2.0.2'
   object BtOk: TSpeedButton
-    Left = 149
-    Height = 22
-    Top = 101
-    Width = 57
+    Left = 119
+    Height = 18
+    Top = 159
+    Width = 46
     Anchors = [akRight, akBottom]
     Caption = 'OK'
     OnClick = BtOkClick
   end
   object BtCancel: TSpeedButton
-    Left = 213
-    Height = 22
-    Top = 101
-    Width = 57
+    Left = 170
+    Height = 18
+    Top = 159
+    Width = 46
     Anchors = [akRight, akBottom]
     Caption = 'Cancel'
     OnClick = BtCancelClick
   end
   object EComName: TEdit
-    Left = 87
-    Height = 28
-    Top = 40
-    Width = 125
+    Left = 70
+    Height = 23
+    Top = 32
+    Width = 100
     TabOrder = 0
     Text = 'EComName'
   end
   object EComBaud: TEdit
-    Left = 89
-    Height = 28
-    Top = 65
-    Width = 125
+    Left = 71
+    Height = 23
+    Top = 52
+    Width = 100
     TabOrder = 1
     Text = 'EComBaud'
   end
   object LComName: TLabel
-    Left = 7
-    Height = 20
-    Top = 44
-    Width = 78
+    Left = 6
+    Height = 15
+    Top = 35
+    Width = 64
     Caption = 'LComName'
-    ParentColor = False
   end
   object LComBaud: TLabel
-    Left = 7
-    Height = 20
-    Top = 68
-    Width = 72
+    Left = 6
+    Height = 15
+    Top = 54
+    Width = 59
     Caption = 'LComBaud'
-    ParentColor = False
   end
   object LIssFpga: TLabel
-    Left = 9
-    Height = 20
-    Top = 12
-    Width = 56
+    Left = 7
+    Height = 15
+    Top = 10
+    Width = 45
     Caption = 'LIssFpga'
-    ParentColor = False
   end
   object CbIssFpga: TComboBox
-    Left = 82
-    Height = 28
-    Top = 11
-    Width = 125
-    ItemHeight = 20
+    Left = 66
+    Height = 23
+    Top = 9
+    Width = 100
+    ItemHeight = 15
     OnChange = CbIssFpgaChange
     Style = csDropDownList
     TabOrder = 2
+  end
+  object EComList: TEdit
+    Left = 80
+    Height = 23
+    Top = 80
+    Width = 100
+    TabOrder = 3
+    Text = 'EComList'
+  end
+  object LComList: TLabel
+    Left = 5
+    Height = 15
+    Top = 82
+    Width = 50
+    Caption = 'LComList'
   end
 end

@@ -94,7 +94,7 @@ module MssdCmdDec
  wire [3:0] LRegRR = AQueTop[ 3: 0];
  wire [3:0] LRegSS = AQueTop[19:16];
 
- wire [1:0] LWw  = AQueTop[ 9: 8];  wire [3:0] LWwDec; MsDec2x4a UWwDec ( .ADataI(LWw), .ADataO(LWwDec) );
+ wire [1:0] LWw  = AQueTop[ 9: 8];  //wire [3:0] LWwDec; MsDec2x4a UWwDec ( .ADataI(LWw), .ADataO(LWwDec) );
  wire [1:0] LWwU = AQueTop[27:26];
  wire [1:0] LWwR = AQueTop[25:24];
  wire [1:0] LWwS = AQueTop[21:20];

@@ -574,7 +574,7 @@ module MssdAluFast
  wire  [3:0] BBusFDataS; wire BBusFLoadS;
  MssdAluS UAluS
   (
-   .ADataS(AMuxS), .ADataU(AMuxU), .AOper(AAluSelS), .ADstColRow(ADstColRow), .ADstFlagWr(ADstFlagWr),
+   .ADataS(AMuxS[4:0]), .ADataU(AMuxU), .AOper(AAluSelS), .ADstColRow(ADstColRow), .ADstFlagWr(ADstFlagWr),
    .ABusAData(BBusADataS), .ABusALoad(BBusALoadS),
    .ABusFData(BBusFDataS), .ABusFLoad(BBusFLoadS)
   );
@@ -584,8 +584,7 @@ module MssdAluFast
  wire  [3:0] BBusFDataT; wire BBusFLoadT;
  MssdAluT UAluT
   (
-   .ADataS(AMuxS), .ADataD(AMuxU), .AOper(AAluSelT), .ADstColRow(ADstColRow), .ADstFlagWr(ADstFlagWr),
-   .AFlagC(AFlagC),
+   .ADataS(AMuxS[4:0]), .ADataD(AMuxU), .AOper(AAluSelT), .ADstColRow(ADstColRow), .ADstFlagWr(ADstFlagWr),
    .ABusAData(BBusADataT), .ABusALoad(BBusALoadT),
    .ABusFData(BBusFDataT), .ABusFLoad(BBusFLoadT)
   );
@@ -597,10 +596,6 @@ module MssdAluFast
 
  assign AAluData = BBusDData; assign AAluLoad = BBusDLoad;
  assign AFlagsData = BBusFData; assign AFlagsLoad = BBusFLoad;
-endmodule
-
-module MssdAluGetSign ( input [31:0] AData, input [3:0] ASizeDec, output ASign );
- assign ASign = |{AData[31] & ASizeDec[2], AData[15] & ASizeDec[1], AData[7] & ASizeDec[0]};
 endmodule
 
 // ## AluA
@@ -626,9 +621,9 @@ module MssdAluA
  wire [3:0] BSizeDecR; MssdColToSize USizeDecR ( .ACol(ADstColRow[11:8]), .ASize(BSizeDecR) );
 
  wire BResDataNZ = |ABusAData;
- wire BSignS; MssdAluGetSign USignS ( .AData(BDataSA),   .ASizeDec(BSizeDecS), .ASign(BSignS) );
- wire BSignU; MssdAluGetSign USignU ( .AData(ADataU),    .ASizeDec(BSizeDecU), .ASign(BSignU) );
- wire BSignR; MssdAluGetSign USignR ( .AData(ABusAData), .ASizeDec(BSizeDecR), .ASign(BSignR) );
+ wire BSignS = |({BDataSA[31], BDataSA[15], BDataSA[7]} & BSizeDecS[2:0]);
+ wire BSignU = |({ADataU[31], ADataU[15], ADataU[7]} & BSizeDecU[2:0]);
+ wire BSignR = |({ABusAData[31], ABusAData[15], ABusAData[7]} & BSizeDecR[2:0]);
  wire BOverflowA = ~(BSignS ^ BSignU) & (BSignU ^ BResAdd[31]);
  wire BBitT = AOper[3] ? BResAdd[31] ^ BOverflowA : ~BResAdd[32];
 
@@ -649,7 +644,7 @@ endmodule
 
 module MssdAluS
  (
-  input [31:0] ADataS, ADataU,
+  input [4:0] ADataS, input [31:0] ADataU,
   input [3:0] AOper, input [11:0] ADstColRow, input ADstFlagWr,
   output [31:0] ABusAData, output [11:0] ABusALoad,
   output  [3:0] ABusFData, output ABusFLoad
@@ -700,8 +695,7 @@ endmodule
 
 module MssdAluT
  (
-  input [31:0] ADataS, input [31:0] ADataD, input [3:0] AOper, input [11:0] ADstColRow, input ADstFlagWr,
-  input AFlagC,
+  input [4:0] ADataS, input [31:0] ADataD, input [3:0] AOper, input [11:0] ADstColRow, input ADstFlagWr,
   output [31:0] ABusAData, output [11:0] ABusALoad,
   output  [3:0] ABusFData, output ABusFLoad
  );
@@ -749,7 +743,7 @@ module MssdAluSlow
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataS(AMuxS), .ADataU(AMuxU),
    .AWwS(AWwS), .AWwU(AWwU), .AWwR(AWwR),
-   .AOper(AAluSelU), .ADstColRow(ADstColRow),
+   .AOper(AAluSelU), 
    .AMulDivDataS(BMulDivDataSU), .AMulDivDataD(BMulDivDataDU), .AMulDivSize(BMulDivSizeU), .AMulDivStart(BMulDivStartU),
    .AMulDivNegData(BMulDivNegDataU),
    .AMulDivDataH(BMulDivDataH), .AMulDivDataR(BMulDivDataR), .AMulDivWrEn(BMulDivWrEn),
@@ -794,7 +788,6 @@ module MssdAluU
   input [31:0] ADataS, ADataU,
   input [1:0] AWwS, AWwU, AWwR,
   input [7:0] AOper, // urem srem udiv sdiv mulhu mulhsu mulh mul
-  input [11:0] ADstColRow,
   // Common MulDiv
   output [31:0] AMulDivDataS, AMulDivDataD, output [2:0] AMulDivSize, output [1:0] AMulDivStart,
   output [2:0] AMulDivNegData,

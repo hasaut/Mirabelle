@@ -1,0 +1,13 @@
+static volatile unsigned char FActive;
+
+void WDReset ( void );
+
+void MainB ( void )
+{
+ FActive=1;
+ do
+  {
+   WDReset();
+  } while(FActive);
+}
+

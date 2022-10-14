@@ -21,6 +21,7 @@ Function AddSpacesResL ( Const AStr : string; ALen : Integer ) : string;
 Function AddSpacesResR ( Const AStr : string; ALen : Integer ) : string;
 Procedure AddSpacesVarL ( Var AStr : string; ALen : Integer );
 Procedure AddSpacesVarR ( Var AStr : string; ALen : Integer );
+Function StrPadResL ( Const AStr : string; ASym : char; ALen : Integer ) : string;
 
 Function ReadParamStr ( Var ASrc : string ) : string;
 Function ReadParamStrInv ( Var ASrc : string ) : string;
@@ -317,6 +318,12 @@ End;
 Procedure AddSpacesVarR ( Var AStr : string; ALen : Integer );
 Begin
  while Length(AStr)<ALen do AStr:=AStr+' ';
+End;
+
+Function StrPadResL ( Const AStr : string; ASym : char; ALen : Integer ) : string;
+Begin
+ Result:=AStr;
+ while Length(Result)<ALen do Result:=ASym+Result;
 End;
 
 Function ReadParamStr ( Var ASrc : string ) : string;

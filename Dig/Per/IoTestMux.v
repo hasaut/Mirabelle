@@ -48,16 +48,15 @@ module IoTestMux #(parameter CAddrBase=16'h0000, CAddrLen=12)
  // Each mux we must configure independently
  wire [7:0] BChSelDec; MsDec3x8a UChSelDec ( .ADataI(FChSelIdx), .ADataO(BChSelDec) );
 
- wire [63:0] BTest64p;
- TestMux UTestMux[7:0]
+ 
+ TestMux UTestMux[1:0]
   (
-   .AClkH({8{AClkH}}), .AResetHN({8{AResetHN}}), .AClkHEn({8{AClkHEn}}),
-   .ASelIdx({8{AIoMosi[5:0]}}), .ASelWrEn({8{BChWrEn}} & BChSelDec),
-   .ADataIn({8{ATestIn}}), .ADataOut(BTest64p),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ASelIdx(AIoMosi[5:0]), .ASelWrEn({2{BChWrEn}} & BChSelDec[1:0]),
+   .ADataIn(ATestIn), .ADataOut(ATest16p),
    .AMuxIdx()
   );
 
- assign ATest16p = BTest64p[15:0];
 endmodule
 
 module TestMux

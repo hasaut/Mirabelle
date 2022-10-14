@@ -3,7 +3,8 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, input [63:0] AIoMosi, input [3:0] AIoWrSize, output AIoAddrAck, output AIoAddrErr,
   input AClkI, input AResetIN,
-  output AClkO, output AResetON
+  output AClkO, output AResetON,
+  output AUnused
  );
 
  // IO
@@ -66,6 +67,7 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
 
  assign AClkO = FClkO[1];
  assign AResetON = FResetON[CResetDelayW-1];
+ assign AUnused = |{AIoMosi};
 
 endmodule
 
@@ -170,7 +172,7 @@ module ClkDivX #(parameter CDivLen=2)
  assign BClkDiv = BClkDivA[CDivLen-1:0];
  assign BClkE = FClkDiv[CDivLen-1];
 
- reg FResetEN; wire BResetEN;
+ reg FResetEN; 
 
  always @(posedge AClkE or negedge AResetDN)
  if (AResetDN==1'b0)

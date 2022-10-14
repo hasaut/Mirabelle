@@ -34,13 +34,13 @@ module MsrvCmdDec
  wire LFn7_20x = (LFn7x==7'h20);
  wire LFn7_01x = (LFn7x==7'h01);
 
- wire [3:0] LRegR = AQueTop[10: 7]; wire [7:0] BRowR; MsDec3x8a URowR ( .ADataI(LRegR[2:0]), .ADataO(BRowR) );     wire BRegRNZ = |LRegR; wire BIsRegRSp = (LRegR==4'h2);
- wire [3:0] LRegU = AQueTop[18:15]; wire [7:0] BRowU; MsDec3x8a URowU ( .ADataI(LRegU[2:0]), .ADataO(BRowU) );     wire BRegUNZ = |LRegU;
- wire [3:0] LRegS = AQueTop[23:20]; wire [7:0] BRowS; MsDec3x8a URowS ( .ADataI(LRegS[2:0]), .ADataO(BRowS) );
+ wire [3:0] LRegR = AQueTop[10: 7]; wire BRegRNZ = |LRegR; wire BIsRegRSp = (LRegR==4'h2);
+ wire [3:0] LRegU = AQueTop[18:15]; wire BRegUNZ = |LRegU;
+ wire [3:0] LRegS = AQueTop[23:20]; 
 
  wire [4:0] LReg62C = AQueTop[6:2]; wire BReg62C_NZ = |LReg62C;
- wire [2:0] LReg42C = AQueTop[4:2]; wire [7:0] BRow42C; MsDec3x8a URow42C ( .ADataI(LReg42C), .ADataO(BRow42C) );
- wire [2:0] LReg97C = AQueTop[9:7]; wire [7:0] BRow97C; MsDec3x8a URow97C ( .ADataI(LReg97C), .ADataO(BRow97C) );
+ wire [2:0] LReg42C = AQueTop[4:2]; //wire [7:0] BRow42C; MsDec3x8a URow42C ( .ADataI(LReg42C), .ADataO(BRow42C) );
+ wire [2:0] LReg97C = AQueTop[9:7]; //wire [7:0] BRow97C; MsDec3x8a URow97C ( .ADataI(LReg97C), .ADataO(BRow97C) );
 
  localparam CRegSP   = 6'h22;
  localparam CRegRA   = 6'h21;

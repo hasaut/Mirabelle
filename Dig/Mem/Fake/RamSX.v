@@ -21,3 +21,13 @@ module RamSX #(parameter CAddrLen=13, CDataLen=128)
 
 endmodule
 
+module RamSDP #(parameter CAddrLen=13, CDataLen=128)
+ (
+  input AClkH, input AResetHN, input AClkHEn,
+  input [CAddrLen-1:0] AAddrWr, AAddrRd, input [CDataLen-1:0] AMosi, output [CDataLen-1:0] AMiso, input AWrEn
+ );
+
+ localparam ZData = {CDataLen{1'b0}};
+
+ assign AMiso = ZData;
+endmodule

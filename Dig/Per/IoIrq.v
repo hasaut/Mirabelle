@@ -3,7 +3,7 @@ module IoIrq16A #(parameter CAddrBase=16'h0000, CIrqCnt=16)
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, AIoAddrErr,
   input [CIrqCnt-1:0] AIrqI, output [CIrqCnt-1:0] AIrqO,
-  output [7:0] ATest
+  output [7:0] ATest, output AUnused
  );
 
  // Interface
@@ -40,12 +40,10 @@ module IoIrq16A #(parameter CAddrBase=16'h0000, CIrqCnt=16)
  assign AIoMiso =
   (BIoAccess[IoSizeW+IoOperR+0] ? {{(64-CIrqCnt){1'b0}}, FIrqEn} : 64'h0);
 
- // Process
- assign AIrqO = AIrqI & FIrqEn;
-
- assign ATest = 8'h0;
-
  // External
+ assign AIrqO = AIrqI & FIrqEn;
+ assign ATest = 8'h0;
+ assign AUnused = |{AIoMosi};
 endmodule
 
 

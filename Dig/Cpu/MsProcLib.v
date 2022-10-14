@@ -306,7 +306,9 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  assign AContPtrWrEn  = (FStateSys[IStSysSwtD] | FStateSys[IStIrqSwtD]) &  ARamAck;
  assign AIrqToProcess = FStateSys[IStIrqSwtD] ? FIrqThis : {CIrqCnt{1'b0}};
 
- assign ATest = {ASysCoreSel, AContPtrWrEn, AIrqBusyList[0], FStateSys[IStIrqEndA], FIrqThis[0], FIrqAll[0], FIrqIn[0]};
+ //assign ATest = {ASysCoreSel, AContPtrWrEn, AIrqBusyList[0], FStateSys[IStIrqEndA], FIrqThis[0], FIrqAll[0], FIrqIn[0]};
+ assign ATest = {ASysCoreSel, BIrqEn, FStateSys[IStIrqEndA], FIrqThis[0], FIrqAll[0], FIrqIn[0]};
+
 endmodule
 
 module MsUnityCtrl #(parameter CLineCnt=2)
@@ -649,13 +651,12 @@ module MsBusBCtrl #(parameter CDataLen=32)
  wire        FPendAny, BPendAny;
  wire [11:0] FLoadRegIdx, BLoadRegIdx;
  wire [11:0] FPendRegIdx, BPendRegIdx;
- wire [CDataLen-1:0] FExtMiso, BExtMiso;
 
- MsDffList #(.CRegLen(2+1+2*12+CDataLen)) ULocalVars
+ MsDffList #(.CRegLen(2+1+2*12)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BOper, BPendAny, BLoadRegIdx, BPendRegIdx, BExtMiso}),
-   .ADataO({FOper, FPendAny, FLoadRegIdx, FPendRegIdx, FExtMiso})
+   .ADataI({BOper, BPendAny, BLoadRegIdx, BPendRegIdx}),
+   .ADataO({FOper, FPendAny, FLoadRegIdx, FPendRegIdx})
   );
 
  wire BWrRdEnNZ = |AWrRdEn;

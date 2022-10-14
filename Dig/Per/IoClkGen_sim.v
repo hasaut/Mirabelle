@@ -3,7 +3,8 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, input [63:0] AIoMosi, input [3:0] AIoWrSize, output AIoAddrAck, output AIoAddrErr,
   input AClkI, input AResetIN,
-  output AClkO, output AResetON
+  output AClkO, output AResetON,
+  output AUnused
  );
 
  localparam CResetDelayWSim = 4;
@@ -69,6 +70,7 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
  assign AClkO = AClkI;
  assign AResetON = FResetON[CResetDelayWSim-1];
 
+ assign AUnused = |{AIoMosi};
 endmodule
 
 module TimerClockSync #(parameter CDividerWidth=8, CDividerValue=8'hFF)

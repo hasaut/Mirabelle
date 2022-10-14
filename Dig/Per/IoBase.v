@@ -414,7 +414,7 @@ module MsFifo1K
 
  RamSDP #(.CAddrLen(10), .CDataLen(8)) URam
   (
-   .AClkH(AClkH), .AResetB(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .AAddrWr(FWrIdx[9:0]), .AAddrRd(FRdIdx[9:0]), .AMosi(ADataI), .AMiso(ADataO), .AWrEn(AWrEn)
   );
 

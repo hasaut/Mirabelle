@@ -1,11 +1,12 @@
 module IoSpiM #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
+  input AClkH, AResetHN, AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  input ASync1M, input ASync1K, output AIrq,
+  input ASync1M, ASync1K, output AIrq,
   output ASpiSck, input ASpiMiso, output ASpiMosi, output ASpiNCS,
   input [3:0] ASpiGpioI, output [3:0] ASpiGpioO, output [3:0] ASpiGpioE,
-  output [7:0] ATest
+  input AClkDutStopped,
+  output [7:0] ATest, output AUnused
  );
 
  // IobCtrl = +0; // WR: SpiCS MSB/LSB 2xTimerSrc Mode[1:0] 2xRFU
@@ -77,7 +78,7 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
  wire BBitCountNZ = |FBitCount;
  wire BBitEnd     = BBusy & ~BBaudDivNZ & ~FBitCount[0];
 
- assign BBaudDiv  = BWrData ? FSpiBaud : (BBaudDivNZ ? FBaudDiv-8'h1 : (BBitCountNZ ? FSpiBaud : 8'h0));
+ assign BBaudDiv  = BWrData ? FSpiBaud : (BBaudDivNZ ? FBaudDiv-{7'h0, ~AClkDutStopped} : (BBitCountNZ ? FSpiBaud : 8'h0));
  assign BBitCount = BWrData ? 4'hF : FBitCount-{3'h0, ~BBaudDivNZ & BBitCountNZ};
  assign BBusy = BBitCountNZ | BBaudDivNZ;
 
@@ -118,7 +119,7 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
  assign ASpiMosi = FSpiDataO[7];
  assign ASpiNCS = ~FOutEn;
  assign ATest = {ASpiMosi, ASpiMiso, ASpiSck, ASpiNCS, 1'b0, BDataLatch, BBusy, BTimerNZ};
-
+ assign AUnused = |{AIoMosi};
 endmodule
 
 // *********************
@@ -450,7 +451,7 @@ module IoI2cM #(parameter CAddrBase=16'h0000)
   input ASync1M, input ASync1K, output AIrq,
   input ASdaI, output ASdaO, output AScl, output AOutEn,
   input [3:0] AGpioI, output [3:0] AGpioO, output [3:0] AGpioE,
-  output [7:0] ATest
+  output [7:0] ATest, output AUnused
  );
 
  // IobCtrl +0; // WR: W/#R RFU 2xTimerSrc OutEn RFU  Stop Start
@@ -547,7 +548,7 @@ module IoI2cM #(parameter CAddrBase=16'h0000)
  assign AOutEn = FOutEn;
  assign AIrq = 1'b0;
 
-
+ assign AUnused = |{AIoMosi};
 endmodule
 
 module IoI2cM_Fsm

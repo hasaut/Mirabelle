@@ -87,7 +87,7 @@ module TestBridgeUartA
  UartACodec UUart
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ACfg2Stop(1'b0), .ACfgTxEn(1'b1), .ACfgRxEn(BStateNZ | ~BBaudUpdate), //.ACfgTol(8'h3),
+   .ACfg2Stop(1'b0), .ACfgTxEn(1'b1), .ACfgRxEn(BStateNZ | ~BBaudUpdate), .ASyncStart(1'b1),
    .ABaudI(FBaud), .ABaudO(BBaudResult), .ABaudUpdate(BBaudUpdate),
    .AFifoSendData(BSendDataA), .AFifoSendReady(BSendReqA), .AFifoSendRd(BSendAckA), .ASendBusy(BSendBusy),
    .AFifoRecvData(BUartRecvData), .AFifoRecvWr(BUartRecvNow),

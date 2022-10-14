@@ -2116,6 +2116,7 @@ Var
   BCmd          : char;
   BSuccess      : boolean;
   BResetNeeded  : boolean;
+  BRegData      : byte;
 Begin
  FFlashLog.Clear; FFlashLogKeep:=TRUE;
  repeat
@@ -2265,7 +2266,13 @@ Begin
  BDataBin:=#$06;
  if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error (Erase block) [R:TMsProcess.EraseFlashBlockGen]'); break; end;
 
- // Program page
+ // Check if flag is set
+ BDataBin:=#$05+#$FF;
+ if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error (Ready flag reading) [R:TMsProcess.ProgramFlashPageGen]'); break; end;
+ BRegData:=Ord(BDataBin[2]);
+ if (BRegData and $02)=0 then begin ViewAny('feCannot set Write Enable Latch [R:TMsProcess.ProgramFlashPageGen]'); break; end;
+
+ // Erase page
  BDataBin:=Chr(FFlashCmdEr)+FlashAddrToStr(AAddr);
  if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error (Erase block) [R:TMsProcess.EraseFlashBlockGen]'); break; end;
 
@@ -2326,7 +2333,7 @@ Begin
   if SendRecvSpi(BDataBinF)=FALSE then begin ViewAny('feCommunication error (Ready flag reading) [R:TMsProcess.ProgramFlashPageGen]'); break; end;
   BRegData:=Ord(BDataBinF[2]);
   if (BRegData and $01)=0 then begin Result:=TRUE; break; end;
-  //Sleep(1);
+  Sleep(1);
   dec(BRepeat);
   end;
  if Result=FALSE then break;
@@ -2442,10 +2449,20 @@ Begin
   begin
   if ReadHexFile(BFilename,BDataBin)=FALSE then break;
   end
+ else if BExt='.mcs' then
+  begin
+  if ReadHexFile(BFilename,BDataBin)=FALSE then break;
+  InvertBytes(BDataBin);
+  end
  else if StrInList(BExt,'.rpd') then
   begin
   if ReadBinFile(BFilename,BDataBin)=FALSE then break;
   InvertBytes(BDataBin);
+  end
+ else if StrInList(BExt,'.bit') then
+  begin
+  if ReadBinFile(BFilename,BDataBin)=FALSE then break;
+  //InvertBytes(BDataBin);
   end
  else
   begin
@@ -2528,9 +2545,9 @@ Begin
  while BDataIdx<BBinLenWr do
   begin
   if ReadFlashGen(BAddr+BDataIdx,$100,BDataVer)=FALSE then break;
-  if (BDataVer<>Copy(BDataBin,1+BDataIdx,$100)) and (BVerifError=FALSE) then
+  if (BVerifError=FALSE) and (BDataVer<>Copy(BDataBin,1+BDataIdx,$100)) then
    begin
-   ViewAny('feDevice verification error [R:TMsProcess.FpgaReflashSect]');
+   ViewAny('feDevice verification error at address '+IntToHex(BDataIdx,6)+' [R:TMsProcess.FpgaReflashSect]');
    ViewAny('t'+StrBinToHex(Copy(BDataBin,1+BDataIdx,$100)));
    ViewAny('t'+StrBinToHex(BDataVer));
    BVerifError:=TRUE;

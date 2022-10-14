@@ -791,3 +791,68 @@ module MsIdxOf32a ( input [31:0] ADataI, output [4:0] ADataO );
                  (ADataI[ 4] ? 5'h04 : 5'h0) | (ADataI[ 3] ? 5'h03 : 5'h0) | (ADataI[ 2] ? 5'h02 : 5'h0) | (ADataI[ 1] ? 5'h01 : 5'h0) | (ADataI[ 0] ? 5'h00 : 5'h0);
 endmodule
 
+// Cross data and sync. Executed asynchronously by rising edge
+module MsCrossDS_Async #(parameter CRegLen=32)
+ (
+  input AClkH, AResetHN, AClkHEn,
+  input AEventRE, // By RisingEdge
+  input AEventEn,
+  output AEventAck,
+  input [CRegLen-1:0] ADataI, output [CRegLen-1:0] ADataO
+ );
+
+ wire [2:0] FEventB, BEventB;
+ wire [CRegLen-1:0] FData, BData;
+ wire [CRegLen-1:0] FDataExt, BDataExt;
+ MsDffList #(.CRegLen(3+CRegLen+CRegLen)) ULocalVars
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI({BEventB, BData, BDataExt}), .ADataO({FEventB, FData, FDataExt})
+  );
+
+ assign BDataExt = ADataI;
+
+ wire FEventA, BEventA;
+ MsDffList #(.CRegLen(1)) UEventA
+  (
+   .AClkH(AEventRE), .AResetHN(AResetHN & ~FEventB[1]), .AClkHEn(AClkHEn),
+   .ADataI(BEventA), .ADataO(FEventA)
+  );
+
+ assign BEventA = 1'b1;
+
+ wire BEventBNZ = |FEventB;
+ assign BEventB = {FEventB[1:0], FEventA & (~BEventBNZ)};
+
+ assign BData = FEventB[1] ? FDataExt : FData;
+
+ assign AEventAck = FEventB[2];
+ assign ADataO = FData;
+endmodule
+
+module MsAntiGlitch #(parameter CRegLen=32)
+ (
+  input AClkH, AResetHN, AClkHEn,
+  input ADataI, output ADataO
+ );
+
+ wire [CRegLen-1:0] FDataS, BDataS;
+ wire FDataO, BDataO;
+ MsDffList #(.CRegLen(CRegLen+1)) ULocalVars
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI({BDataS, BDataO}), .ADataO({FDataS, FDataO})
+  );
+
+ assign BDataS = {FDataS[CRegLen-2:0], ADataI};
+
+ wire BDataS_NZ = |FDataS;
+ wire BDataS_E  = &FDataS;
+ assign BDataO = BDataS_E | (BDataS_NZ ? FDataO : 1'b0);
+
+ assign ADataO = FDataO;
+endmodule
+
+
+
+

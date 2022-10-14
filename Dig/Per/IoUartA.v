@@ -80,7 +80,7 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI(AIoMosi[7:0]), .AWrEn(BIoAccess[IoSizeB+IoOperW+2]),
    .ADataO(BSendData), .ARdEn(BSendAck),
-   .AHasData(BSendReq), .AHasSpace(BFlags[1]), .ADataSize()
+   .AClr(1'b0), .AHasData(BSendReq), .AHasSpace(BFlags[1]), .ADataSize()
   );
 
  // Fifo (Recv)
@@ -90,7 +90,7 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI(BRecvData), .AWrEn(BRecvNow),
    .ADataO(BRecvFifo), .ARdEn(BIoAccess[IoSizeB+IoOperR+2]),
-   .AHasData(BFlags[0]), .AHasSpace(), .ADataSize()
+   .AClr(1'b0), .AHasData(BFlags[0]), .AHasSpace(), .ADataSize()
   );
 
  // Baud part
@@ -355,9 +355,6 @@ module UartACodec
  assign AFifoRecvWr   = BRecvNextByte;
 
  // Baud part
- wire [15:0] BBaudResultA;
- wire BBaudUpdateA;
-
  UartAutobaud55A UAutobaud
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
