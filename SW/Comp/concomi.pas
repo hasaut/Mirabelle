@@ -284,10 +284,12 @@ Var
   BPos          : Single;
 Begin
  BColor:=0;
+ if APos<0 then APos:=0;
+ if APos>1 then APos:=1;
  BPos:=1-APos;
- BColorI[0]:=Round((BColorAI[0]*APos)+(BColorBI[0]*BPos));
- BColorI[1]:=Round((BColorAI[1]*APos)+(BColorBI[1]*BPos));
- BColorI[2]:=Round((BColorAI[2]*APos)+(BColorBI[2]*BPos));
+ BColorI[0]:=Round((BColorAI[0]*BPos)+(BColorBI[0]*APos));
+ BColorI[1]:=Round((BColorAI[1]*BPos)+(BColorBI[1]*APos));
+ BColorI[2]:=Round((BColorAI[2]*BPos)+(BColorBI[2]*APos));
  Result:=BColor;
 End;
 

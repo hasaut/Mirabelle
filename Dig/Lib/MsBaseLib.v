@@ -537,7 +537,7 @@ module MsBufReg #(parameter CDataWidth=32)
 endmodule
 
 
-module MdCrossData #(parameter CRegLen=16)
+module MsCrossData #(parameter CRegLen=16)
  (
   input AClkH, input AResetHN, input AClkHEn, 
   input [CRegLen-1:0] ADataI, output [CRegLen-1:0] ADataO
@@ -587,7 +587,7 @@ module MdCrossSync
  assign AAckH = FAckH[1];
 endmodule
 
-module MdCrossDS #(parameter CRegLen=16)
+module MsCrossDS #(parameter CRegLen=16)
  (
   input AClkH, input AResetHN, input AClkHEn, 
   input AClkS, input AResetSN,
@@ -606,17 +606,18 @@ module MdCrossDS #(parameter CRegLen=16)
 
  assign BDataS = AReqS ? ADataI : FDataS;
 
- MdCrossData #(.CRegLen(CRegLen)) UData
+ MsCrossData #(.CRegLen(CRegLen)) UData
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI(FDataS), .ADataO(ADataO)
   );
 
- MdCrossSync USync
+ MsCrossSync USync
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .AClkS(AClkS), .AResetSN(AResetSN),
-   .AReqS(AReqS), .AAckH(AAckH)
+   .AClkA(AClkS), .AResetAN(AResetSN), .AClkAEn(1'b1),
+   .AReqA(AReqS),
+   .AClkB(AClkH), .AResetBN(AResetHN), .AClkBEn(AClkHEn),
+   .AAckB(AAckH)
   );
 
 endmodule

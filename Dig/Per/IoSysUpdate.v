@@ -2,7 +2,7 @@ module IoSysUpdateL #(parameter CAddrBase=16'h0000)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, output AIoAddrErr, output AIoBusy,
-  output [7:0] ATest, output AUnused
+  output [7:0] ATest
  );
 
  // IobCtrl = +0; // WR: 7xRFU Reconfig
@@ -70,7 +70,6 @@ module IoSysUpdateL #(parameter CAddrBase=16'h0000)
  assign AIoBusy = BRsuBusy;
 
  assign ATest = {AIoBusy, 5'h0, FRsuCtrl};
- assign AUnused = 1'b0;
 endmodule
 
 module IoSysUpdateG #(parameter CAddrBase=16'h0000)
@@ -78,7 +77,7 @@ module IoSysUpdateG #(parameter CAddrBase=16'h0000)
   input wire AClkH, AResetHN, AClkHEn,
   input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, AIoRdSize, output wire AIoAddrAck, AIoAddrErr, AIoBusy,
   output wire ARsuReady, output wire [31:0] ARsuBootAddr,
-  output wire [7:0] ATest, output wire AUnused
+  output wire [7:0] ATest
  );
 
  // IobCtrl    = +0; // WR: 7xRFU Reconfig
@@ -195,7 +194,6 @@ module IoSysUpdateG #(parameter CAddrBase=16'h0000)
  assign ARsuBootAddr = {2'h0, FRsuAddr};
 
  assign ATest = {FRsuOper[0], FRsuBusy, FRsuSrc, FRsuMode==2'h3, FRsuParam};
- assign AUnused = |{AIoMosi};
 endmodule
 
 

@@ -263,6 +263,141 @@ module IoUartAB_F256b #(parameter CAddrBase=16'h0000)
  assign ATest = {ARxPin, ATxPin, 2'h0, BRecvNow, BIoAccess[IoSizeB+IoOperR+2], FFlags[1:0]};
 endmodule
 
+module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
+ (
+  input AClkH, input AResetHN, input AClkHEn,
+  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
+  input ASync1M, input ASync1K, output AIrq,
+  input ARxPin, output ATxPin, output ATxFlush,
+  output [7:0] ATest
+ );
+
+ // Interface
+ // IobCtrl   +0 ; // WR: TxEn RxEn 2xTimerSrc 2Stop TimerAutoRstEn 2xIrqEn
+ //                // RD: TxEn RxEn RFU TimerNZ SendBusy BaudUpdate CanWrite CanRead
+ // IowBaud   +1 ; // WR/RD: Baud rate
+ // IobData   +2 ; // WR/RD: Data
+ // IowTOut   +3 ; // WR: TOut (Starts from this value and decrementing until zero. Starts at reception, transmission and writing to this port)
+ //              ; // RD: TimerThis
+
+ localparam IoSizeQ = 3*8;
+ localparam IoSizeD = 2*8;
+ localparam IoSizeW = 1*8;
+ localparam IoSizeB = 0*8;
+ localparam IoOperW = 4;
+ localparam IoOperR = 0;
+
+ wire [31:0] BIoAccess;
+ IoIntf2s #(.CAddrBase(CAddrBase), .CAddrUsed(32'h0000AA55)) UIntf
+  (
+   .AIoAddr(AIoAddr), .AIoWrSize(AIoWrSize), .AIoRdSize(AIoRdSize),
+   .AIoAccess(BIoAccess),
+   .AAddrAck(AIoAddrAck), .AAddrErr(AIoAddrErr)
+  );
+
+ // Local vars (Config)
+ wire [7:0] FCtrl, BCtrl;
+ wire [15:0] FBaud, BBaud;
+ wire [1:0] FFlags, BFlags;
+ // Local vars (Autobaud)
+ wire [15:0] FBaudResult, BBaudResult;
+ wire FBaudUpdate, BBaudUpdate;
+
+ MsDffList #(.CRegLen(8+16+2+16+1)) ULocalVars
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI({BCtrl, BBaud, BFlags, BBaudResult, BBaudUpdate}),
+   .ADataO({FCtrl, FBaud, FFlags, FBaudResult, FBaudUpdate})
+  );
+
+ // Aliases
+ wire L2Stop    = FCtrl[3];
+ wire LTxEn     = FCtrl[7];
+ wire LRxEn     = FCtrl[6];
+ wire LTimerAre = FCtrl[2];
+ wire [1:0] LIrqEn = FCtrl[1:0];
+
+ // Interface
+ // +0 IobCtrl  = 2'h0; // WR: TxEn RxEn 2xTimerSrc 2Stop RFU 2xIrqEn
+ //                     // RD: TxEn RxEn RFU TimerNZ SendBusy BaudUpdate CanWrite CanRead
+ // +1 IowBaud  = 2'h1; // WR/RD: Baud rate
+ // +2 IobData  = 2'h2; // WR/RD: Data
+ // +3 IowTOut  = 2'h3; // WR/RD: TOut (Starts from this value and decrementing until zero. Starts at reception, transmission and writing to this port)
+ assign BCtrl = BIoAccess[IoSizeB+IoOperW+0] ? AIoMosi[7:0] : FCtrl;
+ assign BBaud = BIoAccess[IoSizeW+IoOperW+1] ? AIoMosi[15:0] : FBaud;
+
+ wire [7:0] BRecvFifo;
+ wire BSendBusy;
+ wire [15:0] BTimerThis; wire BTimerNZ;
+
+ assign AIoMiso =
+  (BIoAccess[IoSizeW+IoOperR+3] ? {48'h0, BTimerThis} : 64'h0) |
+  (BIoAccess[IoSizeB+IoOperR+2] ? {56'h0, BRecvFifo} : 64'h0) |
+  (BIoAccess[IoSizeW+IoOperR+1] ? {48'h0, FBaudResult} : 64'h0) |
+  (BIoAccess[IoSizeB+IoOperR+0] ? {56'h0, FCtrl[7:5], BTimerNZ, BSendBusy, FBaudUpdate, FFlags} : 64'h0);
+
+
+ // Fifo (Send)
+ wire BSendReq, BSendAck; wire [7:0] BSendData;
+ MsFifoMx #(.CAddrLen(CFifoAddrLen), .CDataLen(8)) UFifoSend
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI(AIoMosi[7:0]), .AWrEn(BIoAccess[IoSizeB+IoOperW+2]),
+   .ADataO(BSendData), .ARdEn(BSendAck),
+   .AClr(1'b0), .AHasData(BSendReq), .AHasSpace(BFlags[1]), .ADataSize()
+  );
+
+ // Fifo (Recv)
+ wire [7:0] BRecvData; wire BRecvNow;
+ MsFifoMx #(.CAddrLen(CFifoAddrLen), .CDataLen(8)) UFifoRecv
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI(BRecvData), .AWrEn(BRecvNow),
+   .ADataO(BRecvFifo), .ARdEn(BIoAccess[IoSizeB+IoOperR+2]),
+   .AClr(1'b0), .AHasData(BFlags[0]), .AHasSpace(), .ADataSize()
+  );
+
+ // Baud part
+ wire [15:0] BBaudResultA; wire BBaudUpdateA;
+ assign BBaudUpdate = BBaudUpdateA | (FBaudUpdate & ~BIoAccess[IoSizeW+IoOperR+1]);
+ assign BBaudResult = BBaudUpdateA ? BBaudResultA : FBaudResult;
+
+ // Codec
+ UartACodec UCodec
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ACfg2Stop(L2Stop), .ACfgTxEn(LTxEn), .ACfgRxEn(LRxEn),
+   .ABaudI(FBaud), .ABaudO(BBaudResultA), .ABaudUpdate(BBaudUpdateA),
+   .AFifoSendData(BSendData), .AFifoSendReady(BSendReq), .AFifoSendRd(BSendAck), .ASendBusy(BSendBusy), .ASyncStart(1'b1),
+   .AFifoRecvData(BRecvData), .AFifoRecvWr(BRecvNow),
+   .ARx(ARxPin), .ATx(ATxPin),
+   .ATest()
+  );
+
+ // Process (Timer)
+ PerifTimer UTimer
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AIoMosi(AIoMosi[15:0]), .AIoWrEn(BIoAccess[IoSizeW+IoOperW+3]),
+   .ASyncSel(FCtrl[5:4]), .ASync1M(ASync1M), .ASync1K(ASync1K),
+   .ATimerReset(LTimerAre & (BSendBusy | BRecvNow)), .ACountEn(1'b1), .ATimerThis(BTimerThis), .ATimerNZ(BTimerNZ)
+  );
+
+ // Flush
+ UartFlush UFlush
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ASync1M(ASync1M),
+   .ABusy(BSendBusy | BSendReq), .AFlush(ATxFlush),
+   .ATest()
+  );
+
+ // Common part
+ assign AIrq = |(FFlags & LIrqEn);
+
+ assign ATest = {ARxPin, ATxPin, 2'h0, BRecvNow, BIoAccess[IoSizeB+IoOperR+2], FFlags[1:0]};
+endmodule
+
 // *** Codec part
 
 module UartACodec

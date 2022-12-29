@@ -31,7 +31,7 @@ module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, C
    .ASysCoreSel(BSysCoreSel), .AContPtrMiso(BContPtrMiso), .AIsIsr(|BIsIsr), .AContPtrWrEn(BContPtrWrEn),
    .AIrqBusyList(BIrqBusyList), .AIrqToProcess(BIrqToProcess),
    .ASetIrqSwtBase(BSetIrqSwtBase),
-   .AIrqEn(BIrqEn), .AIrq(AIrq),
+   .AIrqEn(BIrqEn), .AIrq(AExecEn ? AIrq : {CIrqCnt{1'b0}}),
    .ACoreEn(BCoreEn),
    .ARegMosi(BRegMosi), .ARegMiso(BRegMiso), .ARegWrIdx(BRegWrIdx), .ARegRdIdx(BRegRdIdx),
    .ARomAddr(BCtrlRomAddr), .ARomMiso(ARomMiso), .ARomRdEn(BCtrlRomRdEn),

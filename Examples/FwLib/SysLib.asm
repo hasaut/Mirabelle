@@ -77,9 +77,7 @@ WDReset:
         mov     awx,2
     wdrWait:
         dec     awx
-        bz      wdrRet
-        swt     wdrWait
-    wdrRet:
+        swt_nz  wdrWait
         leave   awx,0,0
 
 ;ExtIoCfg:

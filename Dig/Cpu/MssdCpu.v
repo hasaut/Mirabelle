@@ -130,7 +130,7 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
  assign BEipWrBus =
   (BEipUpdateB ? BRegWrBusB[23:1] : 23'h0) |  // Tail
   (BEipUpdateA ? BRegWrBusA[23:1] : 23'h0) |  // Tail
-  (BEipJmpUpdate ? BIpLoadBus : 23'h0) |  // Mux
+  (BEipJmpUpdate ? BIpLoadBus : 23'h0) |      // Mux
   (BEipUpdateAny ? 23'h0 : BEipNext);         // Mux
  assign BIpCache = BEipJmpUpdate ? BEipNext : FIpCache;
  assign BKeepIpCache = BEipJmpUpdate | (FKeepIpCache & ~BCmdValid);
@@ -364,7 +364,7 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
 
  wire BBlockIrqA = BPendAnyA | BStateNZ;
  wire BBlockIrqB = (|FSysReq);
- assign AIrqEn = &{LRegsThis[31], ~BBlockIrqA, ~BBlockIrqB, ~FKeepIpCache};
+ assign AIrqEn = &{LRegsThis[31], ~BBlockIrqA, ~BBlockIrqB, ~FKeepIpCache, ~LTrap};
 endmodule
 
 // *********************

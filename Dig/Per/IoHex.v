@@ -2,8 +2,7 @@ module IoHex #(parameter CAddrBase=16'h0000)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  output [7:0] ALedY, output [2:0] ALedRgb, output ALedPwr,
-  output AUnused
+  output [7:0] ALedY, output [2:0] ALedRgb, output ALedPwr
  );
 
  wire [2:0] FLedRgb, BLedRgb;
@@ -48,7 +47,6 @@ module IoHex #(parameter CAddrBase=16'h0000)
  assign ALedRgb = FLedRgb;
  assign ALedPwr = FLedPwr;
 
- assign AUnused = |{AIoMosi};
 endmodule
 
 

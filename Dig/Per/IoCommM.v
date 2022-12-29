@@ -6,7 +6,7 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
   output ASpiSck, input ASpiMiso, output ASpiMosi, output ASpiNCS,
   input [3:0] ASpiGpioI, output [3:0] ASpiGpioO, output [3:0] ASpiGpioE,
   input AClkDutStopped,
-  output [7:0] ATest, output AUnused
+  output [7:0] ATest
  );
 
  // IobCtrl = +0; // WR: SpiCS MSB/LSB 2xTimerSrc Mode[1:0] 2xRFU
@@ -119,7 +119,6 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
  assign ASpiMosi = FSpiDataO[7];
  assign ASpiNCS = ~FOutEn;
  assign ATest = {ASpiMosi, ASpiMiso, ASpiSck, ASpiNCS, 1'b0, BDataLatch, BBusy, BTimerNZ};
- assign AUnused = |{AIoMosi};
 endmodule
 
 // *********************
@@ -290,160 +289,6 @@ module IoSpi3w
 
 endmodule
 
-module IoI2cM_20160511
- (
-  AClkH, AResetB, AClkHEn,
-  AAddr, AMiso, AMosi, AWrEn, ARdEn,
-  AIrq,
-  ASdaI, ASdaO, AScl,
-  AGpioI,
-  ATest
- );
-
- // Interface
- input AClkH, AResetB, AClkHEn;
- input [1:0] AAddr; output [15:0] AMiso; input [15:0] AMosi;
- input [1:0] AWrEn, ARdEn;
- output AIrq;
- input ASdaI; output ASdaO; output AScl;
- input [3:0] AGpioI;
- output [7:0] ATest;
-
- parameter CAbCtrl = 2'h0; // WR: W/#R 3xRFU 2xRFU  Stop Start
-                           // RD: Busy 7xRFU
- parameter CAbBaud = 2'h1;
- parameter CAwData = 2'h2; // 7xRFU ACK Data[7:0]
- parameter CAbGpio = 2'h3; // 4'h0, GpioI[3:0]
-
- parameter CStLen = 12;
- parameter CStNil = 12'h0;
- parameter IStStartA =  0;
- parameter IStStartB =  1;
- parameter IStStartC =  2;
- parameter IStStartD =  3;
- parameter IStDataA  =  4;
- parameter IStDataB  =  5;
- parameter IStDataC  =  6;
- parameter IStDataD  =  7;
- parameter IStDataE  =  8;
- parameter IStStopA  =  9;
- parameter IStStopB  = 10;
- parameter IStStopC  = 11;
-
- // Local variables
- reg [(CStLen-1):0] FState; wire [(CStLen-1):0] BState;
- reg FWrRd; wire BWrRd;
- reg [7:0] FBaud;  wire [7:0] BBaud;
- reg [3:0] FGpioIA;
- reg [3:0] FGpioIB;
-
- reg FSda;  wire BSda;
- reg FScl;  wire BScl;
- reg FSdaIA, FSdaIB;
- reg [3:0] FBitCount; wire [3:0] BBitCount;
- reg [7:0] FBaudDiv;  wire [7:0] BBaudDiv;
- reg [8:0] FDataO; wire [8:0] BDataO;
- reg [8:0] FDataI; wire [8:0] BDataI;
- reg FBusy; wire BBusy;
-
- // Implementation
- always @(posedge AClkH or negedge AResetB)
- if (AResetB==1'b0)
-  begin
-  FState<=CStNil;
-  FWrRd<=1'b0;
-  FBaud<=8'h0;
-  FGpioIA<=1'b0;
-  FGpioIB<=1'b0;
-  FSda<=1'b1;
-  FScl<=1'b1;
-  FSdaIA<=1'b0;
-  FSdaIB<=1'b0;
-  FBitCount<=4'h0;
-  FBaudDiv<=8'h0;
-  FDataO<=9'h0;
-  FDataI<=9'h0;
-  FBusy<=1'b0;
-  end
- else if (AClkHEn)
-  begin
-  FState<=BState;
-  FWrRd<=BWrRd;
-  FBaud<=BBaud;
-  FGpioIA<=AGpioI;
-  FGpioIB<=FGpioIA;
-  FSda<=BSda;
-  FScl<=BScl;
-  FSdaIA<=ASdaI;
-  FSdaIB<=FSdaIA;
-  FBitCount<=BBitCount;
-  FBaudDiv<=BBaudDiv;
-  FDataO<=BDataO;
-  FDataI<=BDataI;
-  FBusy<=BBusy;
-  end
-
- // Aliases
- wire AWrEnB = (AWrEn==2'b01);
- wire ARdEnB = (ARdEn==2'b01);
- wire AWrEnW = (AWrEn==2'b11);
- wire ARdEnW = (ARdEn==2'b11);
-
- // Interface WR
- assign BWrRd = (AWrEnB & (AAddr==CAbCtrl)) ? AMosi[7] : FWrRd;
- assign BBaud  = (AWrEnB & (AAddr==CAbBaud)) ? AMosi[7:0] : FBaud;
-
- // Interface RD
- assign AMiso =
-  ((ARdEnB & (AAddr==CAbCtrl)) ? {8'h0, FBusy, 7'h0} : 16'h0) |
-  ((ARdEnB & (AAddr==CAbBaud)) ? {8'h0, FBaud} : 16'h0) |
-  ((ARdEnW & (AAddr==CAwData)) ? {7'h0, FDataI[0], FDataI[8:1]} : 16'h0) |
-  ((ARdEnB & (AAddr==CAbGpio)) ? {12'h0, FGpioIB} : 16'h0);
-
- // FSM
- wire BStateNZ = |FState;
- wire BBaudDivNZ  = |FBaudDiv;
- wire BLastBit = (FBitCount==4'h8);
- wire [(CStLen-1):0] BEvent;
- assign BEvent[IStStartA] = ~BStateNZ & AWrEnB & (AAddr==CAbCtrl) & AMosi[0];
- assign BEvent[IStStartB] =  FState[IStStartA] & ~BBaudDivNZ;
- assign BEvent[IStStartC] =  FState[IStStartB] & ~BBaudDivNZ;
- assign BEvent[IStStartD] =  FState[IStStartC] & ~BBaudDivNZ;
- assign BEvent[IStDataA]  = ~BStateNZ & AWrEnW & (AAddr==CAwData);
- assign BEvent[IStDataB]  =  FState[IStDataA] | (FState[IStDataE] & ~BBaudDivNZ & ~BLastBit);
- assign BEvent[IStDataC]  =  FState[IStDataB] & ~BBaudDivNZ;
- assign BEvent[IStDataD]  =  FState[IStDataC] & ~BBaudDivNZ;
- assign BEvent[IStDataE]  =  FState[IStDataD] & ~BBaudDivNZ;
- assign BEvent[IStStopA]  = ~BStateNZ & AWrEnB & (AAddr==CAbCtrl) & AMosi[1];
- assign BEvent[IStStopB]  =  FState[IStStopA] & ~BBaudDivNZ;
- assign BEvent[IStStopC]  =  FState[IStStopB] & ~BBaudDivNZ;
-
- assign BState = BEvent | (BBaudDivNZ ? FState : CStNil);
-
- // Process
- assign BDataO = (AWrEnW & (AAddr==CAwData)) ? {AMosi[7:0], AMosi[8]} : ((FState[IStDataE] & ~BBaudDivNZ) ? {FDataO[7:0], 1'b1} : FDataO);
- assign BDataI = (FState[IStDataD] & ~BBaudDivNZ) ? {FDataI[7:0], FSdaIB} : FDataI;
-
- wire BSdaA = FWrRd ? (BLastBit ? 1'b1 : FDataO[8]) : (BLastBit ? FDataO[8] : 1'b1);
- assign BSda = (FState[IStStartA] | FState[IStStartB] | FState[IStStopC]) ? 1'b1 :
-               (FState[IStStartC] | FState[IStStartD] | FState[IStStopA] | FState[IStStopB]) ? 1'b0 :
-               (FState[IStDataB] | FState[IStDataC] | FState[IStDataD] | FState[IStDataE]) ? BSdaA :
-               FWrRd ? FSda : 1'b1;
-
- assign BScl = (FState[IStStartA] | FState[IStStartB] | FState[IStStartC] | FState[IStStopB] | FState[IStStopC] | FState[IStDataC] | FState[IStDataD]) ? 1'b1 :
-               (FState[IStStartD] | FState[IStStopA] | FState[IStDataA] | FState[IStDataB] | FState[IStDataE]) ? 1'b0 : FScl;
-
- assign BBaudDiv = ((|BEvent) & ~BEvent[IStDataA]) ? FBaud : FBaudDiv - {7'h0, BBaudDivNZ};
- assign BBitCount = FState[IStDataA] ? 4'h0 : FBitCount+{3'h0, FState[IStDataE] & ~BBaudDivNZ};
- assign BBusy = |BState;
-
- // Outputs
- assign AIrq = 1'b0;
- assign {AScl, ASdaO} = {FScl, FSda};
- assign ATest = 8'h0;
-
-endmodule
-
 module IoI2cM #(parameter CAddrBase=16'h0000)
  (
   input AClkH, input AResetHN, input AClkHEn,
@@ -451,7 +296,7 @@ module IoI2cM #(parameter CAddrBase=16'h0000)
   input ASync1M, input ASync1K, output AIrq,
   input ASdaI, output ASdaO, output AScl, output AOutEn,
   input [3:0] AGpioI, output [3:0] AGpioO, output [3:0] AGpioE,
-  output [7:0] ATest, output AUnused
+  output [7:0] ATest
  );
 
  // IobCtrl +0; // WR: W/#R RFU 2xTimerSrc OutEn RFU  Stop Start
@@ -548,7 +393,6 @@ module IoI2cM #(parameter CAddrBase=16'h0000)
  assign AOutEn = FOutEn;
  assign AIrq = 1'b0;
 
- assign AUnused = |{AIoMosi};
 endmodule
 
 module IoI2cM_Fsm

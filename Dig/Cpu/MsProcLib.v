@@ -27,19 +27,20 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  localparam IStInitB = 1;
  localparam IStInitA = 0; // Set RomAddr, CoreIdx
 
- localparam CStateSysLen = 24;
+ localparam CStateSysLen = 25;
  localparam CStateSysNil = {CStateSysLen{1'b0}};
- localparam IStIrqEndA = 23;
- localparam IStIrqSwtH = 22;
- localparam IStIrqSwtG = 21;
- localparam IStIrqSwtF = 20;
- localparam IStIrqSwtE = 19;
- localparam IStIrqSwtD = 18;
- localparam IStIrqSwtC = 17;
- localparam IStIrqSwtB = 16;
- localparam IStIrqSwtA = 15;
- localparam IStIrqReqD = 14;
- localparam IStIrqReqC = 13;
+ localparam IStIrqEndA = 24;
+ localparam IStIrqSwtH = 23;
+ localparam IStIrqSwtG = 22;
+ localparam IStIrqSwtF = 21;
+ localparam IStIrqSwtE = 20;
+ localparam IStIrqSwtD = 19;
+ localparam IStIrqSwtC = 18;
+ localparam IStIrqSwtB = 17;
+ localparam IStIrqSwtA = 16;
+ localparam IStIrqReqD = 15;
+ localparam IStIrqReqC = 14;
+ localparam IStIrqReqB = 13;
  localparam IStIrqReqA = 12;
  localparam IStSysLock = 11;
  localparam IStSysEndA = 10;
@@ -63,7 +64,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  wire [2:0] FSysReqFn, BSysReqFn;
  wire [63:0] FRomMiso, BRomMiso;
  wire [3:0] FCoreIdxA, BCoreIdxA;
- wire [CCoreCnt-1:0] FSysReqAll, BSysReqAll;
+ wire [CCoreCnt-1:0] FSysReqSrc, BSysReqSrc; // Which core initiates a SysReq (can be multiple)
  wire [CCoreCnt-1:0] FSysCoreSel, BSysCoreSel;
  wire [7:0] FQueMask, BQueMask,
             FTailIdx, BTailIdx,
@@ -80,13 +81,13 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  wire [CIrqCnt-1:0] FIrqAll, BIrqAll;
  wire [CIrqCnt-1:0] FIrqThis, BIrqThis;
 
- wire [CCoreCnt-1:0] FCoreToProcessIrq, BCoreToProcessIrq;
+ wire [CCoreCnt-1:0] FCoreCandidate, BCoreCandidate;
 
  MsDffList #(.CRegLen(2+2+CStateMLen+CStateSysLen+CCoreCnt+3+64+4+CCoreCnt*2+3*8+3+64+64+CCoreCnt+30+30+3*CIrqCnt+CCoreCnt)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BSubcoreIdxBase, BSubcoreIdxStop, BStateM, BStateSys, BCoreEn, BSysReqFn, BRomMiso, BCoreIdxA, BSysReqAll, BSysCoreSel, BQueMask, BTailIdx, BHeadIdx, BRegIdx, BRamMosi, BRamMiso, BSiLock, BIrqBase, BSwtBase, BIrqIn, BIrqAll, BIrqThis, BCoreToProcessIrq}),
-   .ADataO({FSubcoreIdxBase, FSubcoreIdxStop, FStateM, FStateSys, FCoreEn, FSysReqFn, FRomMiso, FCoreIdxA, FSysReqAll, FSysCoreSel, FQueMask, FTailIdx, FHeadIdx, FRegIdx, FRamMosi, FRamMiso, FSiLock, FIrqBase, FSwtBase, FIrqIn, FIrqAll, FIrqThis, FCoreToProcessIrq})
+   .ADataI({BSubcoreIdxBase, BSubcoreIdxStop, BStateM, BStateSys, BCoreEn, BSysReqFn, BRomMiso, BCoreIdxA, BSysReqSrc, BSysCoreSel, BQueMask, BTailIdx, BHeadIdx, BRegIdx, BRamMosi, BRamMiso, BSiLock, BIrqBase, BSwtBase, BIrqIn, BIrqAll, BIrqThis, BCoreCandidate}),
+   .ADataO({FSubcoreIdxBase, FSubcoreIdxStop, FStateM, FStateSys, FCoreEn, FSysReqFn, FRomMiso, FCoreIdxA, FSysReqSrc, FSysCoreSel, FQueMask, FTailIdx, FHeadIdx, FRegIdx, FRamMosi, FRamMiso, FSiLock, FIrqBase, FSwtBase, FIrqIn, FIrqAll, FIrqThis, FCoreCandidate})
   );
 
  assign BRomMiso = FStateM[IStInitC] ? ARomMiso : FRomMiso;
@@ -96,8 +97,11 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  // Common
  wire BStateMNZ = |FStateM;
  wire BStateSysNZ = |FStateSys;
- wire BSysReqAllNZ = |FSysReqAll;
+ wire BSysReqSrcNZ = |FSysReqSrc;
  wire BPendNZ = |{BStateSysNZ, BStateSys[IStSysReqA]};
+
+ wire [CStateMLen-1:0] BGoM, BStayM; assign BStateM = BGoM | BStayM;
+ wire [CStateSysLen-1:0] BGoSys, BStaySys; assign BStateSys = BGoSys | BStaySys;
 
 // assign BSubcoreIdxBase = {FSubcoreIdxBase[0], FSubcoreIdxBase[1] ? AExecEn : ~FSubcoreIdxBase[0] & FStateM[IStExecB]};
 // assign BSubcoreIdxStop = {FSubcoreIdxStop[0], FSubcoreIdxBase[1] ? FStateM[IStExecB] : (FStateM[IStExecB] ? ~FSubcoreIdxBase[0] & FStateM[IStExecB]  : ~FSubcoreIdxStop[0] & BPendNZ)};
@@ -105,31 +109,22 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  assign BSubcoreIdxStop = {FSubcoreIdxStop[0], FStateM[IStExecB] ? BSubcoreIdxBase[0] : ~FSubcoreIdxStop[0] & BPendNZ};
 
  // FSM Main
- assign BStateM[IStInitA] = ~BStateMNZ & (AExecEn | ADbgStep);
- assign BStateM[IStInitB] =  FStateM[IStInitA] |
-                            (FStateM[IStInitE] & ~FSysCoreSel[CCoreCnt-1]);
- assign BStateM[IStInitC] =  FStateM[IStInitB];
- assign BStateM[IStInitD] =  FStateM[IStInitC];
- assign BStateM[IStInitE] =  FStateM[IStInitD] & ~FSysCoreSel[CCoreCnt-1];
- assign BStateM[IStExecA] = (FStateM[IStInitD] | FStateM[IStInitE]) &  FSysCoreSel[CCoreCnt-1];
- assign BStateM[IStExecB] =  FStateM[IStExecA] |
-                             FStateM[IStExecB];
+ assign BGoM[IStInitA] = ~BStateMNZ & (AExecEn | ADbgStep);               assign BStayM[IStInitA] = 1'b0;
+ assign BGoM[IStInitB] =  FStateM[IStInitA] |
+                         (FStateM[IStInitE] & ~FSysCoreSel[CCoreCnt-1]);  assign BStayM[IStInitB] = 1'b0;
+ assign BGoM[IStInitC] =  FStateM[IStInitB];                              assign BStayM[IStInitC] = 1'b0;
+ assign BGoM[IStInitD] =  FStateM[IStInitC];                              assign BStayM[IStInitD] = 1'b0;
+ assign BGoM[IStInitE] =  FStateM[IStInitD] & ~FSysCoreSel[CCoreCnt-1];   assign BStayM[IStInitE] = 1'b0;
+ assign BGoM[IStExecA] = (FStateM[IStInitD] &  FSysCoreSel[CCoreCnt-1]) |
+                         (FStateM[IStInitE] &  FSysCoreSel[CCoreCnt-1]);  assign BStayM[IStExecA] = 1'b0;
+ assign BGoM[IStExecB] =  FStateM[IStExecA];                              assign BStayM[IStExecB] = FStateM[IStExecB];
 
  assign BCoreIdxA = FCoreIdxA + {3'h0, FStateM[IStInitD] | FStateM[IStInitE]};
 
  wire [CCoreCnt-1:0] BIrqAck = FStateSys[IStIrqEndA] ? FSysCoreSel : CCoreNil;
 
  wire BSysAckNZ = |ASysAck;
- MsMatrOrRow #(.CRowCnt(CCoreCnt), .CColCnt(3)) USysReqAll ( .ADataI(BSysAckNZ ? {CCoreCnt{1'b0}} : ASysReq), .ADataO(BSysReqAll) );
-
- // Avoiding IRQ racing condition
- wire [CCoreCnt-1:0] BIrqConfirmed = FCoreToProcessIrq & AIrqEn; // Avoid race condition if IRQ comes at the same moment CPU start executing "long" commands
- wire BIrqConfirmedNZ = |BIrqConfirmed;
- wire [CCoreCnt-1:0] BIrqCancel = (FStateSys[IStIrqReqA] & ~BIrqConfirmedNZ) ? FCoreToProcessIrq : CCoreNil;
-
- assign BCoreEn =
-  (FStateM[IStExecA] ? {CCoreCnt{1'b1}} : CCoreNil) |
-  (FStateM[IStExecB] ? (FCoreEn & ~FSysReqAll & ~(BStateSys[IStIrqReqA] ? BCoreToProcessIrq : CCoreNil)) | ASysAck | BIrqAck | BIrqCancel : CCoreNil);
+ MsMatrOrRow #(.CRowCnt(CCoreCnt), .CColCnt(3)) USysReqSrc ( .ADataI(BSysAckNZ ? {CCoreCnt{1'b0}} : ASysReq), .ADataO(BSysReqSrc) );
 
  // IRQ
  // ** Irq
@@ -153,97 +148,96 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  // even if there is a free CPU core.
 
  // Select a core which is able to process an IRQ
- wire [CCoreCnt-1:0] BIrqEn = AIrqEn;
+ wire [CCoreCnt-1:0] BCoreCandidateA;
  MsPrioritize #(.CLineCnt(CCoreCnt)) UCoreToProcessIrq
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI((~BStateSysNZ & BIrqThisNZ) ? BIrqEn : {CCoreCnt{1'b0}}), .ADataO(BCoreToProcessIrq)
+   .ADataI((~BStateSysNZ & BIrqThisNZ) ? AIrqEn : {CCoreCnt{1'b0}}), .ADataO(BCoreCandidateA)
   );
 
- wire BCoreToProcessIrqNZ = |BCoreToProcessIrq;
+ wire BGoIrqProc = |BCoreCandidateA;
+ // Avoiding IRQ racing condition: FCoreCandidate will keep value for 2 cycles and see if AIrqEn is still there
+ assign BCoreCandidate = BGoSys[IStIrqReqA] ? BCoreCandidateA : (BGoSys[IStIrqReqB] ? FCoreCandidate : CCoreNil);
+ wire BIrqConfirmed = |(FCoreCandidate & AIrqEn); // Avoid race condition if IRQ comes at the same moment CPU start executing "long" commands
+ wire [CCoreCnt-1:0] BIrqCancel = ((|FStateSys[IStIrqReqB:IStIrqReqA]) & ~BIrqConfirmed) ? FCoreCandidate : CCoreNil;
+
+ assign BCoreEn =
+  (FStateM[IStExecA] ? {CCoreCnt{1'b1}} : CCoreNil) |
+  (FStateM[IStExecB] ? (FCoreEn & ~FSysReqSrc & ~BCoreCandidate) | ASysAck | BIrqAck | BIrqCancel : CCoreNil);
+
 
  // FSM Sys
  wire [CCoreCnt-1:0] BSysReqIdx;
  MsPrioritize #(.CLineCnt(CCoreCnt)) USysReqIdx
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI(FSysReqAll), .ADataO(BSysReqIdx)
+   .ADataI(FSysReqSrc), .ADataO(BSysReqIdx)
   );
 
  wire [CCoreCnt:0] BCoreE = {CCoreNil, 1'b1};
  wire [CCoreCnt:0] BSysCoreSelShlE = {FSysCoreSel, 1'b0};
  assign BSysCoreSel =
   (FStateM[IStInitA] ? BCoreE[CCoreCnt-1:0] : CCoreNil) |
-  ((|{FStateM[IStInitD], FStateM[IStInitD]}) ? BSysCoreSelShlE[CCoreCnt-1:0] : CCoreNil) |
-  (FStateSys[IStSysReqA] ? BSysReqIdx : CCoreNil) |
-  (FStateSys[IStIrqReqA] ? BIrqConfirmed : CCoreNil) |
+  (FStateM[IStInitD] ? BSysCoreSelShlE[CCoreCnt-1:0] : CCoreNil) |
+  (BGoSys[IStSysReqA] ? BSysReqIdx : CCoreNil) |
+  (FStateSys[IStIrqReqA] ? FCoreCandidate : CCoreNil) |
   ((|{FStateM[IStInitB], FStateM[IStInitC], BStateSysNZ}) ? FSysCoreSel : CCoreNil);
 
  wire [2:0] BSysReqFnA; MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(3)) USysReqFnA ( .ADataI(ASysReq), .AMask(BSysCoreSel), .ADataO(BSysReqFnA) );
- assign BSysReqFn = FStateSys[IStSysReqA] ? BSysReqFnA : FSysReqFn;
+ assign BSysReqFn = BGoSys[IStSysReqA] ? BSysReqFnA : FSysReqFn;
 
  wire BRegIdxE = &FRegIdx;
 
  // SWT/END/SYS part
- assign BStateSys[IStSysReqA] = ~BStateSysNZ & BSysReqAllNZ & ~BCoreToProcessIrqNZ & FStateM[IStExecB];
-                                // Load Ctrl
- assign BStateSys[IStSysReqC] = (FStateSys[IStSysReqA] & (|FSysReqFn[1:0])) |
-                                (FStateSys[IStSysReqC] & ~ARamAck);
-                                // Save context
- assign BStateSys[IStSysSwtA] = (FStateSys[IStSysReqC] &  ARamAck & FSysReqFn[0]) |
-                                (FStateSys[IStSysSwtB] &  ARamAck & ~BRegIdxE);
- assign BStateSys[IStSysSwtB] =  FStateSys[IStSysSwtA] |
-                                (FStateSys[IStSysSwtB] & ~ARamAck);
-                                // Save ContPtr (only if the thread is not IRQ)
- assign BStateSys[IStSysSwtC] = (FStateSys[IStSysSwtB] &  ARamAck &  BRegIdxE & ~AIsIsr) |
-                                (FStateSys[IStSysSwtC] & ~ARamAck);
-                                // Load ContPtr
- assign BStateSys[IStSysSwtD] = (FStateSys[IStSysReqC] &  ARamAck & FSysReqFn[1]) |
-                                (FStateSys[IStSysSwtB] &  ARamAck &  BRegIdxE &  AIsIsr) |
-                                (FStateSys[IStSysSwtC] &  ARamAck) |
-                                (FStateSys[IStSysSwtD] & ~ARamAck);
- assign BStateSys[IStSysSwtE] = (FStateSys[IStSysSwtD] &  ARamAck);
-                                // Load context
- assign BStateSys[IStSysSwtF] =  FStateSys[IStSysSwtE] |
-                                (FStateSys[IStSysSwtF] & ~ARamAck) |
-                                (FStateSys[IStSysSwtG] & ~BRegIdxE);
- assign BStateSys[IStSysSwtG] = (FStateSys[IStSysSwtF] &  ARamAck);
-                                // Save Ctrl
- assign BStateSys[IStSysSwtH] = (FStateSys[IStSysSwtG] &  BRegIdxE) |
-                                (FStateSys[IStSysSwtH] & ~ARamAck);
-                                // Sys ACK
- assign BStateSys[IStSysEndA] = (FStateSys[IStSysSwtH] &  ARamAck);
-                                // Lock
- assign BStateSys[IStSysLock] =  FStateSys[IStSysReqA] & FSysReqFn[2];
+ assign BGoSys[IStSysReqA] = ~BStateSysNZ & BSysReqSrcNZ & ~BGoIrqProc & FStateM[IStExecB];   assign BStaySys[IStSysReqA] = 1'b0;
+ // Load Ctrl
+ assign BGoSys[IStSysReqC] =  FStateSys[IStSysReqA] & (|FSysReqFn[1:0]);                      assign BStaySys[IStSysReqC] = FStateSys[IStSysReqC] & ~ARamAck;
+ // Save context
+ assign BGoSys[IStSysSwtA] = (FStateSys[IStSysReqC] &  ARamAck & FSysReqFn[0]) |
+                             (FStateSys[IStSysSwtB] &  ARamAck & ~BRegIdxE);                  assign BStaySys[IStSysSwtA] = 1'b0;
+ assign BGoSys[IStSysSwtB] =  FStateSys[IStSysSwtA];                                          assign BStaySys[IStSysSwtB] = FStateSys[IStSysSwtB] & ~ARamAck;
+ // Save ContPtr (only if the thread is not IRQ)
+ assign BGoSys[IStSysSwtC] =  FStateSys[IStSysSwtB] &  ARamAck &  BRegIdxE & ~AIsIsr;         assign BStaySys[IStSysSwtC] = FStateSys[IStSysSwtC] & ~ARamAck;
+ // Load ContPtr
+ assign BGoSys[IStSysSwtD] = (FStateSys[IStSysReqC] &  ARamAck & FSysReqFn[1]) |
+                             (FStateSys[IStSysSwtB] &  ARamAck &  BRegIdxE &  AIsIsr) |
+                             (FStateSys[IStSysSwtC] &  ARamAck);                              assign BStaySys[IStSysSwtD] = FStateSys[IStSysSwtD] & ~ARamAck;
+ assign BGoSys[IStSysSwtE] =  FStateSys[IStSysSwtD] &  ARamAck;                               assign BStaySys[IStSysSwtE] = 1'b0;
+ // Load context
+ assign BGoSys[IStSysSwtF] =  FStateSys[IStSysSwtE] |
+                             (FStateSys[IStSysSwtG] & ~BRegIdxE);                             assign BStaySys[IStSysSwtF] = FStateSys[IStSysSwtF] & ~ARamAck;
+ assign BGoSys[IStSysSwtG] = (FStateSys[IStSysSwtF] &  ARamAck);                              assign BStaySys[IStSysSwtG] = 1'b0;
+ // Save Ctrl
+ assign BGoSys[IStSysSwtH] = (FStateSys[IStSysSwtG] &  BRegIdxE);                             assign BStaySys[IStSysSwtH] = FStateSys[IStSysSwtH] & ~ARamAck;
+ // Sys ACK
+ assign BGoSys[IStSysEndA] = (FStateSys[IStSysSwtH] &  ARamAck);                              assign BStaySys[IStSysEndA] = 1'b0;
+ // Lock
+ assign BGoSys[IStSysLock] =  FStateSys[IStSysReqA] & FSysReqFn[2];                           assign BStaySys[IStSysLock] = 1'b0;
  // IRQ part
- assign BStateSys[IStIrqReqA] = ~BStateSysNZ & BCoreToProcessIrqNZ & FStateM[IStExecB];
-                                // Load Ctrl
- assign BStateSys[IStIrqReqC] = (FStateSys[IStIrqReqA] & BIrqConfirmedNZ) |
-                                (FStateSys[IStIrqReqC] & ~ARamAck);
-                                // Dec head address
- assign BStateSys[IStIrqReqD] = (FStateSys[IStIrqReqC] &  ARamAck); // At the same time as IStIrqSwtA
-                                // Save context
- assign BStateSys[IStIrqSwtA] = (FStateSys[IStIrqReqC] &  ARamAck) |
-                                (FStateSys[IStIrqSwtB] &  ARamAck & ~BRegIdxE);
- assign BStateSys[IStIrqSwtB] =  FStateSys[IStIrqSwtA] |
-                                (FStateSys[IStIrqSwtB] & ~ARamAck);
-                                // Save ContPtr (but do not increment address: it is in the beginning at the list)
- assign BStateSys[IStIrqSwtC] = (FStateSys[IStIrqSwtB] &  ARamAck &  BRegIdxE) |
-                                (FStateSys[IStIrqSwtC] & ~ARamAck);
-                                // Load ContPtr (from Irq table, as an index of IRQ)
- assign BStateSys[IStIrqSwtD] = (FStateSys[IStIrqSwtC] &  ARamAck) |
-                                (FStateSys[IStIrqSwtD] & ~ARamAck);
- assign BStateSys[IStIrqSwtE] = (FStateSys[IStIrqSwtD] &  ARamAck);
-                                // Load context
- assign BStateSys[IStIrqSwtF] =  FStateSys[IStIrqSwtE] |
-                                (FStateSys[IStIrqSwtF] & ~ARamAck) |
-                                (FStateSys[IStIrqSwtG] & ~BRegIdxE);
- assign BStateSys[IStIrqSwtG] = (FStateSys[IStIrqSwtF] &  ARamAck);
-                                // Save Ctrl
- assign BStateSys[IStIrqSwtH] = (FStateSys[IStIrqSwtG] &  BRegIdxE) |
-                                (FStateSys[IStIrqSwtH] & ~ARamAck);
-                                // Irq ACK (clear flags)
- assign BStateSys[IStIrqEndA] = (FStateSys[IStIrqSwtH] &  ARamAck);
+ assign BGoSys[IStIrqReqA] = ~BStateSysNZ & BGoIrqProc & FStateM[IStExecB];                   assign BStaySys[IStIrqReqA] = 1'b0;
+ // Avoiding race condition, 2 clock cycles
+ assign BGoSys[IStIrqReqB] =  FStateSys[IStIrqReqA] & BIrqConfirmed;                          assign BStaySys[IStIrqReqB] = 1'b0;
+ // Load Ctrl
+ assign BGoSys[IStIrqReqC] =  FStateSys[IStIrqReqB] & BIrqConfirmed;                          assign BStaySys[IStIrqReqC] = FStateSys[IStIrqReqC] & ~ARamAck;
+ // Dec head address // At the same time as IStIrqSwtA
+ assign BGoSys[IStIrqReqD] =  FStateSys[IStIrqReqC] &  ARamAck;                               assign BStaySys[IStIrqReqD] = 1'b0;
+ // Save context
+ assign BGoSys[IStIrqSwtA] = (FStateSys[IStIrqReqC] &  ARamAck) |
+                             (FStateSys[IStIrqSwtB] &  ARamAck & ~BRegIdxE);                  assign BStaySys[IStIrqSwtA] = 1'b0;
+ assign BGoSys[IStIrqSwtB] =  FStateSys[IStIrqSwtA];                                          assign BStaySys[IStIrqSwtB] = FStateSys[IStIrqSwtB] & ~ARamAck;
+ // Save ContPtr (but do not increment address: it is in the beginning at the list)
+ assign BGoSys[IStIrqSwtC] =  FStateSys[IStIrqSwtB] &  ARamAck &  BRegIdxE;                   assign BStaySys[IStIrqSwtC] = FStateSys[IStIrqSwtC] & ~ARamAck;
+ // Load ContPtr (from Irq table, as an index of IRQ)
+ assign BGoSys[IStIrqSwtD] =  FStateSys[IStIrqSwtC] &  ARamAck;                               assign BStaySys[IStIrqSwtD] = FStateSys[IStIrqSwtD] & ~ARamAck;
+ assign BGoSys[IStIrqSwtE] =  FStateSys[IStIrqSwtD] &  ARamAck;                               assign BStaySys[IStIrqSwtE] = 1'b0;
+ // Load context
+ assign BGoSys[IStIrqSwtF] =  FStateSys[IStIrqSwtE] |
+                             (FStateSys[IStIrqSwtG] & ~BRegIdxE);                             assign BStaySys[IStIrqSwtF] = FStateSys[IStIrqSwtF] & ~ARamAck;
+ assign BGoSys[IStIrqSwtG] =  FStateSys[IStIrqSwtF] &  ARamAck;                               assign BStaySys[IStIrqSwtG] = 1'b0;
+ // Save Ctrl
+ assign BGoSys[IStIrqSwtH] =  FStateSys[IStIrqSwtG] &  BRegIdxE ;                             assign BStaySys[IStIrqSwtH] = FStateSys[IStIrqSwtH] & ~ARamAck;
+ // Irq ACK (clear flags)
+ assign BGoSys[IStIrqEndA] =  FStateSys[IStIrqSwtH] &  ARamAck ;                              assign BStaySys[IStIrqEndA] = 1'b0;
 
  assign BRegIdx = BStateSysNZ ? FRegIdx+{2'h0, |{FStateSys[IStSysSwtB] & ARamAck, FStateSys[IStSysSwtG], FStateSys[IStIrqSwtB] & ARamAck, FStateSys[IStIrqSwtG]}} : 3'h0;
  wire [7:0] BRegIdxS; MsDec3x8a URegIdxS ( .ADataI(FRegIdx), .ADataO(BRegIdxS) );
@@ -307,7 +301,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  assign AIrqToProcess = FStateSys[IStIrqSwtD] ? FIrqThis : {CIrqCnt{1'b0}};
 
  //assign ATest = {ASysCoreSel, AContPtrWrEn, AIrqBusyList[0], FStateSys[IStIrqEndA], FIrqThis[0], FIrqAll[0], FIrqIn[0]};
- assign ATest = {ASysCoreSel, BIrqEn, FStateSys[IStIrqEndA], FIrqThis[0], FIrqAll[0], FIrqIn[0]};
+ assign ATest = {ASysCoreSel, AIrqEn, FStateSys[IStIrqEndA], FIrqThis[0], FIrqAll[0], FIrqIn[0]};
 
 endmodule
 

@@ -15,6 +15,7 @@ Function RelFilename ( Const ABasePath, AAbsName : string ) : string;
 Function AssembleFullName ( Const APath, AName, AExt : string ) : string;
 Procedure ForceCheckFileExtA ( Var AFullName : string; Const AExt : string );
 Function ReplacePathSlash ( Const APath : string ) : string;
+Procedure ReplacePathSlashVar ( Var APath : string );
 //Function AddSearchAgain ( ASearchOptions : TSynSearchOptions ) : TSynSearchOptions;
 Procedure ReplaceListSlash ( AList : TStringList; Const AMask : string ); Overload;
 //Procedure ReplaceListSlash ( AList : TStringList; Const AMask : string; AStartIndex : Integer ); Overload;
@@ -233,6 +234,18 @@ Begin
  while BIndex<Length(Result) do
   begin
   if Result[1+BIndex]='\' then Result[1+BIndex]:='/';
+  inc(BIndex);
+  end;
+End;
+
+Procedure ReplacePathSlashVar ( Var APath : string );
+Var
+  BIndex    : Integer;
+Begin
+ BIndex:=0;
+ while BIndex<Length(APath) do
+  begin
+  if APath[1+BIndex]='\' then APath[1+BIndex]:='/';
   inc(BIndex);
   end;
 End;

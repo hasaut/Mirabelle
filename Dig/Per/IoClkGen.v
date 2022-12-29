@@ -3,8 +3,7 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, input [63:0] AIoMosi, input [3:0] AIoWrSize, output AIoAddrAck, output AIoAddrErr,
   input AClkI, input AResetIN,
-  output AClkO, output AResetON,
-  output AUnused
+  output AClkO, output AResetON
  );
 
  // IO
@@ -32,6 +31,13 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
   end
 
  assign BDivider = BIoAccess[IoSizeW+IoOperW+0] ? AIoMosi[15:0] : FDivider;
+
+ wire [15:0] FDividerI;
+ MsCrossData #(.CRegLen(16))
+  (
+   .AClkH(AClkI), .AResetHN(AResetIN), .AClkHEn(1'b1),
+   .ADataI(FDivider), .ADataO(FDividerI)
+  );
 
  // X Domain
  reg [7:0] FCntDec; wire [7:0] BCntDec;
@@ -67,7 +73,6 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
 
  assign AClkO = FClkO[1];
  assign AResetON = FResetON[CResetDelayW-1];
- assign AUnused = |{AIoMosi};
 
 endmodule
 

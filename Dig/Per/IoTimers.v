@@ -7,7 +7,7 @@ module IoTimer16A #(parameter CAddrBase=16'h0000)
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, AIoAddrErr,
   input ASync1M, input ASync1K, output AIrq,
-  output [7:0] ATest, output AUnused
+  output [7:0] ATest
  );
 
  // Interface
@@ -75,7 +75,6 @@ module IoTimer16A #(parameter CAddrBase=16'h0000)
  // External
  assign AIrq = FIrq;
  assign ATest = {AClkH, BTimerSrcNZ, BIncEn, BCmpResA, BCmpRes, FIrq, FCmpReset, FCmpRes};
- assign AUnused = |{AIoMosi};
 endmodule
 
 // Most simple Timer, 32-bit, 1 compare
@@ -87,7 +86,7 @@ module IoTimer32A #(parameter CAddrBase=16'h0000)
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, AIoAddrErr,
   input ASync1M, input ASync1K, output AIrq,
-  output [7:0] ATest, output AUnused
+  output [7:0] ATest
  );
 
  // Interface
@@ -153,7 +152,6 @@ module IoTimer32A #(parameter CAddrBase=16'h0000)
  // External
  assign AIrq = FIrq;
  assign ATest = {AClkH, BTimerSrcNZ, BIncEn, BCmpResA, BCmpRes, BIrq, FIrq, FCmpRes};
- assign AUnused = |{AIoMosi};
 endmodule
 
 
