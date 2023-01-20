@@ -114,7 +114,8 @@ Function CheckValue ( Const ANameS : string; Const AReadS : string; Out AValue :
 Function CheckValue ( Const ANameS : string; Const AReadS : string; Var AValue : Cardinal ) : boolean;
 
 Function DWordAsStr ( AData : Cardinal ) : string;
-Function StrAsDWord ( Const AData : string; AIndex : Integer ) : Cardinal;
+Function StrAsDWord ( Const ADataS : string; AIndex : Integer ) : Cardinal;
+Function StrAsDWord ( Const ADataS : string; Var AIndex : Integer; Out AData : Cardinal ) : boolean; // Index from 0
 
 Procedure CorrectAscii ( Var ADataS : string );
 
@@ -1682,15 +1683,31 @@ Begin
          Chr((AData shr 24) and $FF);
 End;
 
-Function StrAsDWord ( Const AData : string; AIndex : Integer ) : Cardinal; // Index from 0
+Function StrAsDWord ( Const ADataS : string; AIndex : Integer ) : Cardinal; // Index from 0
 Var
   BIndex    : Integer;
 Begin
  Result:=0;
  for BIndex:=0 to 3 do
   begin
-  if (AIndex+BIndex)<Length(AData) then Result:=Result or (Cardinal(AData[1+AIndex+BIndex]) shl (8*BIndex));
+  if (AIndex+BIndex)<Length(ADataS) then Result:=Result or (Cardinal(ADataS[1+AIndex+BIndex]) shl (8*BIndex));
   end;
+End;
+
+Function StrAsDWord ( Const ADataS : string; Var AIndex : Integer; Out AData : Cardinal ) : boolean; // Index from 0
+Var
+  BIndex    : Integer;
+Begin
+ Result:=FALSE; AData:=0;
+ repeat
+ if AIndex+4>Length(ADataS) then break;
+ for BIndex:=0 to 3 do
+  begin
+  AData:=AData or (Cardinal(ADataS[1+AIndex+BIndex]) shl (8*BIndex));
+  end;
+ inc(AIndex,4);
+ Result:=TRUE;
+ until TRUE;
 End;
 
 Procedure CorrectAscii ( Var ADataS : string );

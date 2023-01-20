@@ -8,7 +8,7 @@ Extern MainB
 .seg data
 
         Align 8
-    FRegsMainB:    dd 0 dup(16)
+    FRegsMainB:    dd 0 dup(24)
 
 
         #Stack ProcMainB, 0

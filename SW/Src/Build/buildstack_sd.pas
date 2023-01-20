@@ -211,7 +211,7 @@ Var
   BDepthThis,
   BDepthMax     : Integer;
 Begin
- SetLength(BCallStack,1);
+ BCallStack:=nil; SetLength(BCallStack,1);
  BCallStack[0]:=ALine;
  BDepthThis:=0; BDepthMax:=0;
  StackProcessP(ALine,nil,BCallStack,ARecursAllow,ARecursLevel,BDepthThis,BDepthMax);

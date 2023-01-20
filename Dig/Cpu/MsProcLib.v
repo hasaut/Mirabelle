@@ -8,7 +8,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
   input [CCoreCnt-1:0] ASetIrqSwtBase,
   input [CCoreCnt-1:0] AIrqEn, input [CIrqCnt-1:0] AIrq,
   output [CCoreCnt-1:0] ACoreEn, // Individual Enable signal, can be zero during IRQ
-  output [63:0] ARegMosi, input [63:0] ARegMiso, output [7:0] ARegWrIdx, ARegRdIdx,
+  output [63:0] ARegMosi, input [63:0] ARegMiso, output [11:0] ARegWrIdx, ARegRdIdx,
   output [31:3] ARomAddr, input [63:0] ARomMiso, output ARomRdEn,
   output [31:0] ARamAddr, input [63:0] ARamMiso, output [63:0] ARamMosi, output [3:0] ARamWrSize, ARamRdSize, input ARamAck,
   output [7:0] ATest
@@ -69,7 +69,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  wire [7:0] FQueMask, BQueMask,
             FTailIdx, BTailIdx,
             FHeadIdx, BHeadIdx;
- wire [2:0] FRegIdx, BRegIdx;
+ wire [3:0] FRegIdx, BRegIdx;
  wire [63:0] FRamMosi, BRamMosi;
  wire [63:0] FRamMiso, BRamMiso;
  wire [CCoreCnt-1:0] FSiLock, BSiLock;
@@ -83,7 +83,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
 
  wire [CCoreCnt-1:0] FCoreCandidate, BCoreCandidate;
 
- MsDffList #(.CRegLen(2+2+CStateMLen+CStateSysLen+CCoreCnt+3+64+4+CCoreCnt*2+3*8+3+64+64+CCoreCnt+30+30+3*CIrqCnt+CCoreCnt)) ULocalVars
+ MsDffList #(.CRegLen(2+2+CStateMLen+CStateSysLen+CCoreCnt+3+64+4+CCoreCnt*2+3*8+4+64+64+CCoreCnt+30+30+3*CIrqCnt+CCoreCnt)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI({BSubcoreIdxBase, BSubcoreIdxStop, BStateM, BStateSys, BCoreEn, BSysReqFn, BRomMiso, BCoreIdxA, BSysReqSrc, BSysCoreSel, BQueMask, BTailIdx, BHeadIdx, BRegIdx, BRamMosi, BRamMiso, BSiLock, BIrqBase, BSwtBase, BIrqIn, BIrqAll, BIrqThis, BCoreCandidate}),
@@ -186,7 +186,9 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  wire [2:0] BSysReqFnA; MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(3)) USysReqFnA ( .ADataI(ASysReq), .AMask(BSysCoreSel), .ADataO(BSysReqFnA) );
  assign BSysReqFn = BGoSys[IStSysReqA] ? BSysReqFnA : FSysReqFn;
 
- wire BRegIdxE = &FRegIdx;
+ wire [15:0] BRegIdxS; MsDec4x16a URegIdxS ( .ADataI(FRegIdx), .ADataO(BRegIdxS) );
+ wire LLastRegGpr = BRegIdxS[7];
+ wire LLastRegMpu = BRegIdxS[11];
 
  // SWT/END/SYS part
  assign BGoSys[IStSysReqA] = ~BStateSysNZ & BSysReqSrcNZ & ~BGoIrqProc & FStateM[IStExecB];   assign BStaySys[IStSysReqA] = 1'b0;
@@ -194,21 +196,21 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  assign BGoSys[IStSysReqC] =  FStateSys[IStSysReqA] & (|FSysReqFn[1:0]);                      assign BStaySys[IStSysReqC] = FStateSys[IStSysReqC] & ~ARamAck;
  // Save context
  assign BGoSys[IStSysSwtA] = (FStateSys[IStSysReqC] &  ARamAck & FSysReqFn[0]) |
-                             (FStateSys[IStSysSwtB] &  ARamAck & ~BRegIdxE);                  assign BStaySys[IStSysSwtA] = 1'b0;
+                             (FStateSys[IStSysSwtB] &  ARamAck & ~LLastRegGpr);               assign BStaySys[IStSysSwtA] = 1'b0;
  assign BGoSys[IStSysSwtB] =  FStateSys[IStSysSwtA];                                          assign BStaySys[IStSysSwtB] = FStateSys[IStSysSwtB] & ~ARamAck;
  // Save ContPtr (only if the thread is not IRQ)
- assign BGoSys[IStSysSwtC] =  FStateSys[IStSysSwtB] &  ARamAck &  BRegIdxE & ~AIsIsr;         assign BStaySys[IStSysSwtC] = FStateSys[IStSysSwtC] & ~ARamAck;
+ assign BGoSys[IStSysSwtC] =  FStateSys[IStSysSwtB] &  ARamAck &  LLastRegGpr & ~AIsIsr;      assign BStaySys[IStSysSwtC] = FStateSys[IStSysSwtC] & ~ARamAck;
  // Load ContPtr
  assign BGoSys[IStSysSwtD] = (FStateSys[IStSysReqC] &  ARamAck & FSysReqFn[1]) |
-                             (FStateSys[IStSysSwtB] &  ARamAck &  BRegIdxE &  AIsIsr) |
+                             (FStateSys[IStSysSwtB] &  ARamAck &  LLastRegGpr &  AIsIsr) |
                              (FStateSys[IStSysSwtC] &  ARamAck);                              assign BStaySys[IStSysSwtD] = FStateSys[IStSysSwtD] & ~ARamAck;
  assign BGoSys[IStSysSwtE] =  FStateSys[IStSysSwtD] &  ARamAck;                               assign BStaySys[IStSysSwtE] = 1'b0;
  // Load context
  assign BGoSys[IStSysSwtF] =  FStateSys[IStSysSwtE] |
-                             (FStateSys[IStSysSwtG] & ~BRegIdxE);                             assign BStaySys[IStSysSwtF] = FStateSys[IStSysSwtF] & ~ARamAck;
+                             (FStateSys[IStSysSwtG] & ~LLastRegMpu);                          assign BStaySys[IStSysSwtF] = FStateSys[IStSysSwtF] & ~ARamAck;
  assign BGoSys[IStSysSwtG] = (FStateSys[IStSysSwtF] &  ARamAck);                              assign BStaySys[IStSysSwtG] = 1'b0;
  // Save Ctrl
- assign BGoSys[IStSysSwtH] = (FStateSys[IStSysSwtG] &  BRegIdxE);                             assign BStaySys[IStSysSwtH] = FStateSys[IStSysSwtH] & ~ARamAck;
+ assign BGoSys[IStSysSwtH] = (FStateSys[IStSysSwtG] &  LLastRegMpu);                          assign BStaySys[IStSysSwtH] = FStateSys[IStSysSwtH] & ~ARamAck;
  // Sys ACK
  assign BGoSys[IStSysEndA] = (FStateSys[IStSysSwtH] &  ARamAck);                              assign BStaySys[IStSysEndA] = 1'b0;
  // Lock
@@ -223,24 +225,41 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  assign BGoSys[IStIrqReqD] =  FStateSys[IStIrqReqC] &  ARamAck;                               assign BStaySys[IStIrqReqD] = 1'b0;
  // Save context
  assign BGoSys[IStIrqSwtA] = (FStateSys[IStIrqReqC] &  ARamAck) |
-                             (FStateSys[IStIrqSwtB] &  ARamAck & ~BRegIdxE);                  assign BStaySys[IStIrqSwtA] = 1'b0;
+                             (FStateSys[IStIrqSwtB] &  ARamAck & ~LLastRegGpr);               assign BStaySys[IStIrqSwtA] = 1'b0;
  assign BGoSys[IStIrqSwtB] =  FStateSys[IStIrqSwtA];                                          assign BStaySys[IStIrqSwtB] = FStateSys[IStIrqSwtB] & ~ARamAck;
  // Save ContPtr (but do not increment address: it is in the beginning at the list)
- assign BGoSys[IStIrqSwtC] =  FStateSys[IStIrqSwtB] &  ARamAck &  BRegIdxE;                   assign BStaySys[IStIrqSwtC] = FStateSys[IStIrqSwtC] & ~ARamAck;
+ assign BGoSys[IStIrqSwtC] =  FStateSys[IStIrqSwtB] &  ARamAck &  LLastRegGpr;                assign BStaySys[IStIrqSwtC] = FStateSys[IStIrqSwtC] & ~ARamAck;
  // Load ContPtr (from Irq table, as an index of IRQ)
  assign BGoSys[IStIrqSwtD] =  FStateSys[IStIrqSwtC] &  ARamAck;                               assign BStaySys[IStIrqSwtD] = FStateSys[IStIrqSwtD] & ~ARamAck;
  assign BGoSys[IStIrqSwtE] =  FStateSys[IStIrqSwtD] &  ARamAck;                               assign BStaySys[IStIrqSwtE] = 1'b0;
  // Load context
  assign BGoSys[IStIrqSwtF] =  FStateSys[IStIrqSwtE] |
-                             (FStateSys[IStIrqSwtG] & ~BRegIdxE);                             assign BStaySys[IStIrqSwtF] = FStateSys[IStIrqSwtF] & ~ARamAck;
+                             (FStateSys[IStIrqSwtG] & ~LLastRegMpu);                          assign BStaySys[IStIrqSwtF] = FStateSys[IStIrqSwtF] & ~ARamAck;
  assign BGoSys[IStIrqSwtG] =  FStateSys[IStIrqSwtF] &  ARamAck;                               assign BStaySys[IStIrqSwtG] = 1'b0;
  // Save Ctrl
- assign BGoSys[IStIrqSwtH] =  FStateSys[IStIrqSwtG] &  BRegIdxE ;                             assign BStaySys[IStIrqSwtH] = FStateSys[IStIrqSwtH] & ~ARamAck;
+ assign BGoSys[IStIrqSwtH] =  FStateSys[IStIrqSwtG] &  LLastRegMpu ;                          assign BStaySys[IStIrqSwtH] = FStateSys[IStIrqSwtH] & ~ARamAck;
  // Irq ACK (clear flags)
  assign BGoSys[IStIrqEndA] =  FStateSys[IStIrqSwtH] &  ARamAck ;                              assign BStaySys[IStIrqEndA] = 1'b0;
 
- assign BRegIdx = BStateSysNZ ? FRegIdx+{2'h0, |{FStateSys[IStSysSwtB] & ARamAck, FStateSys[IStSysSwtG], FStateSys[IStIrqSwtB] & ARamAck, FStateSys[IStIrqSwtG]}} : 3'h0;
- wire [7:0] BRegIdxS; MsDec3x8a URegIdxS ( .ADataI(FRegIdx), .ADataO(BRegIdxS) );
+ wire BRegIdxKeep = |{
+                      FStateSys[IStSysSwtB:IStSysSwtA],
+                      FStateSys[IStSysSwtG:IStSysSwtF],
+                      FStateSys[IStIrqSwtB:IStIrqSwtA],
+                      FStateSys[IStIrqSwtG:IStIrqSwtF]
+                     };
+ wire BRegIdxNext = |{
+                      FStateSys[IStSysSwtB] & ARamAck & ~LLastRegGpr,
+                      FStateSys[IStSysSwtG] & ~LLastRegMpu,
+                      FStateSys[IStIrqSwtB] & ARamAck & ~LLastRegGpr,
+                      FStateSys[IStIrqSwtG] & ~LLastRegMpu
+                     };
+ wire BRegIdxZero = |{
+                      FStateSys[IStSysSwtB] & ARamAck &  LLastRegGpr,
+                      FStateSys[IStSysSwtG] & LLastRegMpu,
+                      FStateSys[IStIrqSwtB] & ARamAck &  LLastRegGpr,
+                      FStateSys[IStIrqSwtG] & LLastRegMpu
+                     };
+ assign BRegIdx = (BRegIdxKeep & ~BRegIdxZero) ? FRegIdx+{3'h0, BRegIdxNext} : 3'h0;
 
  assign BRamMiso = ((FStateSys[IStSysSwtF] | FStateSys[IStIrqSwtF]) & ARamAck) ? ARamMiso : FRamMiso;
  assign BRamMosi =  (FStateSys[IStSysSwtA] | FStateSys[IStIrqSwtA]) ? ARegMiso : FRamMosi;
@@ -265,12 +284,12 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
   ((FStateSys[IStSysSwtG] | FStateSys[IStIrqSwtG]) ? FRamMiso : 64'h0);
 
  assign ARegWrIdx =
-  ((FStateM[IStInitD] | FStateM[IStInitE]) ? 8'h1 : 8'h0) |
-  ((FStateSys[IStSysSwtG] | FStateSys[IStIrqSwtG]) ? BRegIdxS : 8'h0);
+  ((FStateM[IStInitD] | FStateM[IStInitE]) ? 12'h1 : 12'h0) |
+  ((FStateSys[IStSysSwtG] | FStateSys[IStIrqSwtG]) ? BRegIdxS[11:0] : 12'h0);
 
  assign ARegRdIdx =
-  ((|ASetIrqSwtBase) ? 8'h2 : 8'h0) |
-  ((FStateSys[IStSysSwtA] | FStateSys[IStIrqSwtA]) ? BRegIdxS : 8'h0);
+  ((|ASetIrqSwtBase) ? 12'h2 : 12'h0) |
+  ((FStateSys[IStSysSwtA] | FStateSys[IStIrqSwtA]) ? BRegIdxS[11:0] : 12'h0);
 
  // Outs.Rom
  assign ARomAddr = FStateM[IStInitB] ? {CStartAddr[31:6], FCoreIdxA[3:1]} : 29'h0;
@@ -279,7 +298,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  // Outs.Ram
  wire [31:2] BSwtAddr = FSwtBase+30'h1;
  wire [31:2] BIrqAddr = FIrqBase;
- wire [31:3] BContAddr = AContPtrMiso+{26'h0, BRegIdx};
+ wire [31:3] BContAddr = AContPtrMiso+{25'h0, BRegIdx};
  assign ARamAddr =
   ((|{BStateSys[IStSysReqC], BStateSys[IStSysSwtH], BStateSys[IStIrqReqC], BStateSys[IStIrqSwtH]}) ? {FSwtBase, 2'h0}  : 32'h0) |
   ((|{BStateSys[IStSysSwtB], BStateSys[IStSysSwtF], BStateSys[IStIrqSwtB], BStateSys[IStIrqSwtF]}) ? {BContAddr, 3'h0} : 32'h0) |

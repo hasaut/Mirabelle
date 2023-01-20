@@ -129,7 +129,7 @@ Type
     FCmdParams      : TCmdParams;
 
     // Threads
-    FMsProcess  : TMsProcess;
+    FMsProcess      : TMsProcess;
 
     // Params
     FPlayerParams   : string;
@@ -185,6 +185,7 @@ Type
 
     // Helpers
     Procedure ReqSegData ( Const ASegName : string );
+    Function GetFlashLog : TStringList;
 
   public
     Constructor Create ( AOwner : TComponent ); Override;
@@ -294,7 +295,7 @@ Begin
  FWndLtoR:=TWndLtoRSd.Create(Self); FWndLtoR.Init(TsLtoR,@LocalizeErrorA);
  FWndCDbg:=TWndCDbgSd.Create(Self); FWndCDbg.Init(TsCDbg,FParams);
  FWndMemV:=TWndMemVSd.Create(Self); FWndMemV.Init(TsMemV,@ReqSegData);
- FWndFpga:=TWndFpgaSd.Create(Self); FWndFpga.Init(TsFpga,@ProcAny);
+ FWndFpga:=TWndFpgaSd.Create(Self); FWndFpga.Init(TsFpga,@ProcAny,@GetFlashLog);
 
  // Thread
  FMsProcess:=TMsProcess.Create(TRUE);
@@ -564,12 +565,13 @@ Begin
 End;
 
 Const
-  CAllProjectFiles = 'All project files (*.asm, *.pas, *.c, *.hex, *.v, *.h)|*.asm;*.pas;*.c;*.hex;*.v;*.h|'+
+  CAllProjectFiles = 'All project files (*.asm, *.pas, *.c, *.hex, *.rel, *.v, *.h)|*.asm;*.pas;*.c;*.hex;*.rel;*.v;*.h|'+
                      'Assembler files (*.asm)|*.asm|'+
                      'Pascal files (*.pas)|*.pas|'+
                      'C files (*.c)|*.c|'+
                      'Verilog files (*.v)|*.v|'+
                      'Include files (*.h)|*.h|'+
+                     'Data files (*.hex, *.rel)|*.hex;*.rel|'+
                      'All files (*.*)|*.*';
 
 Procedure TSdMainForm.MFileOpenClick(Sender: TObject);
@@ -1223,6 +1225,11 @@ End;
 Procedure TSdMainForm.ReqSegData ( Const ASegName : string );
 Begin
  FMsProcess.AppendCmd('g '+ASegName);
+End;
+
+Function TSdMainForm.GetFlashLog : TStringList;
+Begin
+ Result:=FMsProcess.FlashLog;
 End;
 
 // Ext interface

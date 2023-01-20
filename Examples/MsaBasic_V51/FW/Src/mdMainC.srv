@@ -5,7 +5,7 @@
 .data
         .Align 8
 FRegsMainC:
-        dd 0 dup(20)
+        dd 0 dup(24)
 
 
         dd 0 dup(16)
@@ -30,7 +30,7 @@ ProcMainC:
         addi    t1,t0,0x10
         addi    t1,t1,0x02
 
-        #call    MainC
+        call    MainC
 
     prLoop:
         swt     pmcSwtTest

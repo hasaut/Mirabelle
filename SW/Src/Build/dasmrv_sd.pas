@@ -65,7 +65,7 @@ Type
     Constructor Create; Override;
     Destructor Destroy; Override;
 
-    Function CmdDec ( AAddr : Cardinal; Const ACodeBin : string ) : boolean; Override;
+    Function CmdDec ( AVirtAddr : Cardinal; Const ACodeBin : string ) : boolean; Override;
     Procedure CheckFixDstLabel; Override;
 
     Function IsJmp : boolean; Override;
@@ -184,7 +184,7 @@ Begin
    'h': ReplaceKey('0x'+IntToHex(FSubdec.FRs2,2),BAsmLineS,BPos+1);
    'i': ReplaceKey(IntToStr(FSubdec.FImm),BAsmLineS,BPos+1);
    'x': ReplaceKey('0x'+IntToHex(FSubdec.FImm,8),BAsmLineS,BPos+1);
-   'r': ReplaceKey('0x'+IntToHex(FAddr+FSubdec.FImm,8),BAsmLineS,BPos+1);
+   'r': ReplaceKey('0x'+IntToHex(FVirtAddr+FSubdec.FImm,8),BAsmLineS,BPos+1);
   end; // Case
   until TRUE;
   inc(BPos);
@@ -594,13 +594,13 @@ Begin
  until TRUE;
 End;
 
-Function TExecLineRV.CmdDec ( AAddr : Cardinal; Const ACodeBin : string ) : boolean;
+Function TExecLineRV.CmdDec ( AVirtAddr : Cardinal; Const ACodeBin : string ) : boolean;
 Var
   BCode     : Cardinal;
   BSubFn    : Cardinal;
 Begin
  Result:=FALSE; FLastError:='';
- FAddr:=AAddr;
+ FVirtAddr:=AVirtAddr; FBaseAddr:=AVirtAddr;
  FCodeBin:=ACodeBin;
  FSubdec:=ZRvSubdec;
  repeat
@@ -788,7 +788,7 @@ Procedure TExecLineRV.Reassembly;
 Begin
  repeat
  if FLastError<>'' then break;
- FAsmLine.Clear; FAsmLine.Addr:=FAddr;
+ FAsmLine.Clear; FAsmLine.VirtAddr:=FVirtAddr; FAsmLine.BaseAddr:=FBaseAddr;
  FAsmLine.Parse(FAsmLineS,'',0);
  if FAsmLine.LastError<>'' then begin FLastError:='Cannot reassemble line "'+FAsmLineS+'": ['+FAsmLine.LastError+']'; break; end;
  FAsmBase.CodeGenCmd(FAsmLine);

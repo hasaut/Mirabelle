@@ -98,7 +98,7 @@ Type
 
     Procedure GetRowCol ( Const ASubdec : TMsSubdec; ATargIdx : TMsTargIdx; Out ARow, ACol : byte );
     Procedure GetRowCol ( ATargIdx : TMsTargIdx; Out ARow, ACol : byte );
-    Function CmdDec ( AAddr : Cardinal; Const ACodeBin : string ) : boolean; Override;
+    Function CmdDec ( AVirtAddr : Cardinal; Const ACodeBin : string ) : boolean; Override;
     Procedure CheckFixDstLabel; Override;
 
     Function IsJmp : boolean; Override;
@@ -281,7 +281,7 @@ Begin
   if (FBase and $0008)=0 then BExtLen:=2 else BExtLen:=4;
   end;
  if BExtLen=0 then begin Result:=TRUE; break; end;
- if Length(FCodeBin)<(2+BExtLen) then begin FLastError:='eBinary data is too short (Address: '+IntToHex(FAddr,8)+') [R:TExecLineWA.MsGetExt]'; break; end;
+ if Length(FCodeBin)<(2+BExtLen) then begin FLastError:='eBinary data is too short (Address: '+IntToHex(FVirtAddr,8)+') [R:TExecLineWA.MsGetExt]'; break; end;
  FExt:=(Cardinal(FCodeBin[1+2]) shl 0)+
        (Cardinal(FCodeBin[1+3]) shl 8);
  if BExtLen=4 then
@@ -690,13 +690,13 @@ Const
   // ARUS   |11111101||        |uuuurrrr|cccceeww|wwwwssss| addex subex andex orex xorex mulex udivex sdivex fadd fsub fmul fdiv shl shr rol asr | (r = u cmd s)
 
 
-Function TExecLineWA.CmdDec ( AAddr : Cardinal; Const ACodeBin : string ) : boolean;
+Function TExecLineWA.CmdDec ( AVirtAddr : Cardinal; Const ACodeBin : string ) : boolean;
 Var
   BBase     : word;
   BCmdCode  : TWaCmdCode;
 Begin
  Result:=FALSE; FLastError:='';
- FAddr:=AAddr;
+ FVirtAddr:=AVirtAddr; FBaseAddr:=AVirtAddr;
  FCodeBin:=ACodeBin;
  FSubdec:=ZMsSubdec;
 
@@ -762,7 +762,7 @@ Begin
          end;
  end; // case top
 
- if BCmdCode=msccInvalid then begin FLastError:='eCommand code is not recognized (Address: '+IntToHex(FAddr,8)+') [R:TExecLineWA.CmdDec]'; break; end;
+ if BCmdCode=msccInvalid then begin FLastError:='eCommand code is not recognized (Address: '+IntToHex(FVirtAddr,8)+') [R:TExecLineWA.CmdDec]'; break; end;
  if MsProcessExt(BCmdCode)=FALSE then break;
  FSubdec.FCmdCode:=BCmdCode;
  CSubdecProcList[BCmdCode](Self);

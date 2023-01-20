@@ -509,7 +509,7 @@ Begin
      break;
    end;
  FMemSeg:=ASeg;
- FAddr:=ASeg.HwBase+ASeg.FillSize;
+ FBaseAddr:=ASeg.HwBase+ASeg.FillSize; FVirtAddr:=FBaseAddr;
  if FUsed then ASeg.FillSize:=ASeg.FillSize+Length(FCodeBin);
  until TRUE;
 End;
@@ -617,11 +617,11 @@ Begin
    if TryStrToInt(BConstS,BConst)=FALSE then BRefA.AppendError('e','Invalid constant '+BConstS+' [R:TAsmFlowLineRiscV.UpdateRefs]');
    end;
   repeat
-  if BRefName='.' then BDstAddr:=Addr
+  if BRefName='.' then BDstAddr:=BaseAddr
   else
    begin
    BLabel:=FAsmBase.FindLabel(Self,BRefName);
-   if BLabel<>nil then BDstAddr:=BLabel.Addr
+   if BLabel<>nil then BDstAddr:=BLabel.BaseAddr
    else
     begin
     BRefB:=RefListSearch(AInternList,BRefName);
@@ -643,7 +643,7 @@ Begin
   BDstAddr:=BDstAddr+BRefA.FieldAddr;
   case BRefA.RefType of
     'j' : begin // c.j
-          BJmpDelta:=(BDstAddr-FAddr) div 2;
+          BJmpDelta:=(BDstAddr-FBaseAddr) div 2;
           if (BJmpDelta>$FFF) or (BJmpDelta<-$1000) then
            begin
            AIsAddrOor:=TRUE;
@@ -653,7 +653,7 @@ Begin
           else SetRefCJ(FCodeBin,Cardinal(BJmpDelta shl 1));
           end;
     'J' : begin
-          BJmpDelta:=(BDstAddr-FAddr) div 2;
+          BJmpDelta:=(BDstAddr-FBaseAddr) div 2;
           if (BJmpDelta>$FFFFF) or (BJmpDelta<-$100000) then
            begin
            //AIsAddrOor:=TRUE;
@@ -664,7 +664,7 @@ Begin
           else SetRefJ(FCodeBin,Cardinal(BJmpDelta shl 1));
           end;
     'T' : begin // Used for SWT
-          BJmpDelta:=(BDstAddr-FAddr) div 2;
+          BJmpDelta:=(BDstAddr-FBaseAddr) div 2;
           if (BJmpDelta>$7FF) or (BJmpDelta<-$800) then
            begin
            //AIsAddrOor:=TRUE;
@@ -691,7 +691,7 @@ Begin
            end;
           end;
     'B' : begin // B-type (For the moment the same as S type, not an official RV)
-          BJmpDelta:=(BDstAddr-FAddr) div 2;
+          BJmpDelta:=(BDstAddr-FBaseAddr) div 2;
           if (BJmpDelta>$FFFFF) or (BJmpDelta<-$100000) then
            begin
            BRefA.AppendError('e','Relative label out of range (jmp offset: '+IntToStr(BJmpDelta)+')[R:TAsmFlowLineMcgx.UpdateRefs]');

@@ -4,7 +4,7 @@
 .data
         .Align 8
 FRegsMainD:
-        dd 0 dup(20)
+        dd 0 dup(24)
 
 
         dd 0 dup(16)

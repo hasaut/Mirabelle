@@ -46,6 +46,9 @@ Type
     FIoSpace        : Cardinal;
     FTermBase       : Cardinal;
 
+    FMcuType        : byte;
+    FBrdVers        : byte;
+
     FCpuWarn        : boolean;
     FGetCpuInfo     : boolean;
     FForceActions   : boolean;
@@ -143,6 +146,7 @@ Type
     Function ProcessBuild ( Const ADebugActions : string ) : boolean;
     Procedure RegChange;
     Procedure InvalidateMcx;
+    Function RegBinToHex ( Const ASrc : string ) : string;
     Function RecvMcxStateA ( Const ARegsBin : string ) : string;
     Procedure RecvMcxState ( Const ARegsBin : string );
 
@@ -151,6 +155,7 @@ Type
     Function MemOperEn : boolean;
     Function MemOperDis : boolean;
 
+    Function RdRegsAll : string;
     Function DutRdRegs : string;
     Procedure DutReset;
     Procedure DutFirstStep;
@@ -317,29 +322,6 @@ Begin
   inc(BIndex);
   end;
  Result:=BIndex=Length(ADataS);
-End;
-
-Function RegBinToHex ( Const ASrc : string ) : string;
-Var
-  BColIdx,
-  BRowIdx   : Integer;
-Begin
- Result:='';
- repeat
- if Length(ASrc)<>64 then
-  begin
-  for BColIdx:=0 to 63 do Result:=Result+'XX';
-  break;
-  end;
- //Result:=StrBinToHex(ASrc);
- for BRowIdx:=0 to 7 do
-  begin
-  for BColIdx:=0 to 7 do
-   begin
-   Result:=Result+IntToHex(Ord(ASrc[1+BRowIdx*8+7-BColIdx]),2);
-   end;
-  end;
- until TRUE;
 End;
 
 // TMsProcess
@@ -949,13 +931,16 @@ Var
   //BCpuInfo  : word;
 Begin
  Result:=FALSE;
+ FMcuType:=0; FBrdVers:=0;
  repeat
  if FPlayer=plIss then begin Result:=TRUE; break; end;
  if FCommState<>csActive then break;
  if FCoreList='' then begin Result:=TRUE; break; end;
- BDataS:=RecvS(CDbgCpuInfoRd,4*Length(FCoreList));
+ BDataS:=RecvS(CDbgCpuInfoRd,4);
  if BDataS='' then break;
  if Ord(BDataS[1])<>Length(FCoreList) then begin CpuIdWarn('Number of cores specified by project params does not correspond to hardware'); break; end;
+ FMcuType:=Ord(BDataS[2]); FBrdVers:=Ord(BDataS[3]);
+ FProcModel.SetMcuType(FMcuType);
  {BCoreIdx:=0;
  while BCoreIdx<Length(FCoreList) do
   begin
@@ -1138,7 +1123,7 @@ Begin
  if (BDbgCpuStat and $04)=0 then
   begin
   BActive:=FALSE;
-  BRecvData:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*64);
+  BRecvData:=RdRegsAll;
   if BRecvData<>'' then begin BRegChange:=TRUE; RecvMcxState(BRecvData); end;
   //BAnyProcess:=TRUE;
   end;
@@ -1506,7 +1491,7 @@ Var
 Begin
  if FMcxActive then BActive:='1' else BActive:='0';
  if FBatchMode then
- else ViewAny('r'+BActive+#13+FMcxPrev+#13+FMcxThis);
+ else ViewAny('r'+BActive+' '+IntToHex(FMcuType,2)+#13+FMcxPrev+#13+FMcxThis);
 End;
 
 Procedure TMsProcess.InvalidateMcx;
@@ -1514,17 +1499,52 @@ Begin
  FMcxThis:=FMcxPrev; FMcxThis:='';
 End;
 
+Function TMsProcess.RegBinToHex ( Const ASrc : string ) : string;
+Var
+  BByteCnt  : Integer;
+  BRowCnt   : Integer;
+  BColIdx,
+  BRowIdx   : Integer;
+Begin
+ Result:='';
+ if FMcuType=9 then BRowCnt:=12
+ else BRowCnt:=8;
+ BByteCnt:=BRowCnt*8;
+ repeat
+ if Length(ASrc)<>BByteCnt then
+  begin
+  BColIdx:=0; while BColIdx<BByteCnt do begin Result:=Result+'XX'; inc(BColIdx); end;
+  break;
+  end;
+ //Result:=StrBinToHex(ASrc);
+ BRowIdx:=0;
+ while BRowIdx<BRowCnt do
+  begin
+  for BColIdx:=0 to 7 do
+   begin
+   Result:=Result+IntToHex(Ord(ASrc[1+BRowIdx*8+7-BColIdx]),2);
+   end;
+  inc(BRowIdx);
+  end;
+ until TRUE;
+End;
+
 Function TMsProcess.RecvMcxStateA ( Const ARegsBin : string ) : string;
 Var
+  BRowCnt,
+  BByteCnt  : Integer;
   BRegsSrc,
   BRegsDst  : string;
 Begin
+ if FMcuType=9 then BRowCnt:=12
+ else BRowCnt:=8;
+ BByteCnt:=BRowCnt*8;
  BRegsSrc:=ARegsBin; BRegsDst:='';
  while BRegsSrc<>'' do
   begin
   if BRegsDst<>'' then BRegsDst:=BRegsDst+' ';
-  BRegsDst:=BRegsDst+RegBinToHex(Copy(BRegsSrc,1,64));
-  Delete(BRegsSrc,1,64);
+  BRegsDst:=BRegsDst+RegBinToHex(Copy(BRegsSrc,1,BByteCnt));
+  Delete(BRegsSrc,1,BByteCnt);
   end;
  Result:=BRegsDst;
 End;
@@ -1549,6 +1569,13 @@ Begin
  if ACore='s' then Result:=Result and $FFFFFE;
 End;
 
+Function TMsProcess.RdRegsAll : string;
+Begin
+ Result:='';
+ if FMcuType=$9 then Result:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*96)
+ else Result:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*64);
+End;
+
 Function TMsProcess.DutRdRegs : string;
 Var
   BRegsA,
@@ -1564,12 +1591,12 @@ Begin
     end;
   plFpga:
     begin
-    Result:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*64);
+    Result:=RdRegsAll;
     end;
   plComb:
     begin
     BRegsA:=FProcModel.RdRegsBin;
-    BRegsB:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*64);
+    BRegsB:=RdRegsAll;
     if BRegsA<>BRegsB then
      begin
      ViewAny('wCombi mode register missmatch '+StrBinToHex(BRegsA)+''+StrBinToHex(BRegsB)+' [R:TMsProcess.DutRdRegs]');
@@ -1750,7 +1777,7 @@ Begin
  Result:=FALSE; ARegs:='';
  repeat
  if SendB(CDbgCpuStepWr,$01)=FALSE then break;
- BRegsA:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*64); if BRegsA='' then break;
+ BRegsA:=RdRegsAll; if BRegsA='' then break;
  if FPlayer=plComb then
   begin
   FProcModel.StepCombi(BRegsA);
@@ -1764,7 +1791,7 @@ Begin
    FMcxActive:=FALSE;
    RecvMcxState(BRegsA);
    if FBatchMode then
-   else ViewAny('r0'+#13+FMcxPrev+#13+FMcxThis+#13+RecvMcxStateA(FProcModel.RdRegsBin));
+   else ViewAny('r0 '+IntToHex(FMcuType,2)+#13+FMcxPrev+#13+FMcxThis+#13+RecvMcxStateA(FProcModel.RdRegsBin));
    BatchCheck(FALSE);
    break;
    end;
@@ -1809,7 +1836,7 @@ Begin
   if SetCpuCtrl($01)=FALSE then break;
   if SendD(CDbgBrkThisWr,0)=FALSE then break;
   FMcxActive:=FALSE;
-  BRecvData:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*64); if BRecvData='' then break;
+  BRecvData:=RdRegsAll; if BRecvData='' then break;
   RecvMcxState(BRecvData);
   RegChange;
   break;
@@ -1929,7 +1956,7 @@ Begin
    if SetCpuCtrl($01)=FALSE then break;
    if SendD(CDbgBrkThisWr,0)=FALSE then break;
    FMcxActive:=FALSE;
-   BRecvData:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*64); if BRecvData='' then break;
+   BRecvData:=RdRegsAll; if BRecvData='' then break;
    RecvMcxState(BRecvData);
    end
   else
@@ -2116,7 +2143,6 @@ Var
   BCmd          : char;
   BSuccess      : boolean;
   BResetNeeded  : boolean;
-  BRegData      : byte;
 Begin
  FFlashLog.Clear; FFlashLogKeep:=TRUE;
  repeat

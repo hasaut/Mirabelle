@@ -11,17 +11,17 @@ Public UartGetData
 
 Extern MainA
 
-Extern UartRecvA
-Extern UartRecvB
-Extern FUartActive
+;Extern UartRecvA
+;Extern UartRecvB
+;Extern FUartActive
 
 #include "IoIda.h"
 
 .seg data
 
         Align 8
-    FRegsMainA:    dd 0 dup(16)
-    FRegsIrqTimer: dd 0 dup(16)
+    FRegsMainA:    dd 0 dup(24)
+    FRegsIrqTimer: dd 0 dup(24)
 
 
         #Stack ProcMainA, 0
@@ -52,10 +52,10 @@ ProcMainA:
         mov     al,0x90
         setfl
 
-        mov     al,0x01
-        mov     [FUartActive],al
+        ;mov     al,0x01
+        ;mov     [FUartActive],al
         ;call    UartRecvA
-        call    UartRecvB
+        ;call    UartRecvB
 
      pmaWait:
         call    MainA

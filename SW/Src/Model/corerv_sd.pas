@@ -181,7 +181,7 @@ End;
 
 Function TCoreRV.VerboseExec : string;
 Begin
- Result:='[CmdAddr: 0x'+IntToHex(FExec.Addr,8)+' | AsmLine: '+FExec.AsmLineS+']';
+ Result:='[CmdAddr: 0x'+IntToHex(FExec.VirtAddr,8)+' | AsmLine: '+FExec.AsmLineS+']';
 End;
 
 Function TCoreRV.ExecCmd ( Const ASubdec : TRvSubdec ) : boolean;

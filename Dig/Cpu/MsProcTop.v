@@ -1,11 +1,11 @@
-module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, CIrqCnt=8)
+module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, CIoSpace=16'h0300, CIrqCnt=8)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input AExecEn, input ADbgStep,
   output [31:3] ARomAddr, input [63:0] ARomMiso, output ARomRdEn,
   output [31:3] ARamAddr, input [63:0] ARamMiso, output [63:0] ARamMosi, output [7:0] ARamWrEn, ARamRdEn,
   output [15:0] AIoAddr, input [63:0] AIoMiso, output [63:0] AIoMosi, output [3:0] AIoWrSize, AIoRdSize, input AIoBusy,
-  input [CCoreCnt-1:0] ADbgCoreIdx, input [7:0] ADbgRegRdIdx, output [63:0] ARegMiso,
+  input [CCoreCnt-1:0] ADbgCoreIdx, input [11:0] ADbgRegRdIdx, output [63:0] ADbgRegMiso,
   output [CCoreCnt-1:0] ATEnd, ATrap, output [CCoreCnt*32-1:0] AIpThis, output [CCoreCnt-1:0] ACmdDecReady,
   input [CIrqCnt-1:0] AIrq,
   output [7:0] ATest
@@ -16,7 +16,7 @@ module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, C
  wire [31:3] BContPtrMiso; wire [CCoreCnt-1:0] BIsIsr; wire BContPtrWrEn;
  wire [CCoreCnt-1:0] BSetIrqSwtBase;
  wire [CCoreCnt-1:0] BCoreEn;
- wire [63:0] BRegMosi, BRegMiso; wire [7:0] BRegWrIdx, BRegRdIdx; // Common
+ wire [63:0] BRegMosi, BRegMiso; wire [11:0] BRegWrIdx, BRegRdIdx; // Common
  wire [31:3] BCtrlRomAddr; wire BCtrlRomRdEn;
  wire [31:0] BCtrlRamAddr; wire [63:0] BCtrlRamMosi; wire [3:0] BCtrlRamWrSize, BCtrlRamRdSize; wire BCtrlRamAck;
 
@@ -82,20 +82,22 @@ module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, C
 
  wire [CCoreCnt*32-1:CCoreCnt*3] BContPtrMisoA; MsMatrOrCol #(.CRowCnt(CCoreCnt), .CColCnt(29)) UContPtrMiso ( .ADataI(BContPtrMisoA), .ADataO(BContPtrMiso) );
 
- wire [CCoreCnt*32-1:0] BDataAddrA;
- wire [CCoreCnt*64-1:0] BDataMosiA;
- wire [CCoreCnt*4-1:0] BDataWrSizeA, BDataRdSizeA;
- wire [CCoreCnt-1:0] BDataAckA;
+ wire [CCoreCnt*256-1:0] BMpuRegs;
+ wire [CCoreCnt*32-1:0] BCodeAddrCpu;
+ wire [CCoreCnt*32-1:0] BDataAddrCpu;
+ wire [CCoreCnt*64-1:0] BDataMisoCpu, BDataMosiCpu;
+ wire [CCoreCnt*4-1:0] BDataWrSizeCpu, BDataRdSizeCpu;
+ wire [CCoreCnt-1:0] BDataAckCpu;
 
  wire [CCoreCnt*CIrqCnt-1:0] BIrqBusyListA;  MsMatrOrCol #(.CRowCnt(CCoreCnt), .CColCnt(CIrqCnt)) UIrqBusyList ( .ADataI(BIrqBusyListA), .ADataO(BIrqBusyList) );
 
- MssdCpu #(.CIoSpace(32'h300), .CIrqCnt(CIrqCnt)) UCpu [CCoreCnt-1:0]
+ MssdCpu #(.CIrqCnt(CIrqCnt)) UCpu [CCoreCnt-1:0]
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .AExecEn({CCoreCnt{AExecEn | ADbgStep}}), .ACoreEn(BCoreEn),
-   .ACodeAddr(BCodeAddr), .ACodeMiso(BCodeMiso), .ACodeReq(BCodeReq), .ACodeAck(BCodeAck),
-   .ADataAddr(BDataAddrA), .ADataMiso(BDataMiso), .ADataMosi(BDataMosiA), .ADataWrSize(BDataWrSizeA), .ADataRdSize(BDataRdSizeA), .ADataAck(BDataAckA),
-   .APortAddr(BPortAddr), .APortMiso(BPortMiso), .APortMosi(BPortMosi), .APortWrSize(BPortWrSize), .APortRdSize(BPortRdSize), .APortAck(BPortAck),
+   .AMpuRegs(BMpuRegs),
+   .ACodeAddr(BCodeAddrCpu), .ACodeMiso(BCodeMiso), .ACodeReq(BCodeReq), .ACodeAck(BCodeAck),
+   .ADataAddr(BDataAddrCpu), .ADataMiso(BDataMisoCpu), .ADataMosi(BDataMosiCpu), .ADataWrSize(BDataWrSizeCpu), .ADataRdSize(BDataRdSizeCpu), .ADataAck(BDataAckCpu),
    .ASysCoreSel(BSysCoreSel | ADbgCoreIdx), .AContPtrMiso(BContPtrMisoA), .AIsIsr(BIsIsr), .AContPtrWrEn(BContPtrWrEn),
    .ASetIrqSwtBase(BSetIrqSwtBase),
    .AIrqBusyList(BIrqBusyListA), .AIrqToProcess(BIrqToProcess),
@@ -106,15 +108,104 @@ module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, C
    .AIrqEn(BIrqEn)
   );
 
+ wire [CCoreCnt*32-1:0] BDataAddrMpu;
+
+ MssdMpuCtrl UMpuCtrl[CCoreCnt-1:0]
+  (
+   .AMpuRegs(BMpuRegs),
+   .ACodeAddrCpu(BCodeAddrCpu), .ACodeReqAny(|BCodeReq), .ACodeAddrMpu(BCodeAddr), .ACodeAddrErr(),
+   .ADataAddrCpu(BDataAddrCpu), .ADataReqAny(|{BDataWrSizeCpu, BDataRdSizeCpu}), .ADataAddrMpu(BDataAddrMpu), .ADataAddrErr()
+  );
+
+ wire [CCoreCnt*32-1:0] BDataAddrMpd;
+ wire [CCoreCnt*64-1:0] BDataMosiMpd;
+ wire [CCoreCnt*4-1:0] BDataWrSizeMpd, BDataRdSizeMpd;
+ wire [CCoreCnt-1:0] BDataAckMpd;
+
+ MssdMemPerDec #(.CIoSpace(CIoSpace)) UMemPerDec[CCoreCnt-1:0]
+  (
+   .AExtAddr(BDataAddrMpu), .AExtMiso(BDataMisoCpu), .AExtMosi(BDataMosiCpu), .AExtWrSize(BDataWrSizeCpu), .AExtRdSize(BDataRdSizeCpu), .AExtAck(BDataAckCpu),
+   .AContPtrWrEn(BSysCoreSel & {CCoreCnt{BContPtrWrEn}}),
+   .AMemAddr(BDataAddrMpd), .AMemMiso(BDataMiso), .AMemMosi(BDataMosiMpd), .AMemWrSize(BDataWrSizeMpd), .AMemRdSize(BDataRdSizeMpd), .AMemAck(BDataAckMpd),
+   .APerAddr(BPortAddr), .APerMiso(BPortMiso), .APerMosi(BPortMosi), .APerWrSize(BPortWrSize), .APerRdSize(BPortRdSize), .APerAck(BPortAck)
+  );
+
  //assign ATest = {|BUnityReq, |BUnityAck, &BUnityReq, &BUnityAck, BUnityReq, BUnityAck};
 
- assign BDataAddr = {BCtrlRamAddr, BDataAddrA};
- assign BDataMosi = {BCtrlRamMosi, BDataMosiA};
- assign BDataWrSize = {BCtrlRamWrSize, BDataWrSizeA};
- assign BDataRdSize = {BCtrlRamRdSize, BDataRdSizeA};
- assign {BCtrlRamAck, BDataAckA} = BDataAck;
+ assign BDataAddr = {BCtrlRamAddr, BDataAddrMpd};
+ assign BDataMosi = {BCtrlRamMosi, BDataMosiMpd};
+ assign BDataWrSize = {BCtrlRamWrSize, BDataWrSizeMpd};
+ assign BDataRdSize = {BCtrlRamRdSize, BDataRdSizeMpd};
+ assign {BCtrlRamAck, BDataAckMpd} = BDataAck;
 
- assign ARegMiso = BRegMiso;
+ assign ADbgRegMiso = BRegMiso;
+endmodule
+
+module MssdMpuItem
+ (
+  input [63:0] AMpuRegs,
+  input [31:0] AAddrCpu, output [31:0] AAddrAdd, output AInUse, AIsHit
+ );
+
+ wire LCmpGran = AMpuRegs[63];
+ wire [19:0] LNewAddrA = AMpuRegs[59:40];
+ wire [19:0] LCmpAddrE = AMpuRegs[39:20];
+ wire [19:0] LCmpAddrS = AMpuRegs[19: 0];
+
+ wire BInUse = |LCmpAddrE;
+ wire [19:0] BAddrToCmp = LCmpGran ? AAddrCpu[31:12] : AAddrCpu[23:4];
+ wire [31:0] BAddrToAdd = LCmpGran ? {LNewAddrA, 12'h0} : {8'h0, LNewAddrA, 4'h0};
+ wire BIsHit = (BAddrToCmp>=LCmpAddrS) & (BAddrToCmp<LCmpAddrE);
+
+ assign AAddrAdd = BInUse ? BAddrToAdd : 32'h0;
+ 
+ assign AInUse = BInUse;
+ assign AIsHit = BIsHit;
+endmodule
+
+module MssdMpuCtrl
+ (
+  input [4*64-1:0] AMpuRegs,
+  input [31:0] ACodeAddrCpu, input ACodeReqAny, output [31:0] ACodeAddrMpu, output ACodeAddrErr,
+  input [31:0] ADataAddrCpu, input ADataReqAny, output [31:0] ADataAddrMpu, output ADataAddrErr
+ );
+
+ wire BCodeInUse, BCodeIsHit; wire [31:0] BCodeAddrAdd;
+ MssdMpuItem UMpuCode ( .AMpuRegs(AMpuRegs[63:0]), .AAddrCpu(ACodeAddrCpu), .AAddrAdd(BCodeAddrAdd), .AInUse(BCodeInUse), .AIsHit(BCodeIsHit) );
+ assign ACodeAddrErr = ACodeReqAny & BCodeInUse & ~BCodeIsHit;
+
+ assign ACodeAddrMpu = ACodeAddrCpu + BCodeAddrAdd;
+
+ wire [4*32-1:0] BDataAddrAdd;
+ wire [3:0] BDataInUse, BDataIsHit;
+ MssdMpuItem UMpuData[3:0] ( .AMpuRegs(AMpuRegs), .AAddrCpu(ADataAddrCpu), .AAddrAdd(BDataAddrAdd), .AInUse(BDataInUse), .AIsHit(BDataIsHit) );
+ wire BDataInUseNZ = |BDataInUse;
+ wire BDataIsHitNZ = |BDataIsHit;
+ assign ADataAddrErr = ADataReqAny & BDataInUseNZ & ~BDataIsHitNZ;
+
+ wire [31:0] BDataAddrAddSel;
+ MsMatrOrCol #(.CRowCnt(4), .CColCnt(32)) UDataAddrMpu ( .ADataI(BDataAddrAdd), .ADataO(BDataAddrAddSel) );
+ assign ADataAddrMpu = ADataAddrCpu + BDataAddrAddSel;
+
+endmodule
+
+module MssdMemPerDec #(parameter CIoSpace=16'h0300)
+ (
+  input [31:0] AExtAddr, output [63:0] AExtMiso, input [63:0] AExtMosi, input [3:0] AExtWrSize, AExtRdSize, output AExtAck,
+  input AContPtrWrEn,
+  output [31:0] AMemAddr, input [63:0] AMemMiso, output [63:0] AMemMosi, output [3:0] AMemWrSize, AMemRdSize, input AMemAck,
+  output [15:0] APerAddr, input [63:0] APerMiso, output [63:0] APerMosi, output [3:0] APerWrSize, APerRdSize, input APerAck
+ );
+
+ wire BIsIoAccess = AExtAddr<{16'h0, CIoSpace};
+
+ assign {AMemAddr, AMemMosi, AMemWrSize, AMemRdSize} = BIsIoAccess ? {32'h0, 64'h0, 4'h0, 4'h0} : {AExtAddr, AExtMosi, AExtWrSize, AExtRdSize};
+ assign {APerAddr, APerMosi, APerWrSize, APerRdSize} = BIsIoAccess ? {AExtAddr[15:0], AExtMosi, AExtWrSize, AExtRdSize} : {16'h0, 64'h0, 4'h0, 4'h0};
+ assign AExtMiso = //BIsIoAccess ? APerMiso : AMemMiso;
+   ((AMemAck | AContPtrWrEn) ? AMemMiso : 64'h0) |
+   (APerAck ? APerMiso : 64'h0);
+ // assign AExtAck  = BIsIoAccess ? APortAck : ADataAck; <- this line generates a combinatorial loop, because BIsIoAccess depends on a register which is being written
+ assign AExtAck  = APerAck | AMemAck;  // <- It is safe to do like this, because access is controlled by the same module. Otherwise, it is necessary to implement 2 Mio units: one for data, another one for ports
 endmodule
 
 

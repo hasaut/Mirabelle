@@ -1,50 +1,49 @@
 object MgDebug: TMgDebug
   Left = 0
-  Height = 427
+  Height = 285
   Top = 0
-  Width = 689
-  ClientHeight = 427
-  ClientWidth = 689
-  DesignTimePPI = 144
+  Width = 459
+  ClientHeight = 285
+  ClientWidth = 459
   ParentFont = False
   TabOrder = 0
   DesignLeft = 741
   DesignTop = 449
   object PcEdit: TPageControl
-    Left = 41
-    Height = 240
-    Top = 41
-    Width = 300
+    Left = 27
+    Height = 160
+    Top = 27
+    Width = 200
     Images = IlTabs
     ParentFont = False
     TabOrder = 0
   end
   object PnlRegs: TPanel
-    Left = 449
-    Height = 427
+    Left = 299
+    Height = 285
     Top = 0
-    Width = 240
+    Width = 160
     Align = alRight
-    ClientHeight = 427
-    ClientWidth = 240
+    ClientHeight = 285
+    ClientWidth = 160
     ParentFont = False
     TabOrder = 1
     object PnlBtn: TPanel
       Left = 1
-      Height = 29
-      Top = 266
-      Width = 223
+      Height = 19
+      Top = 177
+      Width = 149
       BevelOuter = bvLowered
-      ClientHeight = 29
-      ClientWidth = 223
+      ClientHeight = 19
+      ClientWidth = 149
       ParentFont = False
       TabOrder = 0
       object BtStart: TSpeedButton
-        Left = 2
-        Height = 24
+        Left = 1
+        Height = 16
         Hint = '(Build + Run) / Continue (F9)'
-        Top = 2
-        Width = 24
+        Top = 1
+        Width = 16
         Flat = True
         Glyph.Data = {
           36060000424D3606000000000000360000002800000020000000100000000100
@@ -105,11 +104,11 @@ object MgDebug: TMgDebug
         ParentShowHint = False
       end
       object BtReset: TSpeedButton
-        Left = 50
-        Height = 24
+        Left = 33
+        Height = 16
         Hint = 'Stop (Ctrl+F2)'
-        Top = 2
-        Width = 24
+        Top = 1
+        Width = 16
         Flat = True
         Glyph.Data = {
           36060000424D3606000000000000360000002800000020000000100000000100
@@ -170,11 +169,11 @@ object MgDebug: TMgDebug
         ParentShowHint = False
       end
       object BtPause: TSpeedButton
-        Left = 26
-        Height = 24
+        Left = 17
+        Height = 16
         Hint = 'Pause'
-        Top = 2
-        Width = 24
+        Top = 1
+        Width = 16
         Flat = True
         Glyph.Data = {
           36060000424D3606000000000000360000002800000020000000100000000100
@@ -235,11 +234,11 @@ object MgDebug: TMgDebug
         ParentShowHint = False
       end
       object BtStepOver: TSpeedButton
-        Left = 110
-        Height = 24
+        Left = 73
+        Height = 16
         Hint = 'Step over (F8)'
-        Top = 2
-        Width = 24
+        Top = 1
+        Width = 16
         Flat = True
         Glyph.Data = {
           36060000424D3606000000000000360000002800000020000000100000000100
@@ -300,11 +299,11 @@ object MgDebug: TMgDebug
         ParentShowHint = False
       end
       object BtStepInto: TSpeedButton
-        Left = 86
-        Height = 24
+        Left = 57
+        Height = 16
         Hint = 'Step into (F7)'
-        Top = 2
-        Width = 24
+        Top = 1
+        Width = 16
         Flat = True
         Glyph.Data = {
           36060000424D3606000000000000360000002800000020000000100000000100
@@ -365,11 +364,11 @@ object MgDebug: TMgDebug
         ParentShowHint = False
       end
       object BtRunToCar: TSpeedButton
-        Left = 134
-        Height = 24
+        Left = 89
+        Height = 16
         Hint = 'Run to cursor (F4)'
-        Top = 2
-        Width = 24
+        Top = 1
+        Width = 16
         Flat = True
         Glyph.Data = {
           36060000424D3606000000000000360000002800000020000000100000000100
@@ -430,11 +429,11 @@ object MgDebug: TMgDebug
         ParentShowHint = False
       end
       object BtForceRecompile: TSpeedButton
-        Left = 170
-        Height = 24
+        Left = 113
+        Height = 16
         Hint = 'Rebuild + Load + Run (F6)'
-        Top = 2
-        Width = 24
+        Top = 1
+        Width = 16
         Flat = True
         Glyph.Data = {
           36060000424D3606000000000000360000002800000020000000100000000100
@@ -495,11 +494,11 @@ object MgDebug: TMgDebug
         ParentShowHint = False
       end
       object BtnCoverage: TSpeedButton
-        Left = 194
-        Height = 24
+        Left = 129
+        Height = 16
         Hint = 'Load coverage info'
-        Top = 2
-        Width = 24
+        Top = 1
+        Width = 16
         Flat = True
         Glyph.Data = {
           36060000424D3606000000000000360000002800000020000000100000000100
@@ -559,11 +558,11 @@ object MgDebug: TMgDebug
         ParentShowHint = False
       end
       object BtStepBack: TSpeedButton
-        Left = 77
-        Height = 19
+        Left = 51
+        Height = 13
         Hint = 'Step backward (Shift+F7)'
         Top = 0
-        Width = 19
+        Width = 13
         Flat = True
         Glyph.Data = {
           36060000424D3606000000000000360000002800000020000000100000000100
@@ -626,9 +625,9 @@ object MgDebug: TMgDebug
     end
     object PcCoreFrame: TPageControl
       Left = 1
-      Height = 106
+      Height = 71
       Top = 1
-      Width = 238
+      Width = 158
       Align = alTop
       Images = IlRegs
       ParentFont = False
@@ -637,8 +636,8 @@ object MgDebug: TMgDebug
     end
   end
   object IlRegs: TImageList
-    Left = 370
-    Top = 40
+    Left = 247
+    Top = 27
     Bitmap = {
       4C7A020000001000000010000000C90500000000000078DA7D947B34D46918C7
       1F146A50A194B0A91526E352C87DC875180C660C66462E61269B30CA91B56D51
@@ -690,8 +689,8 @@ object MgDebug: TMgDebug
     }
   end
   object IlTabs: TImageList
-    Left = 19
-    Top = 19
+    Left = 13
+    Top = 13
     Bitmap = {
       4C7A080000001000000010000000CF0500000000000078DAED597D4C955518BF
       1B08AECC0D9D3108FE68394661CB10DD72D408B204A3A8B1D60781C54AD97211

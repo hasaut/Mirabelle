@@ -100,7 +100,8 @@ Type
 
     FMemSeg     : TMemSeg;
     FUsed       : boolean;
-    FAddr       : Cardinal;
+    FBaseAddr,
+    FVirtAddr   : Cardinal;
 
     FIsAddrOor  : boolean;
 
@@ -123,7 +124,7 @@ Type
     Procedure ClearParams;
     Procedure SplitExecTail ( Const AReadS : string );
     Procedure Parse ( Const AReadS : string; Const AFileName : string; ATextLine : Integer ); Virtual;
-    Procedure Parse ( AMemSeg : TMemSeg; AAddr : Cardinal; ACodeBin : string; Const AReadable : string; Const AFilename : string );
+    Procedure Parse ( AMemSeg : TMemSeg; AVirtAddr, ABaseAddr : Cardinal; ACodeBin : string; Const AReadable : string; Const AFilename : string );
 
     Procedure ClearDataBin;
     Procedure AppendDataBinB ( AData : byte );
@@ -169,7 +170,8 @@ Type
     property Align : Integer read FAlign;
     property CodeBin : string read FCodeBin write SetCodeBin;
     property MemSeg : TMemSeg read FMemSeg;
-    property Addr : Cardinal read FAddr write FAddr;
+    property BaseAddr : Cardinal read FBaseAddr write FBaseAddr;
+    property VirtAddr : Cardinal read FVirtAddr write FVirtAddr;
     property Tail : string read FTail;
 
     property IsJmp : boolean read FIsJmp write FIsJmp;
@@ -199,13 +201,13 @@ Type
 
   TAsmBase = class(TLlvmObj)
   private
-    FVerifList          : TStringList;
-    FCodeStart          : Cardinal;
+    FVerifList      : TStringList;
+    FCodeStart      : Cardinal;
 
-    FConstInsIdx        : Integer;
-    FSkipCodeGen        : boolean; // If code generation needs to be skipped. Use case: ".debug_*" section for RV
+    FConstInsIdx    : Integer;
+    FSkipCodeGen    : boolean; // If code generation needs to be skipped. Use case: ".debug_*" section for RV
 
-    FFixChainList       : TFixChainList;
+    FCodeChunkList  : TCodeChunkList;
 
     //Procedure AppendError ( AErrorType : char; Const AComment : string );
     Function ResolveIncName ( ALine : TAsmFlowLine; Const AUsedIncNames : string; Const AFilename : string; ALineIdx : Integer ) : string;
@@ -270,6 +272,8 @@ Type
     // Only ConstFile auto generation
     Procedure ConstFileStart;
     Procedure ConstFileAppend ( AConstList : TStringList );
+    Procedure ConstFileAppend ( Const AName : string; Const ADataS : string );
+    Function ConstFileGetLineData ( AName : string ) : TAsmFlowLine;
 
     Procedure Init ( Const AFilename : string; Const APrjPath, ADstPath : string; AIncSearchPath : TStringList; Const ADefCodeSeg, ADefDataSeg : string; AGetUses : TGetUses; AReadInc : TReadInc; AUid : PUid );
     Function LoadSrc : boolean;
@@ -313,7 +317,7 @@ Type
     property HiddenLine : TAsmFlowLine read FHiddenLine;
     property AsmSrc : TStringList read FAsmSrc;
 
-    property FixChainList : TFixChainList read FFixChainList;
+    property CodeChunkList : TCodeChunkList read FCodeChunkList;
     property SkipCodeGen : boolean read FSkipCodeGen write FSkipCodeGen;
   end; (* TAsmBase *)
 
@@ -704,11 +708,12 @@ Begin
  until TRUE;
 End;
 
-Procedure TAsmFlowLine.Parse ( AMemSeg : TMemSeg; AAddr : Cardinal; ACodeBin : string; Const AReadable : string; Const AFilename : string );
+Procedure TAsmFlowLine.Parse ( AMemSeg : TMemSeg; AVirtAddr, ABaseAddr : Cardinal; ACodeBin : string; Const AReadable : string; Const AFilename : string );
 Begin
  Parse(AReadable,AFilename,0);
  FMemSeg:=AMemSeg;
- FAddr:=AAddr;
+ FVirtAddr:=AVirtAddr;
+ FBaseAddr:=ABaseAddr;
  FCodeBin:=ACodeBin;
  FUsed:=TRUE;
 End;
@@ -887,8 +892,8 @@ Begin
  if FMemSeg=nil then break;
  if FUsed=FALSE then break;
  BLen:=Length(FCodeBin); if BLen=0 then break;
- if FMemSeg.IsInside(FAddr,FCodeBin)=FALSE then begin AppendError('e',0,'Code or data fall out of segment '+FMemSeg.SegName+' [R:TAsmFlowLine.WriteCodeBin]'); break; end;
- FMemSeg.WrData(FAddr,FCodeBin);
+ if FMemSeg.IsInside(FBaseAddr,FCodeBin)=FALSE then begin AppendError('e',0,'Code or data fall out of segment '+FMemSeg.SegName+' [R:TAsmFlowLine.WriteCodeBin]'); break; end;
+ FMemSeg.WrData(FBaseAddr,FCodeBin);
  until TRUE;
 End;
 
@@ -920,7 +925,7 @@ Begin
  BAddrS:=''; BDataS:='';
  if Length(FCodeBin)<>0 then
   begin
-  BAddrS:=IntToHex(FAddr,4);
+  BAddrS:=IntToHex(FBaseAddr,4);
   for BIndex:=1 to Length(FCodeBin) do BDataS:=BDataS+IntToHex(Ord(FCodeBin[BIndex]),2);
   end;
  if Length(BDataS)>12 then begin SetLength(BDataS,11); BDataS:=BDataS+'>'; end;
@@ -1114,6 +1119,29 @@ Begin
   end;
 End;
 
+Procedure TAsmBase.ConstFileAppend ( Const AName : string; Const ADataS : string );
+Begin
+ FTextSrc.Insert(FConstInsIdx,'Public '+AName); inc(FConstInsIdx);
+ FTextSrc.Append('Align 4');
+ FTextSrc.Append(AName+':');
+ FTextSrc.Append('     '+ADataS);
+End;
+
+Function TAsmBase.ConstFileGetLineData ( AName : string ) : TAsmFlowLine;
+Var
+  BLineLabel,
+  BLineData     : TAsmFlowLine;
+Begin
+ Result:=nil;
+ repeat
+ BLineLabel:=FindLabel(nil,AName); if BLineLabel=nil then break;
+ if Length(FFlowList)<=(BLineLabel.TextLine+1) then break;
+ BLineData:=FFlowList[BLineLabel.TextLine+1]; if BLineData=nil then break;
+ if BLineData.CmdIs<>acData then break;
+ Result:=BLineData;
+ until TRUE;
+End;
+
 Procedure TAsmBase.Init ( Const AFilename : string; Const APrjPath, ADstPath : string; AIncSearchPath : TStringList; Const ADefCodeSeg, ADefDataSeg : string; AGetUses : TGetUses; AReadInc : TReadInc; AUid : PUid );
 Begin
  FSrcName:=AFilename;
@@ -1169,7 +1197,7 @@ Begin
  while BLineIdx>=0 do
   begin
   BLine:=FFlowList[BLineIdx];
-  if BLine.Addr<=AAddr then break;
+  if BLine.BaseAddr<=AAddr then break;
   Dec(BLineIdx);
   end;
  if BLineIdx>=0 then begin Result:=InsertFlowLineAfter(BLine); break; end;
@@ -1219,21 +1247,21 @@ Var
   BMemSeg   : TMemSeg;
 Begin
  repeat
- BMemSeg:=MemSegSearch(ASegList,AExec.Addr);
+ BMemSeg:=MemSegSearch(ASegList,AExec.BaseAddr);
  if BMemSeg=nil then begin AppendErrorA(FormatError('eMemory segment is not found for disassembled line "'+AExec.AsmLineS+'"',FSrcName,'0')+'[R:TAsmBase.ExportExecLine]'); break; end;
  if AExec.LabelName<>'' then
   begin
   if (Pos('Proc_',AExec.LabelName)=1) or (Pos('Entry_',AExec.LabelName)=1) then
    begin
-   BLine:=AppendFlowLine(AExec.Addr);
-   BLine.Parse(BMemSeg,AExec.Addr,'','',FAsmName);
+   BLine:=AppendFlowLine(AExec.BaseAddr);
+   BLine.Parse(BMemSeg,AExec.VirtAddr,AExec.BaseAddr,'','',FAsmName);
    end;
-  BLine:=AppendFlowLine(AExec.Addr);
-  BLine.Parse(BMemSeg,AExec.Addr,'',AExec.LabelName+':',FAsmName);
+  BLine:=AppendFlowLine(AExec.BaseAddr);
+  BLine.Parse(BMemSeg,AExec.VirtAddr,AExec.BaseAddr,'',AExec.LabelName+':',FAsmName);
   end;
  AExec.CheckFixDstLabel;
- BLine:=AppendFlowLine(AExec.Addr);
- BLine.Parse(BMemSeg,AExec.Addr,AExec.CodeBin,AExec.AsmLineS,FAsmName);
+ BLine:=AppendFlowLine(AExec.BaseAddr);
+ BLine.Parse(BMemSeg,AExec.VirtAddr,AExec.BaseAddr,AExec.CodeBin,AExec.AsmLineS,FAsmName);
  until TRUE;
 End;
 
@@ -1241,18 +1269,18 @@ End;
 Procedure TAsmBase.ExportExecLines ( Const ASegList : TMemSegList );
 Var
   BChainIdx : Integer;
-  BFixChain : TFixChain;
+  BChunk    : TCodeChunk;
   BExecIdx  : Integer;
   BExec     : TExecLineBase;
 Begin
  BChainIdx:=0;
- while BChainIdx<Length(FFixChainList) do
+ while BChainIdx<Length(FCodeChunkList) do
   begin
-  BFixChain:=FFixChainList[BChainIdx];
+  BChunk:=FCodeChunkList[BChainIdx];
   BExecIdx:=0;
-  while BExecIdx<Length(BFixChain.ExecList) do
+  while BExecIdx<Length(BChunk.ExecList) do
    begin
-   BExec:=BFixChain.ExecList[BExecIdx];
+   BExec:=BChunk.ExecList[BExecIdx];
    if BExec<>nil then ExportExecLine(ASegList,BExec);
    inc(BExecIdx);
    end;
@@ -1262,17 +1290,20 @@ End;
 
 Function TAsmBase.LoadSrc : boolean;
 Var
+  BFileExtS     : string;
   BError        : string;
   BLineNr       : string;
   BFixBinBase   : Cardinal;
   BFixBinData   : string;
-  BFixChain     : TFixChain;
+  BChunk        : TCodeChunk;
   BLineIdx      : Integer;
   BHexOffset    : Cardinal;
+  BChunkIdx     : Integer;
+  BErrorS       : string;
 Begin
  Result:=FALSE;
  FVerifList.Clear;
- FixChainListClear(FFixChainList);
+ CodeChunkListClear(FCodeChunkList);
 
  repeat
 
@@ -1282,8 +1313,10 @@ Begin
   break;
  end;
 
- if LowerCase(ExtractFileExt(FSrcName))='.hex' then
+ BFileExtS:=LowerCase(ExtractFileExt(FSrcName));
+ if BFileExtS='.hex' then
   begin
+  // Read sections of HEX
   BError:=''; BLineIdx:=0; BHexOffset:=0;
   repeat
   BError:=HexFileParse(FTextSrc,BLineIdx,BHexOffset,BFixBinBase,BFixBinData);
@@ -1294,11 +1327,22 @@ Begin
    AppendErrorA(FormatError('e'+BError+' | Origin: "'+FTextSrc.Strings[BLineIdx]+'"',FSrcName,BLineNr)+'[R:TAsmBase.LoadSrc]');
    break;
    end;
-  BFixChain:=TFixChain.Create;
-  BFixChain.Init(Self,BFixBinBase,BFixBinData);
-  FixChainListAppend(FFixChainList,BFixChain);
+  BChunk:=TCodeChunk.Create;
+  BChunk.Init(Self,FSrcName,BFixBinBase,BFixBinData);
+  CodeChunkListAppend(FCodeChunkList,BChunk);
   until FALSE;
   if BError<>'' then break;
+  // Scan sections for marker
+  BChunkIdx:=0; BChunk:=nil;
+  while BChunkIdx<Length(FCodeChunkList) do
+   begin
+   BChunk:=FCodeChunkList[BChunkIdx];
+   if BChunk.FindMarker('MirabelleSD RVE') then break;
+   inc(BChunkIdx);
+   end;
+  if BChunkIdx>=Length(FCodeChunkList) then begin Result:=TRUE; break; end;
+  if Length(FCodeChunkList)<>1 then begin AppendErrorA(FormatError('eThe file is recognised as externally linked HEX, it should contain only 1 section | Origin: "'+FTextSrc.Strings[0]+'"',FSrcName,'1')+'[R:TAsmBase.LoadSrc]'); break; end;
+  if BChunk.ParseRelHdr(BErrorS)=FALSE then begin AppendErrorA(FormatError('e'+BErrorS+' | Origin: "'+FTextSrc.Strings[0]+'"',FSrcName,'1')+'[R:TAsmBase.LoadSrc]');   break; end;
   end
  else
   begin
@@ -2022,7 +2066,7 @@ Begin
   BRef:=FPublicList[BRefIdx];
   BLabel:=FindLabel(nil,BRef.Name);
   if BLabel=nil then BRef.AppendError('e','Public reference %p not found')
-  else BRef.ObjectAddr:=BLabel.Addr;
+  else BRef.ObjectAddr:=BLabel.BaseAddr;
   end;
 End;
 
@@ -2073,7 +2117,7 @@ Begin
   BLabel:=FLabelList[BLabelIdx];
   BLine:=FindLabel(nil,BLabel.Name);
   if BLine=nil then BLabel.AppendError('e','Internal error: cannot find previously declared label [R:TAsmBase.FillLabelList]')
-  else BLabel.ObjectAddr:=BLine.Addr;
+  else BLabel.ObjectAddr:=BLine.BaseAddr;
   end;
 End;
 
@@ -2133,27 +2177,29 @@ End;
 Procedure TAsmBase.WriteCodeBin ( Const ASegList : TMemSegList );
 Var
   BChainIdx     : Integer;
-  BFixChain     : TFixChain;
+  BChunk        : TCodeChunk;
   BLineIdx      : Integer;
   BMemSeg       : TMemSeg;
   BFillSize     : Cardinal;
+  BBaseAddr     : Cardinal;
 Begin
  repeat
- if FFixChainList=nil then
+ if FCodeChunkList=nil then
   begin
   for BLineIdx:=0 to Length(FFlowList)-1 do FFlowList[BLineIdx].WriteCodeBin;
   end
  else
   begin
   BChainIdx:=0;
-  while BChainIdx<Length(FFixChainList) do
+  while BChainIdx<Length(FCodeChunkList) do
    begin
-   BFixChain:=FFixChainList[BChainIdx];
-   BMemSeg:=MemSegSearch(ASegList,BFixChain.FixBinBase);
+   BChunk:=FCodeChunkList[BChainIdx];
+   if BChunk.CanRelocate then BBaseAddr:=BChunk.RelBinBase else BBaseAddr:=BChunk.FixBinBase;
+   BMemSeg:=MemSegSearch(ASegList,BBaseAddr);
    if BMemSeg=nil then begin AppendErrorA('w',0,0,FSrcName,'There is no memory segment to fit this file data [R:TAsmBase.WriteCodeBin]'); break; end;
-   if BMemSeg.IsInside(BFixChain.FixBinBase,BFixChain.FixBinData)=FALSE then begin AppendErrorA('w',0,0,FSrcName,'Data falls out of segment dimension [R:TAsmBase.WriteCodeBin]'); break; end;
-   BMemSeg.WrData(BFixChain.FixBinBase,BFixChain.FixBinData);
-   BFillSize:=BFixChain.FixBinBase+Length(BFixChain.FixBinData)-BMemSeg.HwBase;
+   if BMemSeg.IsInside(BBaseAddr,BChunk.FixBinData)=FALSE then begin AppendErrorA('w',0,0,FSrcName,'Data falls out of segment dimension [R:TAsmBase.WriteCodeBin]'); break; end;
+   BMemSeg.WrData(BBaseAddr,BChunk.FixBinData);
+   BFillSize:=BBaseAddr+Length(BChunk.FixBinData)-BMemSeg.HwBase;
    if BMemSeg.FillSize<BFillSize then BMemSeg.FillSize:=BFillSize;
    inc(BChainIdx);
    end;

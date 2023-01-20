@@ -41,6 +41,7 @@ Type
     Function ReadInc ( Const AUnitName : string; AIncType : TIncType; Var AError : string ) : TParsBase;
 
     Procedure LtoMarkAllUsed;
+    Function SetRamEndLabel ( AConstFile : TAsmBase ) : boolean;
 
   protected
     FPrjParams          : TStringList;
@@ -62,8 +63,10 @@ Type
     Procedure AppendError ( AErrorType : char; Const AFilename : string; ALine, APos : Integer; Const AErrorCode : string );
     Procedure AppendError ( Const AMessage : string );
     Function CreateUnit ( Const AFilename : string ) : TAsmBase; Virtual; Abstract;
-    Procedure DasmCorrectAddr; Virtual; Abstract;
-    Function DasmProcess : boolean; Virtual; Abstract;
+    Procedure DasmCorrectAddrFix; Virtual; Abstract;
+    Procedure DasmCollectChunks ( AConstFile : TAsmBase ); Virtual; Abstract;
+    Function DasmProcessFix : boolean; Virtual; Abstract;
+    Function DasmProcessRel ( AConstFile : TAsmBase ) : boolean; Virtual; Abstract;
     Procedure LtoProcess; Virtual; // This marks all lines as used
     Procedure StackProcess; Virtual; Abstract;
     Function FindPublicRef ( Const AName : string ) : TAsmRef;
@@ -475,8 +478,14 @@ Begin
  // Prepare Const file
  BConstFile.ConstFileStart;
 
- // Disassemble HEX files
- if DasmProcess=FALSE then break;
+ // Prepare code chunks
+ DasmCollectChunks(BConstFile);
+
+ // Append EndLabel to ConstFile
+ BConstFile.ConstFileAppend('@HRamEnd','dd 0');
+
+ // Disassemble HEX files (Fixed addressing)
+ if DasmProcessFix=FALSE then break;
 
  // Compiling individually
  BHasErrors:=FALSE;
@@ -485,7 +494,7 @@ Begin
   begin
   BSrc:=FSrcList[BIndex];
   repeat
-  if BSrc.FixChainList<>nil then break;
+  if BSrc.CodeChunkList<>nil then break;
   BSrc.Compile;
   if BSrc.Module<>nil then BSrc.Module.GenCompDbg(FDbg);
   if BSrc.GetErrorCountA<>0 then BHasErrors:=TRUE;
@@ -555,12 +564,12 @@ Begin
 
  // Fix physical addreses
  MemSegListReset(FMemSegList);
- DasmCorrectAddr;
+ DasmCorrectAddrFix;
  for BSrcIdx:=0 to Length(FSrcList)-1 do
   begin
   BSrc:=FSrcList[BSrcIdx];
   repeat
-  if BSrc.FixChainList<>nil then break;
+  if BSrc.CodeChunkList<>nil then break;
   BSrc.FixAddr(FMemSegList);
   BSrc.FillPublicAddr;
   //BSrc.CheckExternUsed;
@@ -575,7 +584,7 @@ Begin
   begin
   BSrc:=FSrcList[BSrcIdx];
   repeat
-  if BSrc.FixChainList<>nil then break;
+  if BSrc.CodeChunkList<>nil then break;
   BSrc.FillLabelList;
   BSrc.FillExternList(FLinkRefList);
   BSrc.UpdateTextRefs(BIsAddrOor);
@@ -590,7 +599,7 @@ Begin
   begin
   BSrc:=FSrcList[BSrcIdx];
   repeat
-  if BSrc.FixChainList<>nil then break;
+  if BSrc.CodeChunkList<>nil then break;
   // Restore original offsets
   BSrc.LoadCodeBin;
   // Correct "Out of Range"
@@ -600,6 +609,10 @@ Begin
  until FALSE; // Linker loop
 
  if BHasErrors then break;
+
+ // Disassemble HEX files (Floating addressing)
+ SetRamEndLabel(BConstFile);
+ if DasmProcessRel(BConstFile)=FALSE then break;
 
  // Create Map
  BRefIdxA:=0;
@@ -642,6 +655,23 @@ Begin
  until TRUE;
 
  FLinkRefList:=nil;
+End;
+
+Function TBuildBase.SetRamEndLabel ( AConstFile : TAsmBase ) : boolean;
+Var
+  BSegData  : TMemSeg;
+  BRamEnd   : Cardinal;
+  BLineData : TAsmFlowLine;
+Begin
+ Result:=FALSE;
+ repeat
+ BSegData:=MemSegSearch(FMemSegList,FDefDataSeg); if BSegData=nil then begin AppendError('e','',0,0,'There is no segment named "'+FDefDataSeg+'" [R:TBuildBase.SetRamEndLabel]'); break; end;
+ BRamEnd:=BSegData.HwBase+((BSegData.FillSize+15) and $FFFFFFF0);
+ BLineData:=AConstFile.ConstFileGetLineData('@HRamEnd'); if BLineData=nil then begin AppendError('e','',0,0,'Internal error setting RamEnd value [R:TBuildBase.SetRamEndLabel]'); break; end;
+ if Length(BLineData.CodeBin)<>4 then begin AppendError('e','',0,0,'Internal error setting RamEnd value [R:TBuildBase.SetRamEndLabel]'); break; end;
+ BLineData.ClearDataBin; BLineData.AppendDataBinD(BRamEnd);
+ Result:=TRUE;
+ until TRUE;
 End;
 
 Procedure TBuildBase.CreateLst;

@@ -12,18 +12,23 @@ Type
   private
     FDasmEpList : TEpList;
 
-    FFixChainList   : TFixChainList;
+    FChunkListFix,
+    FChunkListRel   : TCodeChunkList;
 
-    Procedure CollectFixChains;
-    Function FindFixChain ( AAddr : Cardinal ) : TFixChain;
+    Function FindChunkFix ( AAddr : Cardinal ) : TCodeChunk;
     Function ReadBinS ( AAddr, ASize : Cardinal ) : string;
     Function ReadBinD ( AAddr : Cardinal; Out AData : Cardinal ) : boolean;
 
+    Procedure CollectChunksFix;
+    Procedure CollectChunksRel;
+
     Function VerboseBranchFrom ( AExec : TExecLineBase ) : string;
-    Function DasmProcessChain ( AAddr : Cardinal; ACpuType : char; AExecToLabel : TExecLineBase; AAddLabel : char; AExportNow : boolean ) : boolean;
+    Function DasmProcessChunk ( AChunk : TCodeChunk; AAddr : Cardinal; ACpuType : char; AExecToLabel : TExecLineBase; AAddLabel : char; AExportNow : boolean ) : boolean;
   protected
-    Function DasmProcess : boolean; Override;
-    Procedure DasmCorrectAddr; Override;
+    Procedure DasmCollectChunks ( AConstFile : TAsmBase ); Override;
+    Function DasmProcessFix : boolean; Override;
+    Function DasmProcessRel ( AConstFile : TAsmBase ) : boolean; Override;
+    Procedure DasmCorrectAddrFix; Override;
   public
     Constructor Create; Override;
     Destructor Destroy; Override;
@@ -43,76 +48,53 @@ End;
 
 Destructor TBuildDasm.Destroy;
 Begin
- FFixChainList:=nil;
+ FChunkListFix:=nil; FChunkListRel:=nil;
  Inherited;
 End;
 
 Function IsInside ( ASrc : TAsmBase; AAddr : Cardinal ) : boolean;
 Var
-  BChainIdx : Integer;
-  BFixChain : TFixChain;
+  BChunkIdx : Integer;
+  BChunk    : TCodeChunk;
 Begin
  Result:=FALSE;
- BChainIdx:=0;
- while BChainIdx<Length(ASrc.FixChainList) do
+ BChunkIdx:=0;
+ while BChunkIdx<Length(ASrc.CodeChunkList) do
   begin
-  BFixChain:=ASrc.FixChainList[BChainIdx];
-  if BFixChain.IsInside(AAddr) then begin Result:=TRUE; break; end;
-  inc(BChainIdx);
+  BChunk:=ASrc.CodeChunkList[BChunkIdx];
+  if BChunk.IsInside(AAddr) then begin Result:=TRUE; break; end;
+  inc(BChunkIdx);
   end;
 End;
 
-Procedure TBuildDasm.CollectFixChains;
+Function TBuildDasm.FindChunkFix ( AAddr : Cardinal ) : TCodeChunk;
 Var
-  BSrcIdx   : Integer;
-  BSrc      : TAsmBase;
-  BChainIdx : Integer;
-  BFixChain : TFixChain;
-Begin
- FFixChainList:=nil;
- BSrcIdx:=0;
- while BSrcIdx<Length(FSrcList) do
-  begin
-  BSrc:=FSrcList[BSrcIdx];
-  BChainIdx:=0;
-  while BChainIdx<Length(BSrc.FixChainList) do
-   begin
-   BFixChain:=BSrc.FixChainList[BChainIdx];
-   FixChainListAppend(FFixChainList,BFixChain);
-   inc(BChainIdx);
-   end;
-  inc(BSrcIdx);
-  end;
-End;
-
-Function TBuildDasm.FindFixChain ( AAddr : Cardinal ) : TFixChain;
-Var
-  BChainIdx : Integer;
-  BChain    : TFixChain;
+  BChunkIdx : Integer;
+  BChunk    : TCodeChunk;
 Begin
  Result:=nil;
- BChainIdx:=0;
- while BChainIdx<Length(FFixChainList) do
+ BChunkIdx:=0;
+ while BChunkIdx<Length(FChunkListFix) do
   begin
-  BChain:=FFixChainList[BChainIdx];
-  if BChain.IsInside(AAddr) then begin Result:=BChain; break; end;
-  inc(BChainIdx);
+  BChunk:=FChunkListFix[BChunkIdx];
+  if BChunk.IsInside(AAddr) then begin Result:=BChunk; break; end;
+  inc(BChunkIdx);
   end;
 End;
 
 Function TBuildDasm.ReadBinS ( AAddr, ASize : Cardinal ) : string;
 Var
-  BChain        : TFixChain;
+  BChunk        : TCodeChunk;
   BSize         : Integer;
 Begin
  Result:='';
  repeat
- BChain:=FindFixChain(AAddr);
- if BChain=nil then break;
- if Length(BChain.FixBinData)<=(AAddr-BChain.FixBinBase) then break;
- BSize:=Length(BChain.FixBinData)-(AAddr-BChain.FixBinBase);
+ BChunk:=FindChunkFix(AAddr);
+ if BChunk=nil then break;
+ if Length(BChunk.FixBinData)<=(AAddr-BChunk.FixBinBase) then break;
+ BSize:=Length(BChunk.FixBinData)-(AAddr-BChunk.FixBinBase);
  if ASize<BSize then BSize:=ASize;
- Result:=Copy(BChain.FixBinData,1+AAddr-BChain.FixBinBase,BSize);
+ Result:=Copy(BChunk.FixBinData,1+AAddr-BChunk.FixBinBase,BSize);
  until TRUE;
 End;
 
@@ -133,12 +115,74 @@ Begin
  until TRUE;
 End;
 
-Function TBuildDasm.DasmProcess : boolean;
+Procedure TBuildDasm.CollectChunksFix;
 Var
-  BChainIdxA,
-  BChainIdxB    : Integer;
-  BChainA,
-  BChainB       : TFixChain;
+  BSrcIdx   : Integer;
+  BSrc      : TAsmBase;
+  BChunkIdx : Integer;
+  BChunk    : TCodeChunk;
+Begin
+ FChunkListFix:=nil;
+ BSrcIdx:=0;
+ while BSrcIdx<Length(FSrcList) do
+  begin
+  BSrc:=FSrcList[BSrcIdx];
+  BChunkIdx:=0;
+  while BChunkIdx<Length(BSrc.CodeChunkList) do
+   begin
+   BChunk:=BSrc.CodeChunkList[BChunkIdx];
+   if BChunk.CanRelocate=FALSE then CodeChunkListAppend(FChunkListFix,BChunk);
+   inc(BChunkIdx);
+   end;
+  inc(BSrcIdx);
+  end;
+End;
+
+Procedure TBuildDasm.CollectChunksRel;
+Var
+  BSrcIdx   : Integer;
+  BSrc      : TAsmBase;
+  BChunkIdx : Integer;
+  BChunk    : TCodeChunk;
+Begin
+ FChunkListRel:=nil;
+ BSrcIdx:=0;
+ while BSrcIdx<Length(FSrcList) do
+  begin
+  BSrc:=FSrcList[BSrcIdx];
+  BChunkIdx:=0;
+  while BChunkIdx<Length(BSrc.CodeChunkList) do
+   begin
+   BChunk:=BSrc.CodeChunkList[BChunkIdx];
+   if BChunk.CanRelocate then CodeChunkListAppend(FChunkListRel,BChunk);
+   inc(BChunkIdx);
+   end;
+  inc(BSrcIdx);
+  end;
+End;
+
+Procedure TBuildDasm.DasmCollectChunks ( AConstFile : TAsmBase );
+Var
+  BChunkIdx     : Integer;
+  BChunk        : TCodeChunk;
+Begin
+ CollectChunksFix;
+ CollectChunksRel;
+ BChunkIdx:=0;
+ while BChunkIdx<Length(FChunkListRel) do
+  begin
+  BChunk:=FChunkListRel[BChunkIdx];
+  AConstFile.ConstFileAppend('@'+BChunk.ConstName,'dd 0, 0, 0, 0');
+  inc(BChunkIdx);
+  end;
+End;
+
+Function TBuildDasm.DasmProcessFix : boolean;
+Var
+  BChunkIdxA,
+  BChunkIdxB    : Integer;
+  BChunkA,
+  BChunkB       : TCodeChunk;
   BSrcA,
   BSrcB         : TAsmBase;
   BCoreIdx      : Integer;
@@ -148,33 +192,33 @@ Var
   BSrcIdx       : Integer;
   BSeg          : TMemSeg;
   BEp           : TEntryPoint;
+  BChunk        : TCodeChunk;
 Begin
  Result:=TRUE;
 
  repeat
- CollectFixChains;
- if FFixChainList=nil then break;
- FixChainListOrder(FFixChainList);
+ if FChunkListFix=nil then break;
+ CodeChunkListOrder(FChunkListFix);
 
  // Check for overlaps
- BChainIdxA:=0;
- while BChainIdxA<Length(FFixChainList) do
+ BChunkIdxA:=0;
+ while BChunkIdxA<Length(FChunkListFix) do
   begin
-  BChainA:=FFixChainList[BChainIdxA];
-  BChainIdxB:=BChainIdxA+1;
-  while BChainIdxB<Length(FFixChainList) do
+  BChunkA:=FChunkListFix[BChunkIdxA];
+  BChunkIdxB:=BChunkIdxA+1;
+  while BChunkIdxB<Length(FChunkListFix) do
    begin
-   BChainB:=FFixChainList[BChainIdxB];
-   if BChainA.IsOverlap(BChainB) then
+   BChunkB:=FChunkListFix[BChunkIdxB];
+   if BChunkA.IsOverlap(BChunkB) then
     begin
-    BSrcA:=TAsmBase(BChainA.Parent);
-    BSrcB:=TAsmBase(BChainB.Parent);
+    BSrcA:=TAsmBase(BChunkA.Parent);
+    BSrcB:=TAsmBase(BChunkB.Parent);
     AppendError('e',BSrcB.SrcName,0,0,'Data overlap with previously declared file '+BSrcA.SrcName+'[R:TBuildDasm.DasmProcess]');
     Result:=FALSE;
     end;
-   inc(BChainIdxB);
+   inc(BChunkIdxB);
    end;
-  inc(BChainIdxA);
+  inc(BChunkIdxA);
   end;
 
  if Result=FALSE then break;
@@ -204,7 +248,9 @@ Begin
  BEpIdx:=0;
  while BEpIdx<Length(FDasmEpList) do
   begin
-  if DasmProcessChain(FDasmEpList[BEpIdx].FAddr,FDasmEpList[BEpIdx].FCpuType,nil,'e',FALSE)=FALSE then begin Result:=FALSE; break; end;
+  BChunk:=FindChunkFix(FDasmEpList[BEpIdx].FAddr);
+  if BChunk=nil then begin AppendError('e','',0,0,'Cannot find entry point for core '+IntToStr(BCoreIdx)+'[R:TBuildDasm.DasmProcess]'); Result:=FALSE; break; end;
+  if DasmProcessChunk(BChunk,FDasmEpList[BEpIdx].FAddr,FDasmEpList[BEpIdx].FCpuType,nil,'e',FALSE)=FALSE then begin Result:=FALSE; break; end;
   inc(BEpIdx);
   end;
 
@@ -217,6 +263,62 @@ Begin
   FSrcList[BSrcIdx].ExportExecLines(FMemSegList);
   inc(BSrcIdx);
   end;
+
+ until TRUE;
+End;
+
+Function TBuildDasm.DasmProcessRel ( AConstFile : TAsmBase ) : boolean;
+Var
+  BChunkIdx     : Integer;
+  BChunk        : TCodeChunk;
+  BSrc          : TAsmBase;
+  BAddr         : Cardinal;
+  BEpCnt,
+  BEpIdx        : Cardinal;
+  BSeg          : TMemSeg;
+  BLineData     : TAsmFlowLine;
+Begin
+ Result:=TRUE;
+
+ repeat
+ if FChunkListRel=nil then break;
+
+ // Check for overlaps
+ BChunkIdx:=0;
+ while BChunkIdx<Length(FChunkListRel) do
+  begin
+  BChunk:=FChunkListRel[BChunkIdx]; BSrc:=TAsmBase(BChunk.Parent);
+  BSeg:=MemSegSearch(FMemSegList,FDefCodeSeg);
+  if BSeg=nil then begin AppendError('e','',0,0,'There is no segment named "'+FDefCodeSeg+'" [R:TBuildDasm.DasmProcess]'); Result:=FALSE; break; end;
+  BChunk.RelBinBase:=BSeg.HwBase+((BSeg.FillSize+15) and $FFFFFFF0);
+  if BSeg.IsInside(BChunk.RelBinBase,BChunk.FixBinData)=FALSE then begin AppendError('e',BSrc.SrcName,1,1,'Code does not fit the segment "'+FDefCodeSeg+'" [R:TBuildDasm.DasmProcess]'); Result:=FALSE; break; end;
+  inc(BChunkIdx);
+  end;
+
+ if Result=FALSE then break;
+ // Disassemble (and collect new EPs)
+ BChunkIdx:=0;
+ while BChunkIdx<Length(FChunkListRel) do
+  begin
+  BChunk:=FChunkListRel[BChunkIdx]; BSrc:=TAsmBase(BChunk.Parent);
+  BEpCnt:=(BChunk.RelFileHdr shr 8) and $FF;
+  BEpIdx:=0;
+  while BEpIdx<BEpCnt do
+   begin
+   if BChunk.ReadBinD(BChunk.FixBinBase+4*4+4*BEpIdx,BAddr)=FALSE then begin AppendError('e',BSrc.SrcName,1,0,'Entry point '+IntToStr(BEpIdx)+' is not inside the file [R:TBuildDasm.DasmProcess]'); Result:=FALSE; break; end;
+   if DasmProcessChunk(BChunk,BAddr,'e',nil,'e',FALSE)=FALSE then begin Result:=FALSE; break; end;
+   inc(BEpIdx);
+   end;
+  if Result=FALSE then break;
+  BChunk.RebaseLines;
+  BSrc.ExportExecLines(FMemSegList);
+  BLineData:=AConstFile.ConstFileGetLineData('@'+BChunk.ConstName); if BLineData=nil then begin AppendError('e',BSrc.SrcName,1,0,'Internal error: cannot set label value in Const file [R:TBuildDasm.DasmProcess]'); Result:=FALSE; break; end;
+  if Length(BLineData.CodeBin)<>16 then begin AppendError('e',BSrc.SrcName,1,0,'Internal error: cannot set label value in Const file [R:TBuildDasm.DasmProcess]'); Result:=FALSE; break; end;
+  BLineData.ClearDataBin; BLineData.AppendDataBinD(BChunk.RelBinBase); BLineData.AppendDataBinD(BChunk.FixBinBase); BLineData.AppendDataBinD(Length(BChunk.FixBinData)); BLineData.AppendDataBinD(0);
+  inc(BChunkIdx);
+  end;
+
+ if Result=FALSE then break;
 
  until TRUE;
 End;
@@ -248,10 +350,9 @@ Begin
  BExecLine.Free;
 End;
 
-Function TBuildDasm.DasmProcessChain ( AAddr : Cardinal; ACpuType : char; AExecToLabel : TExecLineBase; AAddLabel : char; AExportNow : boolean ) : boolean;
+Function TBuildDasm.DasmProcessChunk ( AChunk : TCodeChunk; AAddr : Cardinal; ACpuType : char; AExecToLabel : TExecLineBase; AAddLabel : char; AExportNow : boolean ) : boolean;
 Var
   BAddr         : Cardinal;
-  BChain        : TFixChain;
   BCodeBin      : string;
   BReadSize     : Cardinal;
   BExecBase     : TExecLineBase;
@@ -264,15 +365,15 @@ Begin
  BAddLabel:=AAddLabel;
  BExecToLabel:=AExecToLabel;
  BAddr:=AAddr;
+ BSrc:=TAsmBase(AChunk.Parent);
  repeat
- BChain:=FindFixChain(BAddr);
- if BChain=nil then
+ if AChunk.IsInside(BAddr)=FALSE then
   begin
   AppendError('wAddress out of range at 0x'+IntToHex(BAddr,8)+' (in order to force Disassembling to stop, insert a command with code 0000)[R:TBuildDasm.DasmProcessChain]');
   Result:=TRUE;
   break;
   end;
- BExecBase:=BChain.ExecList[BAddr-BChain.FixBinBase];
+ BExecBase:=AChunk.ExecList[BAddr-AChunk.FixBinBase];
  if BExecBase<>nil then
   begin
   if BAddLabel<>#0 then begin BExecBase.SetLabel(BAddLabel); BAddLabel:=#0; end;
@@ -280,16 +381,14 @@ Begin
   Result:=TRUE;
   break;
   end;
- BCodeBin:=ReadBinS(BAddr,6);
- BReadSize:=Length(BCodeBin);
- BSrc:=TAsmBase(BChain.Parent);
+ BCodeBin:=AChunk.ReadBinS(BAddr,6); BReadSize:=Length(BCodeBin);
  if BReadSize=0 then
   begin
   AppendError('e',BSrc.SrcName,1,0,'Cannot read any data at 0x'+IntToHex(BAddr,8)+VerboseBranchFrom(AExecToLabel)+'[R:TBuildDasm.DasmProcessChain]');
   break;
   end;
  BExecRV:=TExecLineRV.Create;
- BChain.ExecList[BAddr-BChain.FixBinBase]:=BExecRV;
+ AChunk.ExecList[BAddr-AChunk.FixBinBase]:=BExecRV;
  if BExecRV.CmdDec(BAddr,BCodeBin)=FALSE then
   begin
   AppendError('e',BSrc.SrcName,1,0,'Error parsing line at 0x'+IntToHex(BAddr,8)+' ('+BExecRV.LastError+')[R:TBuildDasm.DasmProcessChain]');
@@ -299,7 +398,7 @@ Begin
  if BExecToLabel<>nil then begin BExecToLabel.SetDstLabel(BExecRV.LabelName); BExecToLabel:=nil; end;
  if BExecRV.IsDecStop then
   begin
-  BChain.ExecList[BAddr-BChain.FixBinBase]:=nil;
+  AChunk.ExecList[BAddr-AChunk.FixBinBase]:=nil;
   BExecRV.Free;
   Result:=TRUE;
   break;
@@ -310,7 +409,7 @@ Begin
   begin
   if CallOrJmp(BAddr+BExecRV.Subdec.FImm,ACpuType)=cjCall then
    begin
-   if DasmProcessChain(BAddr+BExecRV.Subdec.FImm,ACpuType,BExecRV,'c',AExportNow)=FALSE then break;
+   if DasmProcessChunk(AChunk,BAddr+BExecRV.Subdec.FImm,ACpuType,BExecRV,'c',AExportNow)=FALSE then break;
    BAddr:=BAddr+Length(BExecRV.CodeBin);
    end
   else
@@ -321,7 +420,7 @@ Begin
   end
  else if BExecRV.IsJxx then
   begin
-  if DasmProcessChain(BAddr+BExecRV.Subdec.FImm,ACpuType,BExecRV,'j',AExportNow)=FALSE then break;
+  if DasmProcessChunk(AChunk,BAddr+BExecRV.Subdec.FImm,ACpuType,BExecRV,'j',AExportNow)=FALSE then break;
   BAddr:=BAddr+Length(BExecRV.CodeBin);
   end
  {else if BExecRV.IsCall then
@@ -338,39 +437,31 @@ Begin
  Result:='';
  repeat
  if AExec=nil then break;
- Result:=' (Branch from 0x'+IntToHex(AExec.Addr,8)+' "'+AExec.AsmLineS+'")';
+ Result:=' (Branch from 0x'+IntToHex(AExec.VirtAddr,8)+' "'+AExec.AsmLineS+'")';
  until TRUE;
 End;
 
-Procedure TBuildDasm.DasmCorrectAddr;
+Procedure TBuildDasm.DasmCorrectAddrFix;
 Var
-  BSrcIdx       : Integer;
-  BSrc          : TAsmBase;
-  BChainIdx     : Integer;
-  BChain        : TFixChain;
+  BChunkIdx     : Integer;
+  BChunk        : TCodeChunk;
   BAddr,
   BFillSize     : Cardinal;
   BSeg          : TMemSeg;
 Begin
- BSrcIdx:=0;
- while BSrcIdx<Length(FSrcList) do
+ BChunkIdx:=0;
+ while BChunkIdx<Length(FChunkListFix) do
   begin
-  BSrc:=FSrcList[BSrcIdx];
-  BChainIdx:=0;
-  while BChainIdx<Length(BSrc.FixChainList) do
-   begin
-   BChain:=BSrc.FixChainList[BChainIdx];
-   repeat
-   BSeg:=MemSegSearch(FMemSegList,BChain.FixBinBase);
-   if BSeg=nil then break;
-   BAddr:=BChain.FixBinBase+Length(BChain.FixBinData);
-   BFillSize:=((BAddr-BSeg.HwBase)+$F) and $FFFFFFF0;
-   if BSeg.FillSize>=BFillSize then break;
-   BSeg.FillSize:=BFillSize;
-   until TRUE;
-   inc(BChainIdx);
-   end;
-  inc(BSrcIdx);
+  BChunk:=FChunkListFix[BChunkIdx];
+  repeat
+  BSeg:=MemSegSearch(FMemSegList,BChunk.FixBinBase);
+  if BSeg=nil then break;
+  BAddr:=BChunk.FixBinBase+Length(BChunk.FixBinData);
+  BFillSize:=((BAddr-BSeg.HwBase)+$F) and $FFFFFFF0;
+  if BSeg.FillSize>=BFillSize then break;
+  BSeg.FillSize:=BFillSize;
+  until TRUE;
+  inc(BChunkIdx);
   end;
 End;
 
@@ -378,19 +469,19 @@ Function TBuildDasm.DasmMissing ( AIpPrev, AIpThis : Cardinal; Out AIsMissing : 
 Var
   BExecToLabel,
   BExecBase     : TExecLineBase;
-  BChain        : TFixChain;
+  BChunk        : TCodeChunk;
 Begin
  Result:=FALSE; AIsMissing:=FALSE;
  repeat
- BChain:=FindFixChain(AIpThis);
- if BChain=nil then begin Result:=TRUE; break; end; // Doesn't fall to FixChain
- BExecBase:=BChain.ExecList[AIpThis-BChain.FixBinBase];
+ BChunk:=FindChunkFix(AIpThis);
+ if BChunk=nil then begin Result:=TRUE; break; end; // Doesn't fall to FixChain
+ BExecBase:=BChunk.ExecList[AIpThis-BChunk.FixBinBase];
  if BExecBase<>nil then begin Result:=TRUE; break; end; // Already exists
  AIsMissing:=TRUE;
  BExecToLabel:=nil;
- BChain:=FindFixChain(AIpPrev);
- if BChain<>nil then BExecToLabel:=BChain.ExecList[AIpPrev-BChain.FixBinBase];
- if DasmProcessChain(AIpThis,'e',BExecToLabel,'j',TRUE)=FALSE then break;
+ BChunk:=FindChunkFix(AIpPrev);
+ if BChunk<>nil then BExecToLabel:=BChunk.ExecList[AIpPrev-BChunk.FixBinBase];
+ if DasmProcessChunk(BChunk,AIpThis,'e',BExecToLabel,'j',TRUE)=FALSE then break;
  CreateLst;
  Result:=TRUE;
  until TRUE;

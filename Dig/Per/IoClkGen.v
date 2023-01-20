@@ -33,7 +33,7 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
  assign BDivider = BIoAccess[IoSizeW+IoOperW+0] ? AIoMosi[15:0] : FDivider;
 
  wire [15:0] FDividerI;
- MsCrossData #(.CRegLen(16))
+ MsCrossData #(.CRegLen(16)) UDividerI
   (
    .AClkH(AClkI), .AResetHN(AResetIN), .AClkHEn(1'b1),
    .ADataI(FDivider), .ADataO(FDividerI)

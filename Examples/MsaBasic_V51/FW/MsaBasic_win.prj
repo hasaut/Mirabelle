@@ -1,4 +1,4 @@
-Player fCom4 921600
+Player fCom4 1000000
 GdbRsp 
 CpuF se
 MemF code 09 008000 08000 08 00
@@ -15,14 +15,13 @@ SrcF Src\mdMainC.srv
 SrcF Src\mdMainD.srv
 SrcF Src\MdMainB.ci
 SrcF Src\MdMainC.c
-SrcF ..\..\FwLib\SysLib.asm
-SrcF ..\..\FwLib\SysLib.pas
-SrcF ..\..\FwLib\MsBase.asm
-SrcF Test\TestUartA.asm
+SrcF ..\..\FwLibMpu\SysLib.asm
+SrcF ..\..\FwLibMpu\SysLib.pas
+SrcF ..\..\FwLibMpu\MsBase.asm
 RvcF C:\Risc-V_Embedded_GCC\10.2.0-1.2\bin\riscv-none-embed-gcc.exe -g -S -Os -Wall -Wextra -fno-inline -march=rv32emac -mabi=ilp32e -std=gnu99 %Src% -o %Dst%
 LnkF lto
 GroupTree True
 Brkp 
-Fpga  0x800000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V51\FPGA\output_files\MsaBasic_auto.rpd; 0x700000 0x100000 C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V51\FW\Out\MsaBasic_win_code.hex; 0x300000 0x100000 C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V51\FW\Out\MsaBasic_win_code.hex; 0x000000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V51\FPGA\output_files\MsaBasic_auto.rpd; 0x400000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V51\FPGA\output_files\MsaBasic_auto.rpd;
-OpenFiles Src\mdStartup.asm Src\mdMainA.asm Src\mdMainB.asm Inc\IoIda.h ..\Sim\Sim.v ..\AltCX_Top\MsFpga.v ..\AltCX_Top\MsTop.v ..\..\..\Dig\Cpu\MsDebugL.v ..\..\..\Dig\Per\IoCommM.v ..\..\..\Dig\Per\IoUartFtdi.v ..\..\..\Dig\Per\IoBase.v ..\..\..\Dig\Per\IoSysUpdate.v ..\..\..\Dig\Lib\TestBridges.v ..\..\..\Dig\Cpu\MsProcTop.v ..\..\..\Dig\Cpu\MsTestFsm.v ..\..\..\Dig\Cpu\MsProcLib.v ..\..\..\Dig\Cpu\MssdCpu.v ..\..\..\Dig\Cpu\MsrvCmdDec.v Src\mdMainC.srv Src\mdMainD.srv Src\MdMainB.ci Src\MdMainA.pas ..\..\FwLib\MsBase.asm ..\..\FwLib\SysLib.asm
+Fpga  0x800000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V51\FPGA\output_files\MsaBasic_auto.rpd; 0x700000 0x100000 C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V51\FW\Out\MsaBasic_win_code.hex; 0x300000 0x100000 C:\ZukH\Projects\Mirabelle\Examples\MsaBasic_V51\FW\Out\MsaBasic_win_code.hex; 0x000000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V51\FPGA\output_files\MsaBasic_auto.rpd; 0x400000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V51\FPGA\output_files\MsaBasic_auto.rpd; 0x000000 0x300000 C:\ZukHL\Projects\Mirabelle\Examples\MsaBasic_V51\FPGA\sMain\MsaBasic_sMain.bit;
+OpenFiles Src\mdStartup.asm Src\MdMainC.c Src\mdMainA.asm Src\IrqTimerA.ci Src\mdMainB.asm Inc\IoIda.h ..\Sim\Sim.v ..\Sim\Sim_E5.v ..\AltCX_Top\MsFpga.v ..\AltCX_Top\MsTop.v ..\AltCX_Top\MsFpga_E5.v ..\AltCX_Top\MsTop_E5.v ..\..\..\DigMpu\Lib\TestBridges.v ..\..\..\DigMpu\Cpu\MsProcTop.v ..\..\..\DigMpu\Cpu\MsTestFsm.v ..\..\..\DigMpu\Cpu\MsProcLib.v ..\..\..\DigMpu\Lib\MsBaseLib.v ..\..\..\DigMpu\Cpu\MssdCpu.v ..\..\..\DigMpu\Cpu\MsDebugBase.v ..\..\..\DigMpu\Cpu\MsDebugLF.v ..\..\..\DigMpu\Cpu\MsrvCmdDec.v ..\..\..\DigMpu\Cpu\MssdCmdDec.v ..\..\..\DigMpu\Cpu\MsCmdDec.v Src\mdMainC.srv Src\mdMainD.srv Src\MdMainB.ci Src\MdMainA.pas ..\..\..\..\..\..\ZukHL\Projects\RiscV\OZH\proba.rel ..\..\FwLib\MsBase.asm ..\..\FwLib\SysLib.asm Test\TestUartA.asm ..\..\FwLibMpu\MsBase.asm ..\..\FwLibMpu\SysLib.asm
 ActiveFile Src\mdStartup.asm

@@ -98,7 +98,7 @@ Type
 
     Procedure GetRowCol ( Const ASubdec : TMsSubdec; ATargIdx : TMsTargIdx; Out ARow, ACol : byte );
     Procedure GetRowCol ( ATargIdx : TMsTargIdx; Out ARow, ACol : byte );
-    Function CmdDec ( AAddr : Cardinal; Const ACodeBin : string ) : boolean; Override;
+    Function CmdDec ( AVirtAddr : Cardinal; Const ACodeBin : string ) : boolean; Override;
     Procedure CheckFixDstLabel; Override;
 
     Function IsJmp : boolean; Override;
@@ -281,7 +281,7 @@ Begin
   if (FBase and $0008)=0 then BExtLen:=2 else BExtLen:=4;
   end;
  if BExtLen=0 then begin Result:=TRUE; break; end;
- if Length(FCodeBin)<(2+BExtLen) then begin FLastError:='eBinary data is too short (Address: '+IntToHex(FAddr,8)+') [R:TExecLineSD.MsGetExt]'; break; end;
+ if Length(FCodeBin)<(2+BExtLen) then begin FLastError:='eBinary data is too short (Address: '+IntToHex(FVirtAddr,8)+') [R:TExecLineSD.MsGetExt]'; break; end;
  FExt:=(Cardinal(FCodeBin[1+2]) shl 0)+
        (Cardinal(FCodeBin[1+3]) shl 8);
  if BExtLen=4 then
@@ -382,7 +382,7 @@ Begin
   FSubdec.FConst:=FSubdec.FConst shl 1;
   if (FSubdec.FConst and $10000)<>0 then FSubdec.FConst:=FSubdec.FConst or $FFFF0000;
   end;
- FDstAddr:=FAddr+FSubdec.FConst;
+ FDstAddr:=FVirtAddr+FSubdec.FConst;
 End;
 
 Procedure TExecLineSD.MsSubdecIDE;
@@ -455,7 +455,7 @@ Begin
  FSubdec.FFfff:=FBase and $F;
  FSubdec.FConst:=(FBase shr 3) and $1FE;
  if (FBase and $1000)<>0 then FSubdec.FConst:=FSubdec.FConst or $FFFFFE00;
- FDstAddr:=FAddr+FSubdec.FConst;
+ FDstAddr:=FVirtAddr+FSubdec.FConst;
 End;
 
 Procedure TExecLineSD.MsSubdecFRUC;
@@ -692,13 +692,13 @@ Const
   // ARUS   |11111101||        |uuuurrrr|cccceeww|wwwwssss| addex subex andex orex xorex mulex udivex sdivex fadd fsub fmul fdiv shl shr rol asr | (r = u cmd s)
 
 
-Function TExecLineSD.CmdDec ( AAddr : Cardinal; Const ACodeBin : string ) : boolean;
+Function TExecLineSD.CmdDec ( AVirtAddr : Cardinal; Const ACodeBin : string ) : boolean;
 Var
   BBase     : word;
   BCmdCode  : TMsCmdCode;
 Begin
  Result:=FALSE; FLastError:='';
- FAddr:=AAddr;
+ FVirtAddr:=AVirtAddr; FBaseAddr:=AVirtAddr;
  FCodeBin:=ACodeBin;
  FSubdec:=ZMsSubdec;
 
@@ -764,7 +764,7 @@ Begin
          end;
  end; // case top
 
- if BCmdCode=msccInvalid then begin FLastError:='eCommand code is not recognized (Address: '+IntToHex(FAddr,8)+') [R:TExecLineSD.CmdDec]'; break; end;
+ if BCmdCode=msccInvalid then begin FLastError:='eCommand code is not recognized (Address: '+IntToHex(FVirtAddr,8)+') [R:TExecLineSD.CmdDec]'; break; end;
  if MsProcessExt(BCmdCode)=FALSE then break;
  FSubdec.FCmdCode:=BCmdCode;
  CSubdecProcList[BCmdCode](Self);

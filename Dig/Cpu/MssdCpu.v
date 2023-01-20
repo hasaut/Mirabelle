@@ -1,14 +1,14 @@
-module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
+module MssdCpu #(parameter CIrqCnt = 16)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input AExecEn, input ACoreEn,
+  output [4*64-1:0] AMpuRegs,
   output [31:0] ACodeAddr, input [63:0] ACodeMiso, output ACodeReq, input ACodeAck,
   output [31:0] ADataAddr, input [63:0] ADataMiso, output [63:0] ADataMosi, output [3:0] ADataWrSize, ADataRdSize, input ADataAck,
-  output [15:0] APortAddr, input [63:0] APortMiso, output [63:0] APortMosi, output [3:0] APortWrSize, APortRdSize, input APortAck,
   input ASysCoreSel, output [31:3] AContPtrMiso, output AIsIsr, input AContPtrWrEn,
   output ASetIrqSwtBase,
   output [CIrqCnt-1:0] AIrqBusyList, input [CIrqCnt-1:0] AIrqToProcess, // Avoid IRQ re-entering
-  input [63:0] ARegMosi, output [63:0] ARegMiso, input [7:0] ARegRdIdx, ARegWrIdx,
+  input [63:0] ARegMosi, output [63:0] ARegMiso, input [11:0] ARegRdIdx, ARegWrIdx,
   output ATEnd, ATrap, output [31:0] AIpThis, output ACmdDecReady,
   // Sys Req/Ack {unlock, lock, end, Swt}
   output [2:0] ASysReq, input ASysAck, output ASiLock,
@@ -38,12 +38,13 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
  wire [23:1] FIpCache, BIpCache;
  wire FKeepIpCache, BKeepIpCache;
  wire [7:0] FLoopDData, BLoopDData;
+ wire [4*64-1:0] FMpuRegs, BMpuRegs;
 
- MsDffList #(.CRegLen(29+CIrqCnt+CStateLen+16+3+1+1+CVliwLen+23+1+8)) ULocalVars
+ MsDffList #(.CRegLen(29+CIrqCnt+CStateLen+16+3+1+1+CVliwLen+23+1+8+256)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BContPtr, BIrqBusyList, BState, BPplList, BSysReq, BSiLock, BStateNZ, BVliw, BIpCache, BKeepIpCache, BLoopDData}),
-   .ADataO({FContPtr, FIrqBusyList, FState, FPplList, FSysReq, FSiLock, FStateNZ, FVliw, FIpCache, FKeepIpCache, FLoopDData})
+   .ADataI({BContPtr, BIrqBusyList, BState, BPplList, BSysReq, BSiLock, BStateNZ, BVliw, BIpCache, BKeepIpCache, BLoopDData, BMpuRegs}),
+   .ADataO({FContPtr, FIrqBusyList, FState, FPplList, FSysReq, FSiLock, FStateNZ, FVliw, FIpCache, FKeepIpCache, FLoopDData, FMpuRegs})
   );
 
  // CmdDecoder
@@ -81,13 +82,13 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
  wire [63:0] BBusBData; wire [11:0] BBusBLoad, BBusBPend; wire BDevBPendAny;
 
  // Buses
- wire [7:0] BRegWrIdx = ASysCoreSel ? ARegWrIdx : 8'h0;
- wire [7:0] BRegRdIdx = ASysCoreSel ? ARegRdIdx : 8'h0;
- wire BRegWrIdxNZ = |BRegWrIdx;
- wire [11:0] BRegWrIdxA = BBusALoad;
- wire [11:0] BRegWrIdxB = BBusBLoad | {{4{BRegWrIdxNZ}}, BRegWrIdx};
+ wire [3:0] BMpuWrIdx; wire [7:0] BGprWrIdx; assign {BMpuWrIdx, BGprWrIdx} = ASysCoreSel ? ARegWrIdx : 12'h0;
+ wire [3:0] BMpuRdIdx; wire [7:0] BGprRdIdx; assign {BMpuRdIdx, BGprRdIdx} = ASysCoreSel ? ARegRdIdx : 12'h0;
+ wire BGprWrIdxNZ = |BGprWrIdx;
+ wire [11:0] BGprWrIdxA = BBusALoad;
+ wire [11:0] BGprWrIdxB = BBusBLoad | {{4{BGprWrIdxNZ}}, BGprWrIdx};
  wire [63:0] BRegWrBusA = BBusAData;
- wire [63:0] BRegWrBusB = BBusBData | (BRegWrIdxNZ ? ARegMosi : 64'h0);
+ wire [63:0] BRegWrBusB = BBusBData | (BGprWrIdxNZ ? ARegMosi : 64'h0);
 
  wire [23:1] BEipWrBus;
 
@@ -106,10 +107,10 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
  // Flags
  wire [3:0] LFlagsVNZC = LFlagsThis[3:0];
  wire [3:0] BFlagsVNZC = BBusFLoad ? BBusFData : LFlagsVNZC;
- wire BFlWrEnA = (BRegWrIdxA[11:8]==4'b0010) & BRegWrIdxA[0];
- wire BFlagWrAny = |{BRegWrIdx[0], BFlWrEnA};
+ wire BFlWrEnA = (BGprWrIdxA[11:8]==4'b0010) & BGprWrIdxA[0];
+ wire BFlagWrAny = |{BGprWrIdx[0], BFlWrEnA};
  wire [7:0] BFlagWrBus =
-  (BRegWrIdx[0] ? BRegWrBusB[31:24] : 8'h0) |
+  (BGprWrIdx[0] ? BRegWrBusB[31:24] : 8'h0) |
   (BFlWrEnA ? BRegWrBusA[15:8] : 8'h0) |
   (BFlagWrAny ? 8'h0 : {LFlagsThis[7:4], BFlagsVNZC});
  //wire BFlagWrReq = BBusFLoad | BFlagWrAny;
@@ -120,8 +121,8 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
  wire BCmdValid;
  wire [23:1] BIpLoadBus;
  wire BStepNextNZ = |BState;
- wire BEipUpdateA = &{BRegWrIdxA[10:8], BRegWrIdxA[0]};
- wire BEipUpdateB = &{BRegWrIdxB[10:8], BRegWrIdxB[0]};
+ wire BEipUpdateA = &{BGprWrIdxA[10:8], BGprWrIdxA[0]};
+ wire BEipUpdateB = &{BGprWrIdxB[10:8], BGprWrIdxB[0]};
  //wire BEipLoadImpass = BEipUpdateA | BEipUpdateB;
  wire BJmpEn; MsCondAnalyzer UJmpEn ( .ACond(LCond), .AFlags(LFlagsVNZC), .AJmpEn(BJmpEn) );
  wire BEipJmpUpdate = LLoadEipImm & BJmpEn;
@@ -183,7 +184,8 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
    .AMemPend(BMioPendAny)
   );
 
- wire [11:0] MColRowS; MsDecColRow UColRowMS ( .ARegIdx(MRegIdxS), .ASelIp(MSelIp[2]), .AColRow(MColRowS) );
+ //wire [11:0] MColRowS; MsDecColRow UColRowMS ( .ARegIdx(MRegIdxS), .ASelIp(MSelIp[2]), .AColRow(MColRowS) ); // <- This line may generate combinatorial loop
+ wire [11:0] MColRowS; MsDecColRow UColRowMS ( .ARegIdx(MRegIdxS), .ASelIp(1'b0),      .AColRow(MColRowS) );
  wire [11:0] MColRowU; MsDecColRow UColRowMU ( .ARegIdx(MRegIdxU), .ASelIp(MSelIp[1]), .AColRow(MColRowU) );
  wire [11:0] MColRowR; MsDecColRow UColRowMR ( .ARegIdx(MRegIdxR), .ASelIp(1'b0),      .AColRow(MColRowR) );
 
@@ -231,40 +233,40 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
  MssdRegTask URegTask
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ARegWrBusA(BRegWrBusA), .ARegWrIdxA(BRegWrIdxA),
-   .ARegWrBusB(BRegWrBusB), .ARegWrIdxB(BRegWrIdxB),
+   .ARegWrBusA(BRegWrBusA), .ARegWrIdxA(BGprWrIdxA),
+   .ARegWrBusB(BRegWrBusB), .ARegWrIdxB(BGprWrIdxB),
    .AFlagWrBus(BFlagWrBus),
    .AEipWrBus(BEipWrBus),
    .ARegsThis(LRegsThis)
   );
 
  // RegIdxX takes in account ARegRdIdx
- wire BRegRdIdxNZ = |BRegRdIdx;
- wire [11:0] BRegRdIdxS = LMioWrRdEn[0] ? 12'h0 : LColRowS;
- wire [11:0] BRegRdIdxU = {{4{BRegRdIdxNZ}}, BRegRdIdx} | LColRowU;
+ wire BGprRdIdxNZ = |BGprRdIdx;
+ wire [11:0] BGprRdIdxS = LMioWrRdEn[0] ? 12'h0 : LColRowS;
+ wire [11:0] BGprRdIdxU = {{4{BGprRdIdxNZ}}, BGprRdIdx} | LColRowU;
 
  // Reg muxes
  wire [63:0] BRegMuxS;
  MssdRegMux URegMuxS
   (
-   .ARegFile({LRegsThis[511:32], 8'h0, LMuxSrc[3] ? FIpCache : LEipThis, 1'b0}), .ARegRdIdx(BRegRdIdxS),
+   .ARegFile({LRegsThis[511:32], 8'h0, LMuxSrc[3] ? FIpCache : LEipThis, 1'b0}), .ARegRdIdx(BGprRdIdxS),
    .AMux(BRegMuxS)
   );
 
  wire [63:0] BRegMuxUX;
  MssdRegMux URegMuxU
   (
-   .ARegFile({LRegsThis[511:32], 32'h0}), .ARegRdIdx(BRegRdIdxU),
+   .ARegFile({LRegsThis[511:32], 32'h0}), .ARegRdIdx(BGprRdIdxU),
    .AMux(BRegMuxUX)
-  );
+  ); 
 
  wire [63:0] BRegMuxU =
    // Alu and Addr
    BRegMuxUX |
-   {56'h0, (BRegRdIdxU==12'h201) ? LRegsThis[31:24] : 8'h0} |
+   {56'h0, (BGprRdIdxU==12'h201) ? LRegsThis[31:24] : 8'h0} |
    {32'h0, LSelIp[1] ? {8'h0, LEipThis, 1'b0} : 8'h0} |
    // Sys
-   {32'h0, BRegRdIdx[0] ? LRegsThis[31:0] : 32'h0};
+   {32'h0, BGprRdIdx[0] ? LRegsThis[31:0] : 32'h0};
 
  wire [31:0] BMlsc = {{28{LMlsc[4]}}, LMlsc[3:0]};
 
@@ -284,12 +286,12 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
  MsSignExt UAluXMuxU ( .AData(BAluXMuxUA), .AWw(BWwU), .ASignExt(LAluSignExt), .AResult(BAluXMuxU) );
 
  wire [63:0] BMioWrDataA = LMuxSrc[5] ? {32'h0, LConst} : (BRegMuxS | {56'h0, LLoopD[2] ? FLoopDData : 8'h0});
- wire [63:0] BMioWrData;
+ wire [63:0] BMioWrData; 
  assign BMioWrData[63:32] = BMioWrDataA[63:32]; MsSignExt UMioWrData ( .AData(BMioWrDataA[31:0]), .AWw(LMioSignExt[1:0]), .ASignExt(LMioSignExt[2]), .AResult(BMioWrData[31:0]) );
  wire [31:0] BMioAddrS = ({32{LMuxSrc[7]}} & BMlsc) | ({32{LMuxSrc[6]}} & LConst);
  assign      BMioAddr = BMioAddrS + BRegMuxU[31:0];
  wire [23:0] BIpLoadBusA = BRegMuxS[23:0] + LConst[23:0];
- assign BIpLoadBus = BIpLoadBusA[23:1];
+ assign BIpLoadBus = BIpLoadBusA[23:1]; 
 
  // Alu A+S+T
  wire [31:0] BAluADataA; wire [11:0] BAluALoadA;
@@ -300,7 +302,7 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
    .ADstColRow(LColRowR), .ADstFlagWr(LDstFlagWr),
    .AAluData(BAluADataA), .AAluLoad(BAluALoadA),
    .AFlagsData(BBusFData), .AFlagsLoad(BBusFLoad)
-  );
+  ); 
 
  MssdAlignToCol UBusAData ( .AData({32'h0, BAluADataA}), .ADstCol(BAluALoadA[11:8]), .AResult(BBusAData) );
  assign BBusALoad = BAluALoadA;
@@ -318,24 +320,16 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
 
  // Mem
  wire [63:0] BMioBDataA; wire [11:0] BMioBLoad, BMioBPend; wire BMioBPendAny;
- wire [31:0] BExtAddr; wire [63:0] BExtMosi, BExtMiso; wire [3:0] BExtWrSize, BExtRdSize; wire BExtAck;
  wire [11:0] BLoopDColRow = (|{LLoopD[2], LLoopD[0]} ? 12'h100 : 12'h0);
  MsMioCtrl #(.CAddrLen(32)) UMioCtrl
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .AExtAddr(BExtAddr), .AExtMosi(BExtMosi), .AExtMiso(BExtMiso), .AExtWrSize(BExtWrSize), .AExtRdSize(BExtRdSize), .AExtReady(BExtAck),
+   .AExtAddr(ADataAddr), .AExtMosi(ADataMosi), .AExtMiso(ADataMiso), .AExtWrSize(ADataWrSize), .AExtRdSize(ADataRdSize), .AExtReady(ADataAck),
    .AWrRdEn(LMioWrRdEn), .ARegIdx(LColRowS | BLoopDColRow), .AArgSize(LMioSize), .ASignExt(LMioSignExt),
    .AAddr(BMioAddr), .AData(BMioWrData),
    .ABusBData(BMioBDataA), .ABusBLoad(BMioBLoad), .ABusBPend(BMioBPend), .APendAny(BMioBPendAny)
   );
  assign BMioPendAny = |BMioBPendAny;
-
- wire BIsIoAccess = BExtAddr<CIoSpace;
- assign {ADataAddr, ADataMosi, ADataWrSize, ADataRdSize} = BIsIoAccess ? {32'h0, 64'h0, 4'h0, 4'h0} : {BExtAddr, BExtMosi, BExtWrSize, BExtRdSize};
- assign {APortAddr, APortMosi, APortWrSize, APortRdSize} = BIsIoAccess ? {BExtAddr[15:0], BExtMosi, BExtWrSize, BExtRdSize} : {16'h0, 64'h0, 4'h0, 4'h0};
- assign BExtMiso = BIsIoAccess ? APortMiso : ADataMiso;
- // assign BExtAck  = BIsIoAccess ? APortAck : ADataAck; <- this line generates a combinatorial loop, because BIsIoAccess depends on a register which is being written
- assign BExtAck  = APortAck | ADataAck;  // <- It is safe to do like this, because access is controlled by the same module. Otherwise, it is necessary to implement 2 Mio units: one for data, another one for ports
 
  // LoopD
  assign BLoopDData =
@@ -348,12 +342,23 @@ module MssdCpu #(parameter CIoSpace = 32'h300, CIrqCnt = 16)
  assign BDevBPendAny = BAluBPendAny | BMioBPendAny;
  MssdAlignToCol UBusBData ( .AData({32'h0, BAluBDataA} | BMioBDataA), .ADstCol(BBusBLoad[11:8]), .AResult(BBusBData) );
 
+ // MPU
+ assign BMpuRegs =
+  {
+   BMpuWrIdx[3] ? ARegMosi : FMpuRegs[255:192],
+   BMpuWrIdx[2] ? ARegMosi : FMpuRegs[191:128],
+   BMpuWrIdx[1] ? ARegMosi : FMpuRegs[127: 64],
+   BMpuWrIdx[0] ? ARegMosi : FMpuRegs[ 63:  0]
+  };
+ wire [63:0] BMpuRegMiso; MsSelectRow #(.CRowCnt(4), .CColCnt(64)) UMpuRegMiso ( .ADataI(FMpuRegs), .AMask(BMpuRdIdx[3:0]), .ADataO(BMpuRegMiso) );
+
  // Ext
+ assign AMpuRegs = FMpuRegs;
  assign AContPtrMiso = ASysCoreSel ? FContPtr : 29'h0;
  assign AIsIsr = ASysCoreSel & LRegsThis[30];
  assign ASetIrqSwtBase = LSysReq[4];
  assign AIrqBusyList = FIrqBusyList;
- assign ARegMiso = BRegRdIdxNZ ? BRegMuxU : 64'h0;
+ assign ARegMiso = (BGprRdIdxNZ ? BRegMuxU : 64'h0) | BMpuRegMiso;
  assign AIpThis = {8'h0, LEipThis, 1'b0};
  assign ACmdDecReady = &{BCmdLenValid, ~BConflictAny};
  assign ATEnd = LTrap[1];

@@ -50,7 +50,7 @@ sCoreA:
         mov     [IobLedPwr],zl
         mov     [IobLedRgb],zl
 
-        mov     ax,0x0101
+        mov     ax,0x0303
         mov     [IowClkDivIda],ax
 
         ; Set some leds
@@ -115,13 +115,13 @@ sCoreA:
 
         mov     awx,ProcMainD
         mov     dwx,FRegsMainD
-        bra     AppendThreadRv
+        call    AppendThreadRv
 
         mov     bwx,FIrqList
         ;add     bwx,0
         mov     dwx,FRegsIrqTimer
         mov     awx,ProcIrqTimer
-        bra     AppendIrqSd
+        call    AppendIrqSd
 
         mov     awx,FThList
         mov     ar,FIrqList

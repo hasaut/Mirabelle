@@ -4,7 +4,7 @@
  */
 
 // Register A is sent first, then B and so on. StateWord at the end
-module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CCoreCnt=8'h2, CBrdVers=8'h5)
+module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CRegCnt=8, CCoreCnt=8'h2, CBrdVers=8'h5)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input ASync1M,
@@ -12,7 +12,7 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CC
   input [7:0] ADbioAddr, input [63:0] ADbioMosi, output [63:0] ADbioMiso, input [3:0] ADbioMosiIdx, input [3:0] ADbioMisoIdx, input ADbioMosi1st, input ADbioMiso1st, input ADbioDataLenNZ, output ADbioIdxReset,
   output ADbgExecEn, output ADbgResetS, output ADbgClkHEn, output ADbgStep,
   output AMemAccess, output [31:3] AMemAddr, input [63:0] AMemMiso, output [63:0] AMemMosi, output [1:0] AMemWrRdEn,
-  output [CCoreCnt-1:0] ADbgCoreIdx, output [7:0] ADbgRegIdx, input [63:0] ARegMiso,
+  output [CCoreCnt-1:0] ADbgCoreIdx, output [CRegCnt-1:0] ADbgRegIdx, input [63:0] ADbgRegMiso,
   input [CCoreCnt*32-1:0] AIpThis, input [CCoreCnt-1:0] ACmdDecReady,
   input [CCoreCnt-1:0] ATEndList, ATrapList, output AAttReq,
   input [3:0] AStartupI, output [3:0] AStartupO, output [3:0] AStartupE,
@@ -36,6 +36,9 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CC
  localparam CAddrCpuRegsRd   = 8'h04;
  localparam CAddrTtyDataRd   = 8'h07;
 
+ localparam CRegIdxZ = {CRegCnt{1'b0}};
+ localparam CRegIdxE = {{(CRegCnt-1){1'b0}}, 1'b1};
+
  wire FMemAccess, BMemAccess;
  wire FDbgExecEn, BDbgExecEn;
  wire FDbgResetS, BDbgResetS;
@@ -53,12 +56,12 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CC
  wire [CCoreCnt-1:0] FTEndList, BTEndList;
  wire FTtySendHasData, BTtySendHasData;
  wire [CCoreCnt-1:0] FDbgCoreIdx, BDbgCoreIdx;
- wire [7:0] FDbgRegIdx, BDbgRegIdx;
+ wire [CRegCnt-1:0] FDbgRegIdx, BDbgRegIdx;
  wire [3:0] FStartupI, BStartupI;
  wire [3:0] FStartupO, BStartupO;
  wire [3:0] FStartupE, BStartupE;
 
- MsDffList #(.CRegLen(1+1+1+1+1+29+CBrkCnt*32+CBrkCnt+32+CCoreCnt+1+1+CCoreCnt*3+1+CCoreCnt+8+3*4)) ULocalVars
+ MsDffList #(.CRegLen(1+1+1+1+1+29+CBrkCnt*32+CBrkCnt+32+CCoreCnt+1+1+CCoreCnt*3+1+CCoreCnt+CRegCnt+3*4)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI({BMemAccess, BDbgExecEn, BDbgResetS, BDbgClkHEn, BDbgStep, BMemAddr, BBrkList, BBrkIdx, BBrkThis, BBreakReq, BIsStop, BAttReq, BBreakList, BTrapList, BTEndList, BTtySendHasData, BDbgCoreIdx, BDbgRegIdx, BStartupI, BStartupO, BStartupE}),
@@ -156,13 +159,13 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CC
   (BCpuInfoRd ? {32'h0, 8'h0, BBrdVers, BMcuType, BCoreCnt} : 64'h0) |
   (BMemDataRd ? AMemMiso : 64'h0) |
   (BMemAddrRd ? {32'h0, FMemAddr, 3'h0} : 64'h0) |
-  (BCpuRegsRd ? ARegMiso : 64'h0) |
+  (BCpuRegsRd ? ADbgRegMiso : 64'h0) |
   (BTtySendFifoRd ? {56'h0, BTtySendBoei} : 64'h0);
 
  wire BDbgRegsReset = |{ADbioMosi1st, ADbioMiso1st & (ADbioAddr!=CAddrCpuRegsRd)};
  wire [CCoreCnt:0] BDbgCoreIdxShlE = {FDbgCoreIdx, 1'b0};
- assign BDbgCoreIdx = BCpuRegsRdX[0] ? {{(CCoreCnt-1){1'b0}}, 1'b1} : ((BCpuRegsRdX[1] & FDbgRegIdx[7]) ? BDbgCoreIdxShlE[CCoreCnt-1:0] : (BDbgRegsReset ? CCoreNil : FDbgCoreIdx));
- assign BDbgRegIdx  = BCpuRegsRdX[0] ? 8'h1 : (BCpuRegsRdX[1] ? (FDbgRegIdx[7] ? {7'h0, ~FDbgCoreIdx[CCoreCnt-1]} : {FDbgRegIdx[6:0], 1'b0}) : (BDbgRegsReset ? 8'h0 : FDbgRegIdx));
+ assign BDbgCoreIdx = BCpuRegsRdX[0] ? {{(CCoreCnt-1){1'b0}}, 1'b1} : ((BCpuRegsRdX[1] & FDbgRegIdx[CRegCnt-1]) ? BDbgCoreIdxShlE[CCoreCnt-1:0] : (BDbgRegsReset ? CCoreNil : FDbgCoreIdx));
+ assign BDbgRegIdx  = BCpuRegsRdX[0] ? CRegIdxE : (BCpuRegsRdX[1] ? (FDbgRegIdx[CRegCnt-1] ? {{(CRegCnt-1){1'b0}}, ~FDbgCoreIdx[CCoreCnt-1]} : {FDbgRegIdx[CRegCnt-2:0], 1'b0}) : (BDbgRegsReset ? CRegIdxZ : FDbgRegIdx));
 
  // Break can be errorneously sensed after JMP. In this case CmdDecReady will disappear, when it reappears, BreakListA can be zero (i.e. IP has changed)
  wire [CCoreCnt-1:0] BBreakListA; MsBrkCmp #(.CBrkCnt(1+CBrkCnt)) UBreakList[CCoreCnt-1:0] ( .ABrkIp(AIpThis), .ABrkCmp({FBrkThis, FBrkList}), .AIsBreak(BBreakListA) );

@@ -26,6 +26,7 @@ Type
     FDefCodeSeg,
     FDefDataSeg     : string;
 
+    FMcuType        : byte;
     FCoreList       : TCoreList;
     FBreakList      : TBreakList;
     FExecLog        : TStringList;
@@ -76,6 +77,8 @@ Type
     Function GetEtb : Cardinal;
     Procedure ClearTrapHit;
     Procedure SegListOrder;
+
+    Procedure SetMcuType ( AMcuType : byte );
 
     property MemSegList : TMemSegList read FMemSegList;
     property ExecLog : TStringList read FExecLog;
@@ -242,6 +245,7 @@ Begin
  while BCoreIdx<Length(FCoreList) do
   begin
   BRegsThis:=BRegsThis+FCoreList[BCoreIdx].RdRegs;
+  if FMcuType=9 then BRegsThis:=BRegsThis+DWordAsStr(0)+DWordAsStr(0)+DWordAsStr(0)+DWordAsStr(0); // Add "MPU" registers
   inc(BCoreIdx);
   end;
  Result:=BRegsThis;
@@ -654,6 +658,11 @@ End;
 Procedure TProcModel.SegListOrder;
 Begin
  MemSegListOrder(FMemSegList);
+End;
+
+Procedure TProcModel.SetMcuType ( AMcuType : byte );
+Begin
+ FMcuType:=AMcuType;
 End;
 
 end.

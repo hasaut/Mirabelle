@@ -455,7 +455,7 @@ Begin
   BRef:=ALine.Params[1].Name;
   if IsIntegerEqu(BRef,BConst64) then
    begin
-   ALine.AppendDataBinD(CmdGenI((Cardinal(BConst64)-ALine.Addr) shr 1,CRvRegZ,$01,CRvRegZ,$67));
+   ALine.AppendDataBinD(CmdGenI((Cardinal(BConst64)-ALine.BaseAddr) shr 1,CRvRegZ,$01,CRvRegZ,$67));
    end
   else
    begin
@@ -523,7 +523,7 @@ Begin
   BRef:=ALine.Params[1].Name;
   if IsIntegerEqu(BRef,BConst64) then
    begin
-   ALine.AppendDataBinD(CmdGenJ(Cardinal(BConst64)-ALine.Addr,CRvRegZ,$6F));
+   ALine.AppendDataBinD(CmdGenJ(Cardinal(BConst64)-ALine.BaseAddr,CRvRegZ,$6F));
    end
   else if FIsCSupp then // c.j
    begin
@@ -550,7 +550,7 @@ Begin
   BRef:=ALine.Params[2].Name;
   if IsIntegerEqu(BRef,BConst64) then
    begin
-   ALine.AppendDataBinD(CmdGenJ(Cardinal(BConst64)-ALine.Addr,BRdIdx,$6F));
+   ALine.AppendDataBinD(CmdGenJ(Cardinal(BConst64)-ALine.BaseAddr,BRdIdx,$6F));
    end
   else
    begin
@@ -948,7 +948,7 @@ Begin
   BRef:=ALine.Params[3].Name;
   if IsIntegerEqu(BRef,BConst64) then
    begin
-   ALine.AppendDataBinD(CmdGenB(Cardinal(BConst64)-ALine.Addr,BRs2Idx,BRs1Idx,BFunc3,$63));
+   ALine.AppendDataBinD(CmdGenB(Cardinal(BConst64)-ALine.BaseAddr,BRs2Idx,BRs1Idx,BFunc3,$63));
    end
   else
    begin

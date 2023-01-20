@@ -109,7 +109,7 @@ type
     Procedure CorrectSizes;
     Procedure RegsListClear;
     Procedure RegsListCreate ( Const ACoreList : string );
-    Procedure CoreSetRegsState ( AActive : boolean; Const ARegsPrevThis : string );
+    Procedure CoreSetRegsState ( AActive : boolean; Const AMcuType : string; Const ARegsPrevThis : string );
 
     Function FormatNice ( Const AType : string; AOffs : Cardinal; Const ADataBin : string ) : string;
     Function FormatNice ( Const AName, AType : string; AOffs : Cardinal; Const ADataBin : string ) : string;
@@ -668,7 +668,7 @@ Begin
  CorrectSizes;
 End;
 
-Procedure TMgDebug.CoreSetRegsState ( AActive : boolean; Const ARegsPrevThis : string );
+Procedure TMgDebug.CoreSetRegsState ( AActive : boolean; Const AMcuType : string; Const ARegsPrevThis : string );
 Var
   BRegsPrevThis : string;
   BCoreIdx      : Integer;
@@ -704,7 +704,7 @@ Begin
     1: BFlSp:=Hex32ToInt(Copy(BThisA,1,8));
   end;
   FSpList[BCoreIdx]:=BFlSp;
-  BDbgRegs.SetState(AActive,BPrevA,BThisA,BCombA);
+  BDbgRegs.SetState(AActive,AMcuType,BPrevA,BThisA,BCombA);
   inc(BCoreIdx);
   end;
  {
@@ -1235,6 +1235,8 @@ Procedure TMgDebug.ProcessAny ( Const ADataS : string );
 Var
   BDataS    : string;
   BParamS   : string;
+  BParamA,
+  BParamB   : string;
   BEip,
   BEsp      : Cardinal;
   BCoreList : string;
@@ -1285,7 +1287,8 @@ Begin
        BDataS:=ADataS;
        Delete(BDataS,1,1);
        BParamS:=ReadTillC(BDataS,#13);
-       CoreSetRegsState(BParamS='1',BDataS);
+       BParamA:=ReadParamStr(BParamS); BParamB:=ReadParamStr(BParamS);
+       CoreSetRegsState(BParamA='1',BParamB,BDataS);
        SetLineIp;
        end;
   'o': begin

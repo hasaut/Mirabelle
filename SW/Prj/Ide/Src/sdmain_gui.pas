@@ -565,12 +565,13 @@ Begin
 End;
 
 Const
-  CAllProjectFiles = 'All project files (*.asm, *.pas, *.c, *.hex, *.v, *.h)|*.asm;*.pas;*.c;*.hex;*.v;*.h|'+
+  CAllProjectFiles = 'All project files (*.asm, *.pas, *.c, *.hex, *.hex_rv, *.v, *.h)|*.asm;*.pas;*.c;*.hex;*.hex_rv;*.v;*.h|'+
                      'Assembler files (*.asm)|*.asm|'+
                      'Pascal files (*.pas)|*.pas|'+
                      'C files (*.c)|*.c|'+
                      'Verilog files (*.v)|*.v|'+
                      'Include files (*.h)|*.h|'+
+                     'Data files (*.hex, *.hex_rv)|*.hex;*.hex_rv|'+
                      'All files (*.*)|*.*';
 
 Procedure TSdMainForm.MFileOpenClick(Sender: TObject);

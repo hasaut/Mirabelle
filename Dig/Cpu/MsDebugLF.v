@@ -1,12 +1,12 @@
 // FTDI version of MsDebug (almost completely copy-paste of UART version)
 
-module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, CBrdVers=8'h5, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgBootOffs=32'h300000)
+module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCoreCnt=8'h2, CBrdVers=8'h5, CBrkCnt=8'h8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgBootOffs=32'h300000)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
   // CPU
   output ADbgExecEn, output ADbgResetS, output ADbgClkHEn, output ADbgStep,
-  output [CCoreCnt-1:0] ADbgCoreIdx, output [7:0] ADbgRegIdx, input [63:0] ARegMiso,
+  output [CCoreCnt-1:0] ADbgCoreIdx, output [CRegCnt-1:0] ADbgRegIdx, input [63:0] ADbgRegMiso,
   input [CCoreCnt-1:0] ATEndList, ATrapList, input [CCoreCnt*32-1:0] AIpThis, input [CCoreCnt-1:0] ACmdDecReady,
   // Mem
   output AMemAccess, output [31:3] AMemAddr, input [63:0] AMemMiso, output [63:0] AMemMosi, output [1:0] AMemWrRdEn,
@@ -87,7 +87,7 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
  wire BMemAccessU, BMemAccessL;
 
  wire [7:0] BTestBU;
- MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CCoreCnt(CCoreCnt), .CBrdVers(CBrdVers)) UTestU
+ MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CRegCnt(CRegCnt), .CCoreCnt(CCoreCnt), .CBrdVers(CBrdVers)) UTestU
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ASync1M(ASync1M),
@@ -96,7 +96,7 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CCoreCnt=8'h2, C
    .ADbgExecEn(ADbgExecEn), .ADbgResetS(ADbgResetS), .ADbgClkHEn(ADbgClkHEn), .ADbgStep(ADbgStep),
    .AMemAccess(BMemAccessU), .AMemAddr(BMemAddrU), .AMemMiso(AMemMiso), .AMemMosi(BMemMosiU), .AMemWrRdEn(BMemWrRdEnU),
    .AIpThis(AIpThis), .ACmdDecReady(ACmdDecReady),
-   .ADbgCoreIdx(ADbgCoreIdx), .ADbgRegIdx(ADbgRegIdx), .ARegMiso(ARegMiso),
+   .ADbgCoreIdx(ADbgCoreIdx), .ADbgRegIdx(ADbgRegIdx), .ADbgRegMiso(ADbgRegMiso),
    .ATEndList(ATEndList), .ATrapList(ATrapList), .AAttReq(BDbgAttReq),
    .AStartupI(AStartupI), .AStartupO(AStartupO), .AStartupE(AStartupE),
    .ATest(BTestBU)

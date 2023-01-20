@@ -218,7 +218,7 @@ Begin
      break;
    end;
  FMemSeg:=ASeg;
- FAddr:=ASeg.HwBase+ASeg.FillSize;
+ FBaseAddr:=ASeg.HwBase+ASeg.FillSize; FVirtAddr:=FBaseAddr;
  if FUsed then ASeg.FillSize:=ASeg.FillSize+Length(FCodeBin);
  until TRUE;
 End;
@@ -254,7 +254,7 @@ Begin
    if TryStrToInt(BConstS,BConst)=FALSE then BRefA.AppendError('e','Invalid constant '+BConstS+' [R:TAsmFlowLineWA.UpdateRefs]');
    end;
   repeat
-  if BRefName='.' then BDstAddr:=Addr
+  if BRefName='.' then BDstAddr:=BaseAddr
   else
    begin
    BRefB:=RefListSearch(AInternList,BRefName);
@@ -278,7 +278,7 @@ Begin
   BDstAddr:=BDstAddr+BRefA.FieldAddr;
   case BRefA.RefType of
     'j' : begin
-          BJmpDelta:=(BDstAddr-FAddr) div 2;
+          BJmpDelta:=(BDstAddr-FBaseAddr) div 2;
           if (BJmpDelta>255) or (BJmpDelta<-255) then
            begin
            AIsAddrOor:=TRUE;
@@ -290,7 +290,7 @@ Begin
           if BJmpDelta<0 then FCodeBin[2+BRefA.CodeBinPos]:=Chr(Ord(FCodeBin[2+BRefA.CodeBinPos]) or $10);
           end;
     'l' : begin
-          BJmpDelta:=(BDstAddr-FAddr) div 2;
+          BJmpDelta:=(BDstAddr-FBaseAddr) div 2;
           if (BJmpDelta>$7FFF) or (BJmpDelta<-$8000) then
            begin
            AIsAddrOor:=TRUE;
