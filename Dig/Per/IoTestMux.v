@@ -14,7 +14,7 @@ module IoTestMux #(parameter CAddrBase=16'h0000, CAddrLen=12)
 
  MsDffList #(.CRegLen(3)) ULocalVarsH
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BChSelIdx}),
    .ADataO({FChSelIdx})
   );
@@ -72,7 +72,7 @@ module TestMux
 
  MsDffList #(.CRegLen(6)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI(BSelIdx),
    .ADataO(FSelIdx)
   );

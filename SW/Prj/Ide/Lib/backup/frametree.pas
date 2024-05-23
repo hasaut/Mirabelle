@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, ComCtrls, Menus, Dialogs, ExtCtrls,
-  Buttons, StdCtrls, MgNameHolder, AsmTypes_sd, MemSeg_sd, ExtCompDialog_sd, LCLType, Graphics;
+  Buttons, StdCtrls, MgNameHolder, AsmTypes_sd, ExtCompDialog_sd, LCLType, Graphics;
 
 type
 
@@ -18,8 +18,12 @@ type
     CbGroupTree: TCheckBox;
     IlPopupMenu: TImageList;
     IlTree: TImageList;
+    MLocG_Append: TMenuItem;
     MLnkF_Remove: TMenuItem;
+    MModF_Remove: TMenuItem;
     MLnkG_Append: TMenuItem;
+    MModG_Append: TMenuItem;
+    MLocF_Remove: TMenuItem;
     MTstF_MoveDn: TMenuItem;
     MTstF_MoveUp: TMenuItem;
     MTstF_Remove: TMenuItem;
@@ -60,7 +64,11 @@ type
     MHrwG_Append: TMenuItem;
     PmIncF: TPopupMenu;
     PmLnkF: TPopupMenu;
+    PmModF: TPopupMenu;
     PmLnkG: TPopupMenu;
+    PmModG: TPopupMenu;
+    PmLocF: TPopupMenu;
+    PmLocG: TPopupMenu;
     PmTstF: TPopupMenu;
     PmTstG: TPopupMenu;
     PmRvcF: TPopupMenu;
@@ -86,6 +94,11 @@ type
     procedure CbGroupTreeClick(Sender: TObject);
     procedure MLnkF_RemoveClick(Sender: TObject);
     procedure MLnkG_AppendClick(Sender: TObject);
+    procedure MLocF_RemoveClick(Sender: TObject);
+    procedure MLocG_AppendClick(Sender: TObject);
+    procedure MModF_RemoveClick(Sender: TObject);
+    procedure MModG_AppendClick(Sender: TObject);
+    procedure MOutG_Append1Click(Sender: TObject);
     procedure MTstF_RemoveClick(Sender: TObject);
     procedure MIncF_RemoveClick(Sender: TObject);
     procedure MIncG_AppendClick(Sender: TObject);
@@ -138,11 +151,13 @@ type
         FNodeInc,
         FNodeOut,
         FNodeSrc,
+        FNodeLoc,
         FNodeTst,
       FNodeTle,
         FNodeRvc,
         FNodeLnk,
-      FNodeDbg      : TTreeNode;
+      FNodeDbg,
+      FNodeMod      : TTreeNode;
      FActionNode    : TTreeNode;
 
     FViewAny        : TOnViewAny;
@@ -155,8 +170,10 @@ type
     Procedure TreeXchgNode ( ANodeA, ANodeB : TTreeNode );
 
     Procedure PrjAddFiles ( AList : TStrings );
+    Procedure ModAddFiles ( AList : TStrings );
     Procedure AddSrcNew ( Const APath : string );
     Procedure AddSrcOld ( Const APath : string );
+    Procedure AddDllOld ( Const APath : string );
 
     Procedure FillSrcTree;
     Procedure FillSrcTree_Flat;
@@ -268,6 +285,7 @@ Procedure TPrjTree.Clear;
 Begin
  TvProject.Items.Clear;
  FNodeSrc:=nil;
+ FNodeLoc:=nil;
 End;
 
 Procedure TPrjTree.SetPrjParams ( Const APrjName : string; APrjParams : TStringList );
@@ -293,11 +311,13 @@ Begin
      FNodeInc:=AddTreeItem(FNodeFrw,ocIncG,'Include path',24);
      FNodeOut:=AddTreeItem(FNodeFrw,ocOutG,'Output path',26);
      FNodeSrc:=AddTreeItem(FNodeFrw,ocSrcG,'Source files',1);
+     FNodeLoc:=AddTreeItem(FNodeFrw,ocLocG,'Source search path',39);
      FNodeTst:=AddTreeItem(FNodeFrw,ocTstG,'Unit tests',34);
    FNodeTle:=AddTreeItem(FNodeTop,ocTleG,'Tools',31);
      FNodeRvc:=AddTreeItem(FNodeTle,ocRvcG,'Risc-V external compiler',32);
      FNodeLnk:=AddTreeItem(FNodeTle,ocLnkG,'Linker options',35);
    FNodeDbg:=AddTreeItem(FNodeTop,ocDbgG,'Debugger',29);
+   FNodeMod:=AddTreeItem(FNodeTop,ocModG,'Math model',37);
 
  BLineIdx:=0;
  while BLineIdx<APrjParams.Count do
@@ -314,15 +334,20 @@ Begin
   else if BParamS='IncF' then begin DoDirSeparators(BReadS); AddTreeItem(FNodeInc,ocIncF,AbsFilename(FPrjPath,BReadS),BReadS,23); end
   else if BParamS='OutF' then begin DoDirSeparators(BReadS); AddTreeItem(FNodeOut,ocOutF,AbsFilename(FPrjPath,BReadS),BReadS,25); end
   else if BParamS='SrcF' then begin DoDirSeparators(BReadS); FSrcFiles:=FSrcFiles+BReadS+#32; end
+  else if BParamS='LocF' then begin DoDirSeparators(BReadS); AddTreeItem(FNodeLoc,ocLocF,AbsFilename(FPrjPath,BReadS),BReadS,17); end
   else if BParamS='TstF' then begin DoDirSeparators(BReadS); AddTreeItem(FNodeTst,ocTstF,AbsFilename(FPrjPath,BReadS),BReadS,34); end
   else if BParamS='RvcF' then begin AddTreeItem(FNodeRvc,ocRvcF,BReadS,BReadS,33); end
   else if BParamS='LnkF' then begin AddTreeItem(FNodeLnk,ocLnkF,BReadS,BReadS,35); end
+  else if BParamS='ModF' then begin DoDirSeparators(BReadS); AddTreeItem(FNodeMod,ocModF,AbsFilename(FPrjPath,BReadS),BReadS,38); end
   else if BParamS='GroupTree' then CbGroupTree.Checked:=LowerCase(BReadS)<>'false';
   inc(BLineIdx);
   end;
 
  FInConstruction:=FALSE;
  FillSrcTree;
+ FNodeTop.Expand(FALSE);
+ FNodeFrw.Expand(FALSE);
+ FNodeSrc.Expand(FALSE);
 End;
 
 Function TPrjTree.CollectItemsFNoSp ( AClass : TNhObjectClass ) : string;
@@ -426,9 +451,11 @@ Begin
     ocIncF: AList.Append('IncF '+RelFilename(FPrjPath,BNameHolder.FullName));
     ocOutF: AList.Append('OutF '+RelFilename(FPrjPath,BNameHolder.FullName));
     ocSrcF: AList.Append('SrcF '+RelFilename(FPrjPath,BNameHolder.FullName));
+    ocLocF: AList.Append('LocF '+RelFilename(FPrjPath,BNameHolder.FullName));
     ocTstF: AList.Append('TstF '+RelFilename(FPrjPath,BNameHolder.FullName));
     ocRvcF: AList.Append('RvcF '+BNameHolder.FullName);
     ocLnkF: AList.Append('LnkF '+BNameHolder.FullName);
+    ocModF: AList.Append('ModF '+RelFilename(FPrjPath,BNameHolder.FullName));
   end; // case
   until TRUE;
   inc(BNodeIdx);
@@ -572,7 +599,37 @@ Begin
    end;
   inc(BFileIdx);
   end;
+End;
 
+Procedure TPrjTree.ModAddFiles ( AList : TStrings );
+Var
+  BFileIdx      : Integer;
+  BFullName     : string;
+  BNodeIdx      : Integer;
+  BHolder       : TNameHolder;
+Begin
+ BFileIdx:=0;
+ while BFileIdx<AList.Count do
+  begin
+  BFullName:=AList.Strings[BFileIdx];
+  if BFullName='' then break;
+  BNodeIdx:=0;
+  while BNodeIdx<TvProject.Items.Count do
+   begin
+   BHolder:=TNameHolder(TvProject.Items[BNodeIdx].Data);
+   if BHolder<>nil then
+    begin
+    if (BHolder.ObjectClass=ocSrcF) and (LowerCase(BHolder.FullName)=LowerCase(BFullName)) then begin VpMesOk(Self,'Warning','File '+BFullName+' is already in the list'); break; end;
+    end;
+   inc(BNodeIdx);
+   end;
+  if BNodeIdx=TvProject.Items.Count then // i.e. file is not yet in the list
+   begin
+   if FNodeMod=nil then break;
+   AddTreeItem(FNodeMod,ocModF,BFullName,RelFilename(FPrjPath,BFullName),38);
+   end;
+  inc(BFileIdx);
+  end;
 End;
 
 Procedure TPrjTree.FillSrcTree;
@@ -715,6 +772,8 @@ Begin
     ocSrcG: PmSrcG.Popup(BPoint.X,BPoint.Y);
     ocGrpG: PmGrpG.Popup(BPoint.X,BPoint.Y);
     ocSrcF: PmSrcF.Popup(BPoint.X,BPoint.Y);
+    ocLocG: PmLocG.Popup(BPoint.X,BPoint.Y);
+    ocLocF: PmLocF.Popup(BPoint.X,BPoint.Y);
     ocTstG: PmTstG.Popup(BPoint.X,BPoint.Y);
     ocTstF: PmTstF.Popup(BPoint.X,BPoint.Y);
     // Tools
@@ -722,6 +781,9 @@ Begin
     ocRvcF: PmRvcF.Popup(BPoint.X,BPoint.Y);
     ocLnkG: PmLnkG.Popup(BPoint.X,BPoint.Y);
     ocLnkF: PmLnkF.Popup(BPoint.X,BPoint.Y);
+    // Model
+    ocModG: PmModG.Popup(BPoint.X,BPoint.Y);
+    ocModF: PmModF.Popup(BPoint.X,BPoint.Y);
 
   {if BNameHolder.ObjType=otTstA then
    begin
@@ -752,6 +814,7 @@ Begin
    ocMemF: BNameHolder.Init(S);
    ocPerF: BNameHolder.Init(S);
    ocLnkF: BNameHolder.Init(S);
+   ocModF: BNameHolder.Init(S);
  end;
  until TRUE;
 End;
@@ -819,6 +882,23 @@ Begin
  BDialog.DefaultExt:='';
 
  if BDialog.Execute then PrjAddFiles(BDialog.Files);
+
+ BDialog.Free;
+End;
+
+Procedure TPrjTree.AddDllOld ( Const APath : string );
+Var
+  BDialog       : TOpenDialog;
+Begin
+ BDialog:=TOpenDialog.Create(Self);
+ BDialog.Title:='Mirabelle IDE: Open source file';
+ BDialog.Filter:='Library files (*.dll; *.so)|*.dll; *.so|All files (*.*)|*.*';
+ BDialog.FilterIndex:=0;
+ BDialog.Options:=BDialog.Options+[ofAllowMultiSelect,ofEnableSizing,ofViewDetail];
+ BDialog.InitialDir:=APath;
+ BDialog.DefaultExt:='';
+
+ if BDialog.Execute then ModAddFiles(BDialog.Files);
 
  BDialog.Free;
 End;
@@ -1062,6 +1142,51 @@ Begin
  BDialog.Free;
 End;
 
+Procedure TPrjTree.MOutF_RemoveClick(Sender: TObject);
+Var
+  BNameHolder   : TNameHolder;
+Begin
+ repeat
+ if FActionNode=nil then break;
+ BNameHolder:=TNameHolder(FActionNode.Data);
+ if BNameHolder.ObjectClass<>ocOutF then break;
+ TvProject.Items.Delete(FActionNode); FActionNode:=nil;
+ until TRUE;
+End;
+
+Procedure TPrjTree.MLocG_AppendClick (Sender: TObject);
+Var
+  BNameHolder   : TNameHolder;
+  BDialog       : TSelectDirectoryDialog;
+  BPath         : string;
+Begin
+ BDialog:=TSelectDirectoryDialog.Create(Self);
+ BDialog.Title:='Mirabelle IDE: Select source seach path (for ELF file)';
+ BDialog.InitialDir:=FRecentFolder;
+ repeat
+ if FActionNode=nil then break;
+ BNameHolder:=TNameHolder(FActionNode.Data);
+ if BNameHolder.ObjectClass<>ocLocG then break;
+ if BDialog.Execute=FALSE then break;
+ BPath:=BDialog.Filename;
+ AddTreeItem(FNodeOut,ocLocF,AbsFilename(FPrjPath,BPath),RelFilename(FPrjPath,BPath),17);
+ FRecentFolder:=BDialog.InitialDir;
+ until TRUE;
+ BDialog.Free;
+End;
+
+Procedure TPrjTree.MLocF_RemoveClick(Sender: TObject);
+Var
+  BNameHolder   : TNameHolder;
+Begin
+ repeat
+ if FActionNode=nil then break;
+ BNameHolder:=TNameHolder(FActionNode.Data);
+ if BNameHolder.ObjectClass<>ocLocF then break;
+ TvProject.Items.Delete(FActionNode); FActionNode:=nil;
+ until TRUE;
+End;
+
 Procedure TPrjTree.MSrcF_OpenClick(Sender: TObject);
 Var
   BNameHolder   : TNameHolder;
@@ -1072,18 +1197,6 @@ Begin
  if BNameHolder=nil then break;
  if BNameHolder.ObjectClass<>ocSrcF then break;
  ViewAny('va '+BNameHolder.FullName);
- until TRUE;
-End;
-
-Procedure TPrjTree.MOutF_RemoveClick(Sender: TObject);
-Var
-  BNameHolder   : TNameHolder;
-Begin
- repeat
- if FActionNode=nil then break;
- BNameHolder:=TNameHolder(FActionNode.Data);
- if BNameHolder.ObjectClass<>ocOutF then break;
- TvProject.Items.Delete(FActionNode); FActionNode:=nil;
  until TRUE;
 End;
 
@@ -1175,6 +1288,39 @@ Begin
  if FActionNode=nil then break;
  BNameHolder:=TNameHolder(FActionNode.Data);
  if BNameHolder.ObjectClass<>ocLnkF then break;
+ TvProject.Items.Delete(FActionNode); FActionNode:=nil;
+ until TRUE;
+End;
+
+Procedure TPrjTree.MModG_AppendClick (Sender: TObject);
+Var
+  BPath         : string;
+  BNameHolder   : TNameHolder;
+Begin
+ repeat
+ if FActionNode=nil then break;
+ BNameHolder:=TNameHolder(FActionNode.Data);
+ if BNameHolder.ObjectClass<>ocModG then break;
+ BPath:='';
+ if FRecentFolder<>'' then BPath:=FRecentFolder
+ else if FPrjPath<>'' then BPath:=FPrjPath;
+ AddDllOld(BPath);
+ until TRUE;
+End;
+
+procedure TPrjTree.MOutG_Append1Click(Sender: TObject);
+begin
+
+end;
+
+Procedure TPrjTree.MModF_RemoveClick(Sender: TObject);
+Var
+  BNameHolder   : TNameHolder;
+Begin
+ repeat
+ if FActionNode=nil then break;
+ BNameHolder:=TNameHolder(FActionNode.Data);
+ if BNameHolder.ObjectClass<>ocModF then break;
  TvProject.Items.Delete(FActionNode); FActionNode:=nil;
  until TRUE;
 End;

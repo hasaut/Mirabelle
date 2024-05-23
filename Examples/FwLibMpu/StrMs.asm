@@ -30,6 +30,7 @@ Public SetLength
 Public ReadParamStr
 Public ReadTillC
 Public LowerCase
+Public LowerCaseV
 Public TryHexToInt
 Public TryStrToInt
 Public DelFirstSpace
@@ -799,6 +800,33 @@ LowerCase:
     lcRet:
 
         leave   awx|bwx|cwx|ewx,0,8
+
+LowerCaseV:
+        enter   awx|bwx|cwx|ewx,0
+
+        mov     bwx,[esp+20]
+        mov     ewx,[esp+20]
+
+        mov     cl,[bwx++]
+        mov     [ewx++],cl
+        cmp     cl,0
+        be      lcvRet
+
+    lcvRdNext:
+        mov     al,[bwx++]
+        cmp     al,'A'
+        bb      lcvSkipChange
+        cmp     al,'Z'
+        ba      lcvSkipChange
+        add     al,32
+    lcvSkipChange:
+        mov     [ewx++],al
+        dec     cl
+        bnz     lcvRdNext
+
+    lcvRet:
+
+        leave   awx|bwx|cwx|ewx,0,4
 
 TryHexToInt:
         enter   awx|bwx|cwx|dwx,0

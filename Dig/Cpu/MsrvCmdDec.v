@@ -11,7 +11,7 @@ module MsrvCmdDec
   output [1:0] AWwConst, output [31:0] AConst, output [4:0] AMlsc, output [2:0] ALoopD,
   output [7:0] AMuxSrc, output [2:1] ASelIp,
   output [5:0] ARegIdxR, output ADstFlagWr,
-  output AAluSignExt, output [3:0] AAluSelA, output [7:0] AAluSelU, output [3:0] AAluSelS, output [3:0] AAluSelT, output [6:0] AAluSelF,
+  output AAluSignExt, output [3:0] AAluSelA, output [7:0] AAluSelU, output [3:0] AAluSelS, output [3:0] AAluSelT, output [12:0] AAluSelF,
   output [1:0] AMioWrRdEn, output [1:0] AMioSize, output [2:0] AMioSignExt,
   input ACmdLenValid, input [9:0] AStepThis, output [9:0] AStepNext,
   output AUnityReq, input AUnityAck,
@@ -106,7 +106,14 @@ module MsrvCmdDec
  wire [3:0] BCmdIXAluSDec = {LFn3Dec[5] & LFn7_20x, 1'b0, LFn3Dec[5] & LFn7_00x, LFn3Dec[1] & LFn7_00x};
  //wire [2:0] BCmdIRAluMDec = {3{LFn7_01x}} & LFn3x;
  wire [7:0] BCmdIRAluMDec = {8{LFn7_01x}} & LFn3Dec;
- wire [6:0] BCmdIRAluFDec = {/*(LFn7x==7'h68) & (AQueTop[24:20]==5'h1), */(LFn7x==7'h68) & (AQueTop[24:20]==5'h0), (LFn7x==7'h60) & (AQueTop[24:20]==5'h1), (LFn7x==7'h60) & (AQueTop[24:20]==5'h0), (LFn7x==7'h0C), (LFn7x==7'h08), (LFn7x==7'h04), (LFn7x==7'h00)};
+
+ wire [12:0] BCmdIRAluFDec =
+  {
+   {3{LFn7x==7'h50}} & LFn3Dec[2:0],
+   {3{LFn7x==7'h10}} & LFn3Dec[2:0],
+   (LFn7x==7'h60) & (AQueTop[24:20]==5'h0) & LFn3Dec[0], (LFn7x==7'h60) & (AQueTop[24:20]==5'h1) & LFn3Dec[1], (LFn7x==7'h68) & (AQueTop[24:20]==5'h0), // round trunc itf
+   (LFn7x==7'h0C), (LFn7x==7'h08), (LFn7x==7'h04), (LFn7x==7'h00)
+  };
 
  wire BCmdIIAluADecNZ = |BCmdIIAluADec;
  wire BCmdIIAluBDecNZ = |BCmdIIAluBDec;
@@ -175,7 +182,7 @@ module MsrvCmdDec
  assign MCmdIIs[IIsMR]     = LGrIA & LOpDecB[ 6] & (| LFn7_01x);
  assign MCmdIIs[IIsFR]     = LGrIA & LOpDecB[10] & (| BCmdIRAluFDec);
  assign MCmdIIs[IIsAmo]    = 1'b0;
- assign MCmdIIs[IIsFence]  = LGrIB & LOpDecB[1] & ~BRegRNZ & ~BRegUNZ & ((LFn3Dec[0] & (AQueTop[31:27]==4'h0)) | (LFn3Dec[1] & (AQueTop[31:20]==12'h0)));
+ assign MCmdIIs[IIsFence]  = LGrIB & LOpDecB[1] & ~BRegRNZ & ~BRegUNZ & ((LFn3Dec[0] & (AQueTop[31:27]==5'h0)) | (LFn3Dec[1] & (AQueTop[31:20]==12'h0)));
  assign MCmdIIs[IIsECall]  = LGrIA & LOpDecB[14] & (AQueTop[31:20]==12'h000);
  assign MCmdIIs[IIsEBreak] = LGrIA & LOpDecB[14] & (AQueTop[31:20]==12'h001);
 
@@ -215,10 +222,10 @@ module MsrvCmdDec
 
  wire BIsJalr = BCmdIIs[IIsJalr] & LFn3Dec[0];
  wire BIsSwt  = BCmdIIs[IIsJalr] & LFn3Dec[1];
- wire BIsFR_A = BCmdIIs[IIsFR] & (|BCmdIRAluFDec[3:0]);
+ wire BIsFR_A = BCmdIIs[IIsFR] & (|{BCmdIRAluFDec[12:7], BCmdIRAluFDec[3:0]});
 
  // *** Step ***
- wire [13:0] BStepThis = AUseThisCpu ? AStepThis : 14'h0;
+ wire [9:0] BStepThis = AUseThisCpu ? AStepThis : 10'h0;
  wire BStepThisNZ = |BStepThis;
 
  // *** VLIW ***
@@ -334,7 +341,7 @@ module MsrvCmdDec
 
  assign AAluSelT       = 4'h0;
 
- assign AAluSelF       = (BCmdIIs[IIsFR] ? BCmdIRAluFDec : 7'h0);
+ assign AAluSelF       = (BCmdIIs[IIsFR] ? BCmdIRAluFDec : 13'h0);
 
  assign ARegIdxR       = ((|{BCmdIIs[IIsLui], BCmdIIs[IIsAuipc], BCmdIIs[IIsJal], BIsJalr, BIsSwt, BCmdIIs[IIsAI], BCmdIIs[IIsAR], BCmdIIs[IIsMR], BCmdIIs[IIsFR], BCmdCIs[IIsCAddi], BCmdCIs[IIsCAdd], BCmdCIs[IIsCLI], BCmdCIs[IIsCLui], BCmdCIs[IIsCMV], BCmdCIs[IIsCSlli]}) ? {2'h2, LRegR} : 6'h0) |
                          ((|{AStepNext[IStBx]}) ? {2'h2, 4'h0} : 6'h0) |

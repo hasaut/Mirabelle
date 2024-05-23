@@ -8,7 +8,7 @@ module FtdiIoDec
  wire [7:0] FSReg, BSReg;
  MsDffList #(.CRegLen(8)) USReg
   (
-   .AClkH(AClkS), .AResetHN(AResetN), .AClkHEn(1'b1), 
+   .AClkH(AClkS), .AResetHN(AResetN), .AClkHEn(1'b1),  
    .ADataI(BSReg),
    .ADataO(FSReg)
   );
@@ -18,7 +18,7 @@ module FtdiIoDec
  wire [7:0] FLReg, BLReg;
  MsDffList #(.CRegLen(8)) ULReg
   (
-   .AClkH(AClkL), .AResetHN(AResetN), .AClkHEn(1'b1), 
+   .AClkH(AClkL), .AResetHN(AResetN), .AClkHEn(1'b1),  
    .ADataI(BLReg),
    .ADataO(FLReg)
   );

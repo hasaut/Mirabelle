@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, ComPort, AsmTypes_sd, BuildBase_sd, BuildCpuX_sd, ProcModel_sd,
-  MemSeg_sd, MemSegHelper_sd, DasmBase_sd, DasmMs_sd, DasmRV_sd, DasmWA_sd, DataFiles;
+  MemSeg_sd, MemSegHelper_sd, DasmBase_sd, DasmMs_sd, DasmRV_sd, DasmWA_sd, DataFiles,
+  MsModel;
 
 Type
   TCommState = (csNone, csClosed, csConnecting, csConnected, csActive, csSimulator);
@@ -34,14 +35,21 @@ Type
     FBuild          : TBuildBase;
     FPrjFullName,
     FDstPath,
-    FCoreList,
+    FModelLibs,
+    FCoreListPrj,
+    FCoreListHW,
     FSegListS,
     FDefSegNames,
     FExtCompiler,
     FLinkOptions,
     FSrcList,
-    FIncList        : string;
+    FIncList,
+    FLocList        : string;
     FPrjPath        : string;
+
+    FMsModel        : TMsModel;
+    FModelDataSend  : string;
+    FModelTerminate : boolean;
 
     FIoSpace        : Cardinal;
     FTermBase       : Cardinal;
@@ -93,11 +101,13 @@ Type
     Procedure SetCommState ( ANewState : TCommState );
 
     //Function CanReadAny : boolean;
+    Procedure ClearRecvBuf;
     Function RecvByteAny ( Out AData : byte; ATimeOut : Cardinal ) : boolean;
     Function RecvByteAny ( Out AData : byte ) : boolean;
     Procedure SendByteAny ( AData : byte );
     Procedure SendStringAny ( Const AData : string );
     Function RecvByteA ( ASenseAtt : boolean; Out AData : byte ) : boolean;
+    Function RecvByteA ( ASenseAtt : boolean; Out AData : byte; ATimeOut : Cardinal ) : boolean;
 
     Function SendS ( AAddr : word; Const ADataS : string ) : boolean;
     Function RecvS ( AAddr : word; ASize : word ) : string;
@@ -105,6 +115,8 @@ Type
     //Function SendRecvS2 ( AAddr : word; Var ADataSA, ADataSB : string ) : boolean;
     Procedure SendDataOpti ( AAddr : word; Const ADataS : string );
     Function RecvDataOpti ( Var ADataS : string ) : boolean;
+
+    Procedure RecvModel;
 
     Function SendB ( AAddr : word; AData : byte ) : boolean;
     Function SendW ( AAddr : word; AData : word ) : boolean;
@@ -126,6 +138,7 @@ Type
 
     Procedure CpuIdWarn ( Const AMessage : string );
     Function GetCpuId : boolean;
+    Function GetBrdVersion : boolean;
     Function WrMemSeg ( AMemSeg : TMemSeg; AShowProgr : boolean ) : boolean;
     Function RdMemSeg ( AMemSeg : TMemSeg; AShowProgr : boolean ) : boolean;
     Function LoadMem : boolean;
@@ -342,6 +355,7 @@ Begin
  FFlashLog:=TStringList.Create;
  FIsEnded:=FALSE;
  FWait:=1000;
+ FMsModel:=TMsModel.Create;
  BData:=10;
  if Self=nil then ProbaA(BData); // Very strange bug, coming perhaps from the Intel CPU
 End;
@@ -349,6 +363,7 @@ End;
 Destructor TMsProcess.Destroy;
 Begin
  FOnViewAny:=nil;
+ FMsModel.Free;
  CloseAll;
  FFlashLog.Free;
  FExecLog.Free;
@@ -467,7 +482,8 @@ Var
   BCpuF, BMemF,
   BRvcF, BLnkF,
   BSrcF, BIncF,
-  BTstF, BOutF  : string;
+  BLocF, BTstF,
+  BOutF, BModF  : string;
   BSegName      : string;
   BSegFlags,
   BHwBase,
@@ -475,7 +491,7 @@ Var
   BHwWidth      : Integer;
 Begin
  APlayerS:='';
- BCpuF:=''; BMemF:=''; BRvcF:=''; BLnkF:=''; BSrcF:=''; BIncF:=''; BTstF:=''; BOutF:='';
+ BCpuF:=''; BMemF:=''; BRvcF:=''; BLnkF:=''; BSrcF:=''; BIncF:=''; BLocF:=''; BTstF:=''; BOutF:=''; BModF:='';
 
  BLineIdx:=0;
  while BLineIdx<AParams.Count do
@@ -497,11 +513,13 @@ Begin
   else if BParamS='lnkf' then BLnkF:=BLnkF+Trim(BReadS)+' '
   else if BParamS='srcf' then BSrcF:=BSrcF+Trim(BReadS)+' '
   else if BParamS='incf' then BIncF:=BIncF+Trim(BReadS)+' '
+  else if BParamS='locf' then BLocF:=BLocF+Trim(BReadS)+' '
   else if BParamS='tstf' then BTstF:=BTstF+Trim(BReadS)+' '
-  else if BParamS='outf' then BOutF:=BOutF+Trim(BReadS)+' ';
+  else if BParamS='outf' then BOutF:=BOutF+Trim(BReadS)+' '
+  else if BParamS='modf' then BModF:=BModF+Trim(BReadS)+' ';
   inc(BLineIdx);
   end;
- Result:=APrjFilename+#13+BCpuF+#13+BMemF+#13+'code data'+#13+'1000 FE'+#13+BRvcF+#13+BLnkF+#13+BSrcF+#13+BIncF+#13+BTstF+#13+BOutF;
+ Result:=APrjFilename+#13+BCpuF+#13+BMemF+#13+'code data'+#13+'1000 FE'+#13+BRvcF+#13+BLnkF+#13+BSrcF+#13+BIncF+#13+BLocF+#13+BTstF+#13+BOutF+#13+BModF;
 End;
 
 Procedure TMsProcess.ParseConfigParams ( Const AConfigParams : string; Out ADebugActions, AUtestDir : string );
@@ -512,7 +530,7 @@ Begin
  BConfigParams:=AConfigParams;
  ADebugActions:=ReadTillC(BConfigParams,#13);
  FPrjFullName:=ReadTillC(BConfigParams,#13);   DelFirstLastSpace(FPrjFullName);
- FCoreList:=ReadTillC(BConfigParams,#13);      DelFirstLastSpace(FCoreList);
+ FCoreListPrj:=ReadTillC(BConfigParams,#13);   DelFirstLastSpace(FCoreListPrj);
  FSegListS:=ReadTillC(BConfigParams,#13);      DelFirstLastSpace(FSegListS);
  FDefSegNames:=ReadTillC(BConfigParams,#13);   DelFirstLastSpace(FDefSegNames);
  BDummyS:=ReadTillC(BConfigParams,#13);        DelFirstLastSpace(BDummyS);        HexToDwordCheck(ReadParamStr(BDummyS),FIoSpace); HexToDwordCheck(ReadParamStr(BDummyS),FTermBase);
@@ -520,8 +538,10 @@ Begin
  FLinkOptions:=ReadTillC(BConfigParams,#13);   DelFirstLastSpace(FLinkOptions);
  FSrcList:=ReadTillC(BConfigParams,#13);       DelFirstLastSpace(FSrcList);
  FIncList:=ReadTillC(BConfigParams,#13);       DelFirstLastSpace(FIncList);
+ FLocList:=ReadTillC(BConfigParams,#13);       DelFirstLastSpace(FLocList);
  AUtestDir:=ReadTillC(BConfigParams,#13);      DelFirstLastSpace(AUtestDir);
  FDstPath:=ReadTillC(BConfigParams,#13);       DelFirstLastSpace(FDstPath);
+ FModelLibs:=ReadTillC(BConfigParams,#13);     DelFirstLastSpace(FModelLibs);
 End;
 
 Function TMsProcess.ProcessBuild ( Const ADebugActions : string ) : boolean;
@@ -535,6 +555,7 @@ Var
 Begin
  Result:=FALSE;
  FBuild.Clear;
+ //FMsModel.ExecDone;
 
  repeat
  if FSrcList='' then begin ViewAny('eProject list is empty [R:TMsProcess.ProcessBuild]'); break; end;
@@ -543,8 +564,9 @@ Begin
 
  BNameList:=FSrcList; repeat BNameS:=ReadParamStr(BNameList); if BNameS='' then break; FBuild.AppendSrcName(AbsFilename(FPrjPath,BNameS)); until FALSE;
  BNameList:=FIncList; repeat BNameS:=ReadParamStr(BNameList); if BNameS='' then break; FBuild.AppendIncPath(AbsFilename(FPrjPath,BNameS)); until FALSE;
+ BNameList:=FLocList; repeat BNameS:=ReadParamStr(BNameList); if BNameS='' then break; FBuild.AppendLocPath(AbsFilename(FPrjPath,BNameS)); until FALSE;
 
- FBuild.InitPrj(FPrjFullName,AbsFilename(FPrjPath,FDstPath),FCoreList,FSegListS,FDefSegNames,FExtCompiler,FLinkOptions);
+ FBuild.InitPrj(FPrjFullName,AbsFilename(FPrjPath,FDstPath),FCoreListPrj,FSegListS,FDefSegNames,FExtCompiler,FLinkOptions);
  ViewAny('iBuild started '+FormatDateTime('[DD MMM YYYY, HH:NN.ss]',Now));
  if FBuild.DeleteOld=FALSE then break;
  ViewAny('iOld files are deleted '+FormatDateTime('[DD MMM YYYY, HH:NN.ss]',Now));
@@ -567,12 +589,13 @@ Begin
  ViewAny('iBuild files are generated '+FormatDateTime('[DD MMM YYYY, HH:NN.ss]',Now));
 
  ViewAny('u2');
- ViewAny('d'+FPrjFullName+#13+FCoreList+#13+FBuild.LstName+#13+FBuild.Lst.Text);
- FProcModel.SetParams(FCoreList,FBuild.DefCodeSeg,FBuild.DefDataSeg,FIoSpace,FTermBase,@DasmMissing,@ModelProcessTerm,@ModelCommWr,@ModelCommRd);
+ ViewAny('d'+FPrjFullName+#13+FCoreListPrj+#13+FBuild.LstName+#13+FBuild.Lst.Text);
+ FProcModel.SetParams(FCoreListPrj,FBuild.DefCodeSeg,FBuild.DefDataSeg,FIoSpace,FTermBase,@DasmMissing,@ModelProcessTerm,@ModelCommWr,@ModelCommRd);
  ViewAny('a'+FSegListS);
  {if FCommState=csActive then AppendCmd('c'+BDebugActions)
  else begin FForceActions:=TRUE; FDebugActions:=BDebugActions; end;}
  FForceActions:=TRUE; FDebugActions:=ADebugActions;
+ //if FMsModel.ExecInit(FPrjPath,FModelLibs,FOnViewAny,0)=FALSE then break;
  Result:=TRUE;
  until TRUE;
 End;
@@ -674,6 +697,19 @@ Begin
  until TRUE;
 End;}
 
+Procedure TMsProcess.ClearRecvBuf;
+Var
+  BCount    : Integer;
+  BData     : byte;
+Begin
+ BCount:=0;
+ while BCount<1000 do
+  begin
+  if FComStream.RecvByte(BData,0)=FALSE then break;
+  inc(BCount);
+  end;
+End;
+
 Function TMsProcess.RecvByteAny ( Out AData : byte; ATimeOut : Cardinal ) : boolean;
 Begin
  Result:=FALSE; AData:=0;
@@ -699,14 +735,20 @@ Begin
 End;
 
 Function TMsProcess.RecvByteA ( ASenseAtt : boolean; Out AData : byte ) : boolean;
+Begin
+ Result:=RecvByteA(ASenseAtt,AData,FWait);
+End;
+
+Function TMsProcess.RecvByteA ( ASenseAtt : boolean; Out AData : byte; ATimeOut : Cardinal ) : boolean;
 Var
   BByte         : byte;
 Begin
  Result:=FALSE;
  AData:=0;
  repeat
- if RecvByteAny(BByte)=FALSE then break;
+ if RecvByteAny(BByte,ATimeOut)=FALSE then break;
  if ASenseAtt and (BByte=$AA) then FAttReq:=TRUE
+ else if ASenseAtt and (BByte=$77) then begin RecvModel; break; end
  else begin AData:=BByte; Result:=TRUE; break; end;
  until FALSE;
 End;
@@ -808,6 +850,48 @@ Begin
  Result:=TRUE;
  until TRUE;
 End;
+
+Procedure TMsProcess.RecvModel;
+Var
+  BDataB        : byte;
+  BDataQ        : QWord;
+  BLenQ,
+  BIndexQ,
+  BIndexB       : Integer;
+  BDataSA       : TDataSA;
+  BSendS        : string;
+  BResult       : boolean;
+  BProgress     : Double;
+Begin
+ BDataQ:=0;
+ repeat
+ BResult:=FALSE;
+ BIndexQ:=0;
+ while BIndexQ<64 do
+  begin
+  BIndexB:=0;
+  while BIndexB<8 do
+   begin
+   if RecvByteAny(BDataB)=FALSE then break;
+   BDataQ:=(BDataQ shr 8) or (QWord(BDataB) shl 56);
+   inc(BIndexB);
+   end;
+  if BIndexB<>8 then break;
+  BDataSA[BIndexQ]:=BDataQ;
+  if BIndexQ=0 then
+  else if BDataQ=0 then begin BResult:=TRUE; break; end;
+  inc(BIndexQ);
+  end;
+ if BResult=FALSE then break;
+ BLenQ:=BIndexQ;
+ BProgress:=FMsModel.ExecStep(BDataSA);
+ BSendS:='';
+ BIndexQ:=1; while BIndexQ<BLenQ do begin BSendS:=BSendS+QWordAsStr(BDataSA[BIndexQ]); inc(BIndexQ); end;
+ FModelDataSend:=BSendS;
+ if BProgress>=1.0 then begin FMsModel.ExecDone; FModelTerminate:=TRUE; end;
+ until TRUE;
+End;
+
 
 {Function TMsProcess.SendRecvS2 ( AAddr : word; Var ADataSA, ADataSB : string ) : boolean;
 Begin
@@ -927,33 +1011,43 @@ End;
 Function TMsProcess.GetCpuId : boolean;
 Var
   BDataS    : string;
-  //BCoreIdx  : Integer;
-  //BCpuInfo  : word;
+  BCoreList : string;
+  BIndex    : Integer;
 Begin
  Result:=FALSE;
  FMcuType:=0; FBrdVers:=0;
  repeat
- if FPlayer=plIss then begin Result:=TRUE; break; end;
+ if FPlayer=plIss then begin FProcModel.SetMcuType(9); FMcuType:=FProcModel.McuType; Result:=TRUE; break; end;
  if FCommState<>csActive then break;
- if FCoreList='' then begin Result:=TRUE; break; end;
  BDataS:=RecvS(CDbgCpuInfoRd,4);
  if BDataS='' then break;
- if Ord(BDataS[1])<>Length(FCoreList) then begin CpuIdWarn('Number of cores specified by project params does not correspond to hardware'); break; end;
+ BCoreList:=''; BIndex:=0; while BIndex<Ord(BDataS[1]) do begin BCoreList:=BCoreList+'s'; inc(BIndex); end; FCoreListHW:=BCoreList;
+ if FCoreListPrj='' then
+ else if FCoreListPrj<>FCoreListHW then CpuIdWarn('Number of cores specified by project params does not correspond to hardware');
  FMcuType:=Ord(BDataS[2]); FBrdVers:=Ord(BDataS[3]);
  FProcModel.SetMcuType(FMcuType);
- {BCoreIdx:=0;
- while BCoreIdx<Length(FCoreList) do
-  begin
-  BCpuInfo:=(Word(BDataS[1+4*BCoreIdx+3]) shl 8) + Word(BDataS[1+4*BCoreIdx+2]);
-  if (FCoreList[1+BCoreIdx]='s') and (BCpuInfo=1) then
-  else if (FCoreList[1+BCoreIdx]='e') and (BCpuInfo=2) then
-  else break;
-  inc(BCoreIdx);
-  end;
- if BCoreIdx<Length(FCoreList) then begin CpuIdWarn('Core type specified by project params does not correspond to hardware (Core: '+IntToStr(BCoreIdx)+')'); break; end;}
  Result:=TRUE;
  until TRUE;
  if Result then FCpuWarn:=FALSE;
+End;
+
+Function TMsProcess.GetBrdVersion : boolean;
+Var
+  BDataS    : string;
+  BCoreList : string;
+  BIndex    : Integer;
+Begin
+ Result:=FALSE;
+ FMcuType:=0; FBrdVers:=0;
+ repeat
+ if FCommState<>csActive then break;
+ BDataS:=RecvS(CDbgCpuInfoRd,4);
+ if BDataS='' then break;
+ BCoreList:=''; BIndex:=0; while BIndex<Ord(BDataS[1]) do begin BCoreList:=BCoreList+'s'; inc(BIndex); end; FCoreListHW:=BCoreList;
+ FMcuType:=Ord(BDataS[2]); FBrdVers:=Ord(BDataS[3]);
+ FProcModel.SetMcuType(FMcuType);
+ Result:=TRUE;
+ until TRUE;
 End;
 
 Procedure TMsProcess.IssExec;
@@ -1012,15 +1106,37 @@ Var
   BTickHs,
   BTickThis     : QWord;
   BByte         : byte;
+  BDbgCpuStat   : QWord;
+  BRecvData     : string;
 Begin
  ViewAny('u0');
  BTickHs:=GetTickCount64;
 
  Priority:=tpHigher;
+ FModelDataSend:='';
 
  repeat
  if FMcxActive and (FPlayer=plIss) then RtlEventWaitFor(FProcAnyEvt,10)
- else RtlEventWaitFor(FProcAnyEvt,100);
+ else if RecvByteA(TRUE,BByte,10) then    // <- model data can come asynchronously
+  begin
+  // Misleading byte
+  Sleep(0);
+  end;
+ if FModelDataSend<>'' then
+  begin
+  SendS($700,FModelDataSend);
+  FModelDataSend:='';
+  end;
+ if FModelTerminate then
+  begin
+  FModelTerminate:=FALSE;
+  DutStop;
+  FMcxActive:=FALSE;
+  if GetCpuStat(BDbgCpuStat)=FALSE then break;
+  BRecvData:=RdRegsAll;
+  if BRecvData<>'' then RecvMcxState(BRecvData);
+  RegChange;
+  end;
  BTickThis:=GetTickCount64;
  if FCmdWait then
   begin
@@ -1049,10 +1165,16 @@ Begin
         SendByteAny($55);
         if RecvByteA(TRUE,BByte) and (BByte=$55) then
          begin
-         if (FCommState<>csActive) or (FHsRepeatToFail<>5) or FCpuWarn or FGetCpuInfo then
+         if FCommState<>csActive then
+          begin
+          SetCommState(csActive); ViewAny('u5'); // Connection established
+          FGetCpuInfo:=FALSE;
+          GetBrdVersion;
+          end
+         else if (FHsRepeatToFail<>5) or FCpuWarn or FGetCpuInfo then
           begin
           FGetCpuInfo:=FALSE;
-          GetCpuId;
+          GetBrdVersion;
           end;
          SetCommState(csActive); ViewAny('u5'); // Connection established
          FHsRepeatToFail:=5;
@@ -1086,6 +1208,7 @@ Begin
 
  until Terminated;
 
+ FMsModel.ExecDone;
  CloseAll;
  FIsEnded:=TRUE;
  ViewAny('mClose');
@@ -1572,8 +1695,8 @@ End;
 Function TMsProcess.RdRegsAll : string;
 Begin
  Result:='';
- if FMcuType=$9 then Result:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*96)
- else Result:=RecvS(CDbgCpuRegsRd,Length(FCoreList)*64);
+ if FMcuType=$9 then Result:=RecvS(CDbgCpuRegsRd,Length(FCoreListHW)*96)
+ else Result:=RecvS(CDbgCpuRegsRd,Length(FCoreListHW)*64);
 End;
 
 Function TMsProcess.DutRdRegs : string;
@@ -1583,7 +1706,7 @@ Var
 Begin
  Result:='';
  repeat
- if FCoreList='' then break;
+ if FCoreListPrj='' then break;
  case FPlayer of
   plIss:
     begin
@@ -1637,6 +1760,7 @@ End;
 
 Procedure TMsProcess.DutReset;
 Begin
+ FMsModel.ExecDone;
  repeat
  case FPlayer of
   plIss:
@@ -1681,6 +1805,7 @@ Begin
     if SendB(CDbgCpuStepWr,$01)=FALSE then break;
     end;
  end;
+ FMsModel.ExecInit(FPrjPath,FModelLibs,FOnViewAny,0);
  until TRUE;
 End;
 
@@ -2003,6 +2128,7 @@ Begin
  BHsCount:=0;
  while BHsCount<CFpgaRhsCnt do
   begin
+  ClearRecvBuf;
   SendByteAny($55);
   if RecvByteA(TRUE,BByte) and (BByte=$55) then break;
   Sleep(50);
@@ -2418,6 +2544,7 @@ Begin
  until TRUE;
 End;
 }
+
 Function TMsProcess.FpgaReflashSect ( Const ASectInfo : string ) : boolean;
 Var
   BSectInfo     : string;
@@ -2441,6 +2568,7 @@ Var
   BWriteS       : string;
   BViewIdx      : byte;
   BVerifError   : boolean;
+  BPos          : Integer;
 Begin
  Result:=FALSE;
  repeat
@@ -2480,15 +2608,35 @@ Begin
   if ReadHexFile(BFilename,BDataBin)=FALSE then break;
   InvertBytes(BDataBin);
   end
+ else if BExt='.mcsi' then
+  begin
+  if ReadHexFile(BFilename,BDataBin)=FALSE then break;
+  //InvertBytes(BDataBin);
+  end
  else if StrInList(BExt,'.rpd') then
   begin
+  if FBrdVers in [$05] then
+  else begin ViewAny('feRPD file can only be flashed to Intel/Altera devices [R:TMsProcess.FpgaReflashSect]'); break; end;
   if ReadBinFile(BFilename,BDataBin)=FALSE then break;
   InvertBytes(BDataBin);
   end
  else if StrInList(BExt,'.bit') then
   begin
+  if FBrdVers in [$15, $25] then
+  else begin ViewAny('feBIT file can only be flashed to Lattice and Xilinx/AMD devices [R:TMsProcess.FpgaReflashSect]'); break; end;
   if ReadBinFile(BFilename,BDataBin)=FALSE then break;
-  //InvertBytes(BDataBin);
+  if FBrdVers=$15 then
+   begin
+   BPos:=Pos(#$FF+#$FF+#$FF+#$BD+#$B3+#$FF+#$FF+#$FF+#$FF+#$3B,BDataBin);
+   if (BPos<>0) and (BPos<$200) then
+   else begin ViewAny('feThis BIT file does not have a recognised Lattice header and can damage Lattice device [R:TMsProcess.FpgaReflashSect]'); break; end;
+   end
+  else if FBrdVers=$25 then
+   begin
+   BPos:=Pos(#$FF+#$FF+#$FF+#$FF+#$AA+#$99+#$55+#$66,BDataBin);
+   if (BPos<>0) and (BPos<$100) then
+   else begin ViewAny('feThis BIT file does not have a recognised Xilinx/AMD header and can damage Xilinx/AMD device [R:TMsProcess.FpgaReflashSect]'); break; end;
+   end;
   end
  else
   begin

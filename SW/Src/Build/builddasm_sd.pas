@@ -353,6 +353,7 @@ End;
 Function TBuildDasm.DasmProcessChunk ( AChunk : TCodeChunk; AAddr : Cardinal; ACpuType : char; AExecToLabel : TExecLineBase; AAddLabel : char; AExportNow : boolean ) : boolean;
 Var
   BAddr         : Cardinal;
+  BDstAddr      : Cardinal;
   BCodeBin      : string;
   BReadSize     : Cardinal;
   BExecBase     : TExecLineBase;
@@ -388,6 +389,7 @@ Begin
   break;
   end;
  BExecRV:=TExecLineRV.Create;
+ BExecRV.ElfFile:=AChunk.ElfFile;
  AChunk.ExecList[BAddr-AChunk.FixBinBase]:=BExecRV;
  if BExecRV.CmdDec(BAddr,BCodeBin)=FALSE then
   begin
@@ -396,6 +398,7 @@ Begin
   end;
  if BAddLabel<>#0 then begin BExecRV.SetLabel(BAddLabel); BAddLabel:=#0; end;
  if BExecToLabel<>nil then begin BExecToLabel.SetDstLabel(BExecRV.LabelName); BExecToLabel:=nil; end;
+ if BExecRV.WriteBack then AChunk.WriteBinS(BAddr,BExecRv.CodeBin);
  if BExecRV.IsDecStop then
   begin
   AChunk.ExecList[BAddr-AChunk.FixBinBase]:=nil;
@@ -407,9 +410,11 @@ Begin
  if BExecRV.IsRet then begin Result:=TRUE; break; end;
  if BExecRV.IsJmp then
   begin
-  if CallOrJmp(BAddr+BExecRV.Subdec.FImm,ACpuType)=cjCall then
+  BDstAddr:=BAddr+BExecRV.Subdec.FImm;
+  if ((BExecRV.ElfFile<>nil) and (BExecRV.ElfFile.IsProc(BDstAddr))) or
+     (CallOrJmp(BDstAddr,ACpuType)=cjCall) then
    begin
-   if DasmProcessChunk(AChunk,BAddr+BExecRV.Subdec.FImm,ACpuType,BExecRV,'c',AExportNow)=FALSE then break;
+   if DasmProcessChunk(AChunk,BDstAddr,ACpuType,BExecRV,'c',AExportNow)=FALSE then break;
    BAddr:=BAddr+Length(BExecRV.CodeBin);
    end
   else

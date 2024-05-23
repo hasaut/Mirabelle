@@ -255,7 +255,8 @@ Begin
  repeat
  if BRow=0 then
   begin
-  if BCol=$8 then begin Result:=FRegList[8]; break; end;
+  if BCol=$8 then Result:=FRegList[8];
+  break;
   end;
  case BCol of
    $1: begin

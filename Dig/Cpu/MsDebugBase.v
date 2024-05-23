@@ -4,7 +4,7 @@
  */
 
 // Register A is sent first, then B and so on. StateWord at the end
-module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CRegCnt=8, CCoreCnt=8'h2, CBrdVers=8'h5)
+module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input ASync1M,
@@ -16,6 +16,7 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CR
   input [CCoreCnt*32-1:0] AIpThis, input [CCoreCnt-1:0] ACmdDecReady,
   input [CCoreCnt-1:0] ATEndList, ATrapList, output AAttReq,
   input [3:0] AStartupI, output [3:0] AStartupO, output [3:0] AStartupE,
+  output [39:0] ALogTimer,
   output [7:0] ATest
  );
 
@@ -60,12 +61,13 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CR
  wire [3:0] FStartupI, BStartupI;
  wire [3:0] FStartupO, BStartupO;
  wire [3:0] FStartupE, BStartupE;
+ wire [39:0] FLogTimer, BLogTimer;
 
- MsDffList #(.CRegLen(1+1+1+1+1+29+CBrkCnt*32+CBrkCnt+32+CCoreCnt+1+1+CCoreCnt*3+1+CCoreCnt+CRegCnt+3*4)) ULocalVars
+ MsDffList #(.CRegLen(1+1+1+1+1+29+CBrkCnt*32+CBrkCnt+32+CCoreCnt+1+1+CCoreCnt*3+1+CCoreCnt+CRegCnt+3*4+40)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BMemAccess, BDbgExecEn, BDbgResetS, BDbgClkHEn, BDbgStep, BMemAddr, BBrkList, BBrkIdx, BBrkThis, BBreakReq, BIsStop, BAttReq, BBreakList, BTrapList, BTEndList, BTtySendHasData, BDbgCoreIdx, BDbgRegIdx, BStartupI, BStartupO, BStartupE}),
-   .ADataO({FMemAccess, FDbgExecEn, FDbgResetS, FDbgClkHEn, FDbgStep, FMemAddr, FBrkList, FBrkIdx, FBrkThis, FBreakReq, FIsStop, FAttReq, FBreakList, FTrapList, FTEndList, FTtySendHasData, FDbgCoreIdx, FDbgRegIdx, FStartupI, FStartupO, FStartupE})
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .ADataI({BMemAccess, BDbgExecEn, BDbgResetS, BDbgClkHEn, BDbgStep, BMemAddr, BBrkList, BBrkIdx, BBrkThis, BBreakReq, BIsStop, BAttReq, BBreakList, BTrapList, BTEndList, BTtySendHasData, BDbgCoreIdx, BDbgRegIdx, BStartupI, BStartupO, BStartupE, BLogTimer}),
+   .ADataO({FMemAccess, FDbgExecEn, FDbgResetS, FDbgClkHEn, FDbgStep, FMemAddr, FBrkList, FBrkIdx, FBrkThis, FBreakReq, FIsStop, FAttReq, FBreakList, FTrapList, FTEndList, FTtySendHasData, FDbgCoreIdx, FDbgRegIdx, FStartupI, FStartupO, FStartupE, FLogTimer})
   );
 
  // Common Io/Tty
@@ -74,6 +76,7 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CR
  // IO
  // IobDbgTestCtrl       equ 0xFC ; // RD: 4'h0 2'h0 TermSpace 1'b0
  // IobDbgTermData       equ 0xFE
+ // IodDbgInfo           RD: CBrkCnt CBrdVers CCoreCnt CMcuType
 
  localparam IoSizeD = 2*8;
  localparam IoSizeW = 1*8;
@@ -83,7 +86,7 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CR
 
  wire [31:0] BIoAccess;
 
- IoIntf2s #(.CAddrBase(CAddrBase), .CAddrUsed(32'h000000C9)) UIntf
+ IoIntf2s #(.CAddrBase(CAddrBase), .CAddrUsed(32'h000100C9)) UIntf
   (
    .AIoAddr(AIoAddr), .AIoWrSize(AIoWrSize), .AIoRdSize(AIoRdSize),
    .AIoAccess(BIoAccess),
@@ -92,8 +95,9 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CR
 
 
  assign AIoMiso =
-  (BIoAccess[IoSizeB+IoOperR+0] ? {32'h0, 8'h0, 4'h0, 1'b0, 1'b0, BTtySendHasSpace, 1'b0} : 32'h0) |
-  (BIoAccess[IoSizeB+IoOperR+3] ? {32'h0, 8'h0, 4'h0, FStartupI} : 32'h0);
+  (BIoAccess[IoSizeB+IoOperR+0] ? {32'h0, 16'h0, 8'h0, 4'h0, 1'b0, 1'b0, BTtySendHasSpace, 1'b0} : 64'h0) |
+  (BIoAccess[IoSizeD+IoOperR+0] ? {32'h0, CBrkCnt[7:0], CBrdVers, CCoreCnt[7:0], CMcuType} : 64'h0) |
+  (BIoAccess[IoSizeB+IoOperR+3] ? {32'h0, 16'h0, 8'h0, 4'h0, FStartupI} : 64'h0);
 
  assign BStartupI = AStartupI;
 
@@ -189,6 +193,9 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CR
  assign BTrapList = ATrapList | (BCpuStatRd ? CCoreNil : FTrapList);
  assign BTEndList = ATEndList | (BCpuStatRd ? CCoreNil : FTEndList);
 
+ // Log timer
+ assign BLogTimer = FDbgResetS ? 40'h0 : FLogTimer + {39'h0, FDbgExecEn & ASync1M};
+
  assign {ADbgExecEn, ADbgResetS, ADbgClkHEn} = {FDbgExecEn & ~BIsStopNotConf, FDbgResetS, FDbgClkHEn};
  assign ADbgStep = FDbgStep;
 
@@ -204,7 +211,9 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8'h8, CMcuType=8'h08, CR
 
  assign {AStartupO, AStartupE} = {FStartupO, FStartupE};
 
+ assign ALogTimer = FLogTimer;
  assign ATest = {FAttReq, FIsStop, BBreakListNZ, BTrapListNZ, BIsStopCancel, BBreakAckNZ, FDbgExecEn, |FBreakReq};
+ //assign ATest = {BMcuType[3:0], AClkH, ADbioMiso1st, BCpuInfoRdX[1:0]};
 endmodule
 
 module MsBrkCmpA ( input [31:0] ABrkIp, input [31:0] ABrkCmp, output AIsBreak );
@@ -284,7 +293,7 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
 
  MsDffList #(.CRegLen(CStLen+1+3+29+64+1+1+1+1+16+8+8)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BState, BStateNZ, BByteIdx, BMemAddr, BMemMosi, BSpiMaster, BSpiCS, BActive, BSbActive, BDbioDataLen, BFlashSizeCode, BDelayCnt}),
    .ADataO({FState, FStateNZ, FByteIdx, FMemAddr, FMemMosi, FSpiMaster, FSpiCS, FActive, FSbActive, FDbioDataLen, FFlashSizeCode, FDelayCnt})
   );
@@ -466,7 +475,7 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
  assign AActive = FActive;
  assign ASbActive = FSbActive;
 
- assign ATest =
+ /*assign ATest =
   {
    BSpiSend,
    BSpiRecv,
@@ -476,7 +485,39 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
    FState[IStFlLoopB],
    FState[IStFlLoopC],
    FState[IStFlEnd]
-  };
+  };*/
+ assign ATest = {FState[IStForiMux], FState[IStForiStart], FState[IStForiRomWr], FState[IStForiEnd], ASpiMiso, ASpiMosi, ASpiSck, ASpiNCS};
+endmodule
+
+module MsTestAdc
+ (
+  input [7:0] ADbioAddr, input [63:0] ADbioMosi, output [63:0] ADbioMiso, input [3:0] ADbioMosiIdx, input [3:0] ADbioMisoIdx, input ADbioMosi1st, input ADbioMiso1st, input ADbioDataLenNZ, output ADbioIdxReset,
+  input [63:0] AAdcMiso, output [63:0] AAdcMosi, output AAdcWrEn, AAdcRdEn,
+  output [7:0] ATest
+ );
+
+ localparam CAddrAdcDataWr   = 8'h00;
+ localparam CAddrAdcDataRd   = 8'h00;
+
+ // DBIO
+ wire BAdcDataWr = (ADbioAddr==CAddrAdcDataWr) & ADbioMosiIdx[3]; assign AAdcMosi = BAdcDataWr ? ADbioMosi : 64'h0;
+
+ wire [1:0] BAdcDataRdX = {2{ADbioAddr==CAddrAdcDataRd}} & {ADbioMisoIdx[3], ADbioMiso1st};
+ wire BAdcDataRd = |BAdcDataRdX;
+
+ assign ADbioIdxReset =
+  |{
+    BAdcDataWr,
+    BAdcDataRd
+   };
+
+ assign ADbioMiso =
+  (BAdcDataRd ? AAdcMiso : 64'h0);
+
+ assign AAdcWrEn = BAdcDataWr;
+ assign AAdcRdEn = BAdcDataRd & ADbioDataLenNZ;
+
+ assign ATest = {4'h0, ADbioMosi1st, ADbioMiso1st, AAdcWrEn, AAdcRdEn};
 endmodule
 
 

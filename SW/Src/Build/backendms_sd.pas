@@ -333,7 +333,9 @@ Begin
   AAsmSrc.Append('');
   AAsmSrc.Append('.seg '+FDataSegName);
   // Other vars (Size>4)
-  BDeclVarList:=ParsRemoveExtern(FVarList);
+  BDummyS:=ParsRemoveAbsLoc(FVarList);
+  BDeclVarList:=ParsRemoveExtern(BDummyS);
+
   BVarList:=BDeclVarList;
   repeat
   BVarName:=ReadParamStr(BVarList);
@@ -644,7 +646,7 @@ Begin
  repeat
  BParam:=ReadParamStr(BParamList);
  if BParam='' then break;
- if (StrInList(BParam,FExternNames)=FALSE) and (ParsIsType(BParam)=FALSE) then AAsmSrc.Append('Public '+ParsExtractName(BParam));
+ if (StrInList(BParam,FExternNames)=FALSE) and (ParsIsType(BParam)=FALSE) and (ParsIsAbsLoc(BParam)=FALSE) then AAsmSrc.Append('Public '+ParsExtractName(BParam));
  until FALSE;
 
  BNeeds:=[];
@@ -665,7 +667,7 @@ Begin
  repeat
  BParam:=ReadParamStr(BParamList);
  if BParam='' then break;
- AAsmSrc.Append('Extern '+ParsExtractName(BParam));
+ if ParsIsAbsLoc(BParam)=FALSE then AAsmSrc.Append('Extern '+ParsExtractName(BParam));
  until FALSE;
 
  WriteDataSeg(AAsmSrc);
@@ -1790,7 +1792,9 @@ Begin
   ParsSplitArrayIdx(ALineA.Param[1].Targ,BParamArr,BParamIdx);
   if ParsIsGlobalOrExtern(ALineA.Param[1].Targ) and (BParamIdx='') then
    begin
-   AppendCmd('mov',BRegAe,'['+ParsExtractName(ALineA.Param[1].Targ)+']',ATail);
+   BName:=ParsExtractNameAbsLoc(ALineA.Param[1].Targ,BConstS);
+   if BConstS<>'' then AppendCmd('mov',BRegAe,'[0x'+BConstS+']',ATail)
+   else AppendCmd('mov',BRegAe,'['+BName+']',ATail);
    break;
    end;
   if ParsIsGlobalOrExtern(ALineA.Param[1].Targ) and ParsIsConst(BParamIdx) then
@@ -1840,7 +1844,9 @@ Begin
   ParsSplitArrayIdx(ALineA.Param[0].Targ,BParamArr,BParamIdx);
   if ParsIsGlobalOrExtern(ALineA.Param[0].Targ) and (BParamIdx='') then
    begin
-   AppendCmd('mov','['+ParsExtractName(ALineA.Param[0].Targ)+']',BRegBe,ATail);
+   BName:=ParsExtractNameAbsLoc(ALineA.Param[0].Targ,BConstS);
+   if BConstS<>'' then AppendCmd('mov','[0x'+BConstS+']',BRegBe,ATail)
+   else AppendCmd('mov','['+BName+']',BRegBe,ATail);
    break;
    end;
   if ParsIsGlobalOrExtern(ALineA.Param[0].Targ) and ParsIsConst(BParamIdx) then

@@ -34,12 +34,12 @@ Type
     FDeclLine,
     FDeclPos            : Integer;
 
-    FOnAppendError      : TOnViewAny;
   protected
     FName               : string;
     FNameL              : string; // with prefix and parameters
     FErrorList          : TStringList;
     FFatalError         : boolean;
+    FOnAppendError      : TOnViewAny;
 
   public
     Constructor Create; Virtual;

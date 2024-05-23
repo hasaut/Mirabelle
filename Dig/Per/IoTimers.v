@@ -4,9 +4,9 @@
 
 module IoTimer16A #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
+  input AClkH, AResetHN, AClkHEn,
   input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, AIoAddrErr,
-  input ASync1M, input ASync1K, output AIrq,
+  input ASync1M, ASync1K, output AIrq, ASrq,
   output [7:0] ATest
  );
 
@@ -14,7 +14,7 @@ module IoTimer16A #(parameter CAddrBase=16'h0000)
  // IobCtrl   +0 ; // W: 2xRFU 2xEn(11=CLK 10=1M 01=1K 00=OFF) RFU RstA RFU IrqAEn
  //              ; // R: 2xRFU 2xEn(11=CLK 10=1M 01=1K 00=OFF) RFU RstA RFU CmpA
  // IowCmpA   +1
- // IobIrqR   +3 ; // Write bit 0 to reset IrqA
+ // IobIrqR   +3 ; // Write bit 0 to reset IrqA; write bit 7 to trigger Srq always
  // IowThis   +3 ; // RD: FCounter
 
  localparam IoSizeD = 2*8;
@@ -42,7 +42,7 @@ module IoTimer16A #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(8+16+16+1+1+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BCtrl, BCmpA, BCounter, BCmpRes, BIrq, BCmpReset}),
    .ADataO({FCtrl, FCmpA, FCounter, FCmpRes, FIrq, FCmpReset})
   );
@@ -74,6 +74,7 @@ module IoTimer16A #(parameter CAddrBase=16'h0000)
 
  // External
  assign AIrq = FIrq;
+ assign ASrq = BIoAccess[IoSizeB+IoOperW+3] & AIoMosi[7];
  assign ATest = {AClkH, BTimerSrcNZ, BIncEn, BCmpResA, BCmpRes, FIrq, FCmpReset, FCmpRes};
 endmodule
 
@@ -120,7 +121,7 @@ module IoTimer32A #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(8+32+32+1+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BCtrl, BCmpA, BCounter, BCmpRes, BIrq}),
    .ADataO({FCtrl, FCmpA, FCounter, FCmpRes, FIrq})
   );

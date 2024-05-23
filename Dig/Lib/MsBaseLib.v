@@ -1,4 +1,10 @@
-module MsDffList #(parameter CRegLen=16) ( input AClkH, input AResetHN, input AClkHEn, input [CRegLen-1:0] ADataI, output [CRegLen-1:0] ADataO );
+module MsDffList #(parameter CRegLen=16)
+ (
+  input AClkH, input AResetHN, input AClkHEn, 
+  input [CRegLen-1:0] ADataI,
+  output [CRegLen-1:0] ADataO
+ );
+
  reg [CRegLen-1:0] FData; wire [CRegLen-1:0] BData;
  always @(posedge AClkH or negedge AResetHN)
  if (AResetHN==1'b0)
@@ -11,6 +17,21 @@ module MsDffList #(parameter CRegLen=16) ( input AClkH, input AResetHN, input AC
   end
  assign BData = ADataI;
  assign ADataO = FData;
+endmodule
+
+module MsLatch ( input wire ALatchEn, AResetN, input wire ADataI, output wire ADataO );
+ reg FLatch; wire BLatch;
+ always @(ALatchEn or AResetN or BLatch)
+ if (AResetN==1'b0)
+  begin
+  FLatch = 1'b0;
+  end
+ else if (ALatchEn)
+  begin
+  FLatch = BLatch;
+  end
+ assign BLatch = ADataI; 
+ assign ADataO = FLatch;
 endmodule
 
 module MsDRS ( input AClkH, AResetHN, ASet, input ADataI, output ADataO );
@@ -264,7 +285,7 @@ module MsPrioritize #(parameter CLineCnt=0)
  wire [CLineCnt-1:0] FDataO, BDataO;
  MsDffList #(.CRegLen(CLineCnt*2)) UDffList
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BPrioIdx, BDataO}),
    .ADataO({FPrioIdx, FDataO})
   );
@@ -357,7 +378,7 @@ module MsTmpCompA #(parameter CLenI=10, CLenO=20)
  wire [CLenO-1:0] FDataS, BDataS;
  MsDffList #(.CRegLen(CLenO)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI(BDataS),
    .ADataO(FDataS)
   );
@@ -375,7 +396,7 @@ module MsTmpCompB #(parameter CLenI=25, CLenO=10)
  wire [CLenI-1:0] FDataS, BDataS;
  MsDffList #(.CRegLen(CLenI)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI(BDataS),
    .ADataO(FDataS)
   );
@@ -527,7 +548,7 @@ module MsBufReg #(parameter CDataWidth=32)
  wire [(CDataWidth-1):0] FRegData, BRegData;
  MsDffList #(.CRegLen(CDataWidth)) URegData
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),  
    .ADataI(BRegData),
    .ADataO(FRegData)
   );
@@ -546,7 +567,7 @@ module MsCrossData #(parameter CRegLen=16)
 
  MsDffList #(.CRegLen(1)) ULocalVars [CRegLen-1:0]
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),  
    .ADataI(ADataI), .ADataO(ADataO)
   );
 
@@ -564,14 +585,14 @@ module MdCrossSync
 
  MsDffList #(.CRegLen(1)) ULocalVarsS
   (
-   .AClkH(AClkS), .AResetHN(AResetSN & ~FAckH[1]), .AClkHEn(1'b1), 
+   .AClkH(AClkS), .AResetHN(AResetSN & ~FAckH[1]), .AClkHEn(1'b1),  
    .ADataI(BReqS),
    .ADataO(FReqS)
   );
 
  MsDffList #(.CRegLen(2)) ULocalVarsH
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),  
    .ADataI(BAckH),
    .ADataO(FAckH)
   );
@@ -599,7 +620,7 @@ module MsCrossDS #(parameter CRegLen=16)
 
  MsDffList #(.CRegLen(CRegLen)) ULocalVarsS
   (
-   .AClkH(AClkS), .AResetHN(AResetSN), .AClkHEn(1'b1), 
+   .AClkH(AClkS), .AResetHN(AResetSN), .AClkHEn(1'b1),  
    .ADataI(BDataS),
    .ADataO(FDataS)
   );
@@ -676,13 +697,13 @@ module MdClkEn
 
  MsDffList #(.CRegLen(1)) UClkA
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),  
    .ADataI(BClkA), .ADataO(FClkA)
   );
 
  MsDffList #(.CRegLen(1+1)) UClkB
   (
-   .AClkH(~AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(~AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),  
    .ADataI({BClkB, BClkEn}), .ADataO({FClkB, FClkEn})
   );
 
@@ -807,7 +828,7 @@ module MsCrossDS_Async #(parameter CRegLen=32)
  wire [CRegLen-1:0] FDataExt, BDataExt;
  MsDffList #(.CRegLen(3+CRegLen+CRegLen)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BEventB, BData, BDataExt}), .ADataO({FEventB, FData, FDataExt})
   );
 
@@ -816,7 +837,7 @@ module MsCrossDS_Async #(parameter CRegLen=32)
  wire FEventA, BEventA;
  MsDffList #(.CRegLen(1)) UEventA
   (
-   .AClkH(AEventRE), .AResetHN(AResetHN & ~FEventB[1]), .AClkHEn(AClkHEn),
+   .AClkH(AEventRE), .AResetHN(AResetHN & ~FEventB[1]), .AClkHEn(AClkHEn), 
    .ADataI(BEventA), .ADataO(FEventA)
   );
 
@@ -841,7 +862,7 @@ module MsAntiGlitch #(parameter CRegLen=32)
  wire FDataO, BDataO;
  MsDffList #(.CRegLen(CRegLen+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BDataS, BDataO}), .ADataO({FDataS, FDataO})
   );
 

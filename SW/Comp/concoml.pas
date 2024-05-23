@@ -22,6 +22,7 @@ Function AddSpacesResR ( Const AStr : string; ALen : Integer ) : string;
 Procedure AddSpacesVarL ( Var AStr : string; ALen : Integer );
 Procedure AddSpacesVarR ( Var AStr : string; ALen : Integer );
 Function StrPadResL ( Const AStr : string; ASym : char; ALen : Integer ) : string;
+Procedure StrReplace ( Var AStr : string; ACharOld, ACharNew : char );
 
 Function ReadParamStr ( Var ASrc : string ) : string;
 Function ReadParamStrInv ( Var ASrc : string ) : string;
@@ -69,6 +70,7 @@ Procedure StrReplaceC ( Var ADataS : string; ACharToSearch, ACharToWrite : char 
 
 Procedure SplitFilename ( Const AFullName : string; Out APath, AName, AExt : String );
 Function ExtractFilePathA ( Const AFullName : string ) : string;
+Function IncludeTrailingPathDelimiterA ( Const AFullName : string; ADelimiter : char ) : string;
 
 Function AverageColor1 ( AColorA, AColorB : Cardinal; ALen, APos : Integer ) : Cardinal;
 
@@ -104,6 +106,7 @@ Procedure ListReplace ( AList : TStringList; Const ASrc, ADst : string );
 Function DirList ( Const APath : string; Const AMask : string; AList : TStringList ) : boolean;
 Procedure FileList ( Const APath : string; AList : TStringList );
 Procedure FileList ( Const APath, AMask : string; AList : TStringList );
+Function BestFileFit ( Const AFileName : string; AFileList : TStringList ) : string;
 
 Function ResolveCMod ( Const AOrig : string ) : string;
 
@@ -114,8 +117,10 @@ Function CheckValue ( Const ANameS : string; Const AReadS : string; Out AValue :
 Function CheckValue ( Const ANameS : string; Const AReadS : string; Var AValue : Cardinal ) : boolean;
 
 Function DWordAsStr ( AData : Cardinal ) : string;
+Function QWordAsStr ( AData : QWord ) : string;
 Function StrAsDWord ( Const ADataS : string; AIndex : Integer ) : Cardinal;
 Function StrAsDWord ( Const ADataS : string; Var AIndex : Integer; Out AData : Cardinal ) : boolean; // Index from 0
+Function StrAsQWord ( Const ADataS : string; Var AIndex : Integer; Out AData : QWord ) : boolean; // Index from 0
 
 Procedure CorrectAscii ( Var ADataS : string );
 
@@ -325,6 +330,18 @@ Function StrPadResL ( Const AStr : string; ASym : char; ALen : Integer ) : strin
 Begin
  Result:=AStr;
  while Length(Result)<ALen do Result:=ASym+Result;
+End;
+
+Procedure StrReplace ( Var AStr : string; ACharOld, ACharNew : char );
+Var
+    BPos    : Integer;
+Begin
+ BPos:=0;
+ while BPos<Length(AStr) do
+  begin
+  if AStr[1+BPos]=ACharOld then AStr[1+BPos]:=ACharNew;
+  inc(BPos);
+  end;
 End;
 
 Function ReadParamStr ( Var ASrc : string ) : string;
@@ -926,12 +943,12 @@ Begin
  repeat
  if BStr='' then break;
  BLength:=Length(BStr);
- if BLength>8 then break;
+ {if BLength>8 then break;
  while BLength<>8 do
   begin
   BStr:='0'+BStr;
   inc(BLength);
-  end;
+  end;}
 
  BData:=0;
  i:=0;
@@ -1058,6 +1075,16 @@ Begin
  BPath:=''; BName:=''; BExt:='';
  SplitFilename(AFullName,BPath,BName,BExt);
  Result:=BPath;
+End;
+
+Function IncludeTrailingPathDelimiterA ( Const AFullName : string; ADelimiter : char ) : string;
+Begin
+ Result:=AFullName;
+ repeat
+ if Result='' then break;
+ if Result[Length(Result)]=ADelimiter then break;
+ Result:=Result+ADelimiter;
+ until TRUE;
 End;
 
 Function StringToCardinal ( Const AStr : string; Var AData : Cardinal ) : boolean;
@@ -1551,7 +1578,7 @@ Var
   BExtA         : string;
 Begin
  BDirList:=TStringList.Create;
- BPath:=IncludetrailingPathDelimiter(APath);
+ BPath:=IncludeTrailingPathDelimiter(APath);
 
  repeat
  BResult:=FindFirst(BPath+'*',faAnyFile,BSearchRec);
@@ -1583,6 +1610,40 @@ Begin
  until TRUE;
 
  BDirList.Free;
+End;
+
+Function BestFileFit ( Const AFileName : string; AFileList : TStringList ) : string;
+Var
+  BListIdx  : Integer;
+  BFitThis,
+  BFitBest  : Cardinal;
+  BNameA_Save,
+  BNameA,
+  BNameB    : string;
+  BParamA,
+  BParamB   : string;
+Begin
+ Result:=''; BFitBest:=0;
+ BNameA_Save:=AFileName; StrReplace(BNameA_Save,'/',' '); StrReplace(BNameA_Save,'\',' ');
+ BListIdx:=0;
+ while BListIdx<AFileList.Count do
+  begin
+  BNameA:=BNameA_Save;
+  BNameB:=AFileList.Strings[BListIdx]; StrReplace(BNameB,'/',' '); StrReplace(BNameB,'\',' ');
+  BFitThis:=0;
+  repeat
+  BParamA:=ReadParamStrInv(BNameA); BParamB:=ReadParamStrInv(BNameB);
+  if (BParamA='') or (BParamB='') then break;
+  if BParamA<>BParamB then break;
+  inc(BFitThis);
+  until FALSE;
+  if BFitThis>BFitBest then
+   begin
+   Result:=AFileList.Strings[BListIdx];
+   BFitBest:=BFitThis;
+   end;
+  inc(BListIdx);
+  end;
 End;
 
 Function ResolveCMod ( Const AOrig : string ) : string;
@@ -1683,6 +1744,18 @@ Begin
          Chr((AData shr 24) and $FF);
 End;
 
+Function QWordAsStr ( AData : QWord ) : string;
+Begin
+ Result:=Chr((AData shr  0) and $FF)+
+         Chr((AData shr  8) and $FF)+
+         Chr((AData shr 16) and $FF)+
+         Chr((AData shr 24) and $FF)+
+         Chr((AData shr 32) and $FF)+
+         Chr((AData shr 40) and $FF)+
+         Chr((AData shr 48) and $FF)+
+         Chr((AData shr 56) and $FF);
+End;
+
 Function StrAsDWord ( Const ADataS : string; AIndex : Integer ) : Cardinal; // Index from 0
 Var
   BIndex    : Integer;
@@ -1706,6 +1779,22 @@ Begin
   AData:=AData or (Cardinal(ADataS[1+AIndex+BIndex]) shl (8*BIndex));
   end;
  inc(AIndex,4);
+ Result:=TRUE;
+ until TRUE;
+End;
+
+Function StrAsQWord ( Const ADataS : string; Var AIndex : Integer; Out AData : QWord ) : boolean; // Index from 0
+Var
+  BIndex    : Integer;
+Begin
+ Result:=FALSE; AData:=0;
+ repeat
+ if AIndex+8>Length(ADataS) then break;
+ for BIndex:=0 to 7 do
+  begin
+  AData:=AData or (Cardinal(ADataS[1+AIndex+BIndex]) shl (8*BIndex));
+  end;
+ inc(AIndex,8);
  Result:=TRUE;
  until TRUE;
 End;

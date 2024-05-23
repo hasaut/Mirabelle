@@ -40,6 +40,9 @@ Type
     Function CodeGenBx ( ALine : TAsmFlowLine ) : TCmdCompError;
     Function CodeGenAluU ( ALine : TAsmFlowLine ) : TCmdCompError;
     Function CodeGenFpuRR ( ALine : TAsmFlowLine ) : TCmdCompError;
+    Function CodeGenFpuCvt ( ALine : TAsmFlowLine ) : TCmdCompError;
+    Function CodeGenFpuSgnj ( ALine : TAsmFlowLine ) : TCmdCompError;
+    Function CodeGenFpuCmp ( ALine : TAsmFlowLine ) : TCmdCompError;
     Function CodeGenAmo ( ALine : TAsmFlowLine ) : TCmdCompError;
     Function CodeGenFence ( ALine : TAsmFlowLine ) : TCmdCompError;
     Function CodeGenCsr ( ALine : TAsmFlowLine ) : TCmdCompError;
@@ -264,6 +267,9 @@ Begin
  BResult:=CodeGenBx(ALine);              if BResult<>cceCheckNext then break;
  BResult:=CodeGenAluU(ALine);            if BResult<>cceCheckNext then break;
  BResult:=CodeGenFpuRR(ALine);           if BResult<>cceCheckNext then break;
+ BResult:=CodeGenFpuCvt(ALine);          if BResult<>cceCheckNext then break;
+ BResult:=CodeGenFpuSgnj(ALine);         if BResult<>cceCheckNext then break;
+ BResult:=CodeGenFpuCmp(ALine);          if BResult<>cceCheckNext then break;
  BResult:=CodeGenAmo(ALine);             if BResult<>cceCheckNext then break;
  BResult:=CodeGenFence(ALine);           if BResult<>cceCheckNext then break;
  BResult:=CodeGenCsr(ALine);             if BResult<>cceCheckNext then break;
@@ -1042,7 +1048,7 @@ Begin
 End;
 
 Const
-  CFpuEncFn7 : array [0..3] of Word = ($0, $4, $8, $C);
+  CFpuRREncFn7 : array [0..3] of Word = ($0, $4, $8, $C);
 
 Function TAsmMcuRV.CodeGenFpuRR ( ALine : TAsmFlowLine ) : TCmdCompError;
 Var
@@ -1061,8 +1067,105 @@ Begin
  if BCmdIdx=-1 then break;
 
  if Length(ALine.Params)<>5 then break;
- if LowerCase(ALine.Params[4].Name)<>'rne' then begin ALine.Params[4].AppendError('e','Only "rne" option is supported [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
- BFunc3:=$0; BFunc7:=CFpuEncFn7[BCmdIdx];
+ BFunc3:=$0;
+ if LowerCase(ALine.Params[4].Name)='rne' then BFunc3:=$0
+ else if LowerCase(ALine.Params[4].Name)='rdy' then BFunc3:=$7
+ else begin ALine.Params[4].AppendError('e','Only "rne" option is supported [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+ BFunc7:=CFpuRREncFn7[BCmdIdx];
+ BRdIdx:=GetRegIndex(ALine.Params[1].Name);  if BRdIdx<0 then begin ALine.Params[1].AppendError('e','Invalid RD register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+ BRs1Idx:=GetRegIndex(ALine.Params[2].Name); if BRs1Idx<0 then begin ALine.Params[2].AppendError('e','Invalid RS1 register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+ BRs2Idx:=GetRegIndex(ALine.Params[3].Name); if BRs2Idx<0 then  begin ALine.Params[3].AppendError('e','Invalid RS2 register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+ ALine.AppendDataBinD(CmdGenR(BFunc7,BRs2Idx,BRs1Idx,BFunc3,BRdIdx,$53));
+ Result:=cceCompiled;
+
+ until TRUE;
+End;
+
+Const
+  CFpuCvtEncFn7 : array [0..1] of Word = ($60, $68);
+
+Function TAsmMcuRV.CodeGenFpuCvt ( ALine : TAsmFlowLine ) : TCmdCompError;
+Var
+  BCmdIdx       : Integer;
+  BFunc3,
+  BFunc7        : byte;
+  BRdIdx,
+  BRs1Idx       : Integer;
+  BParamCnt     : Integer;
+Begin
+ Result:=cceCheckNext;
+
+ repeat
+ BFunc7:=0;
+ BCmdIdx:=GetStrIndex(ALine.Params[0].Name,'fcvt.w.s fcvt.s.w');
+ if BCmdIdx=-1 then break;
+
+ BParamCnt:=Length(ALine.Params);
+ BFunc3:=$0;
+ if BParamCnt=3 then BFunc3:=$0
+ else if BParamCnt<>4 then break
+ else
+  begin
+  if LowerCase(ALine.Params[3].Name)='rne' then BFunc3:=$0
+  else if LowerCase(ALine.Params[3].Name)='rdy' then BFunc3:=$7
+  else begin ALine.Params[3].AppendError('e','Only "rne" option is supported [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+  end;
+ BFunc7:=CFpuCvtEncFn7[BCmdIdx];
+ BRdIdx:=GetRegIndex(ALine.Params[1].Name);  if BRdIdx<0 then begin ALine.Params[1].AppendError('e','Invalid RD register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+ BRs1Idx:=GetRegIndex(ALine.Params[2].Name); if BRs1Idx<0 then begin ALine.Params[2].AppendError('e','Invalid RS1 register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+ ALine.AppendDataBinD(CmdGenR(BFunc7,0,BRs1Idx,BFunc3,BRdIdx,$53));
+ Result:=cceCompiled;
+
+ until TRUE;
+End;
+
+Function TAsmMcuRV.CodeGenFpuSgnj ( ALine : TAsmFlowLine ) : TCmdCompError;
+Var
+  BCmdIdx       : Integer;
+  BFunc3,
+  BFunc7        : byte;
+  BRdIdx,
+  BRs1Idx,
+  BRs2Idx       : Integer;
+Begin
+ Result:=cceCheckNext;
+
+ repeat
+ BFunc7:=0;
+ BCmdIdx:=GetStrIndex(ALine.Params[0].Name,'fsgnj.s fsgnjn.s fsgnjx.s');
+ if BCmdIdx=-1 then break;
+
+ if Length(ALine.Params)<>4 then break;
+ BFunc3:=BCmdIdx;
+ BFunc7:=$10;
+ BRdIdx:=GetRegIndex(ALine.Params[1].Name);  if BRdIdx<0 then begin ALine.Params[1].AppendError('e','Invalid RD register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+ BRs1Idx:=GetRegIndex(ALine.Params[2].Name); if BRs1Idx<0 then begin ALine.Params[2].AppendError('e','Invalid RS1 register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+ BRs2Idx:=GetRegIndex(ALine.Params[3].Name); if BRs2Idx<0 then  begin ALine.Params[3].AppendError('e','Invalid RS2 register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
+ ALine.AppendDataBinD(CmdGenR(BFunc7,BRs2Idx,BRs1Idx,BFunc3,BRdIdx,$53));
+ Result:=cceCompiled;
+
+ until TRUE;
+End;
+
+Function TAsmMcuRV.CodeGenFpuCmp ( ALine : TAsmFlowLine ) : TCmdCompError;
+Var
+  BCmdIdx       : Integer;
+  BFunc3,
+  BFunc7        : byte;
+  BRdIdx,
+  BRs1Idx,
+  BRs2Idx       : Integer;
+Begin
+ Result:=cceCheckNext;
+
+ repeat
+ BFunc7:=0;
+ BCmdIdx:=GetStrIndex(ALine.Params[0].Name,'fle.s flt.s feq.s');
+ if BCmdIdx=-1 then break;
+
+ if Length(ALine.Params)<>4 then break;
+ BFunc3:=BCmdIdx;
+ BFunc7:=$50;
  BRdIdx:=GetRegIndex(ALine.Params[1].Name);  if BRdIdx<0 then begin ALine.Params[1].AppendError('e','Invalid RD register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
  BRs1Idx:=GetRegIndex(ALine.Params[2].Name); if BRs1Idx<0 then begin ALine.Params[2].AppendError('e','Invalid RS1 register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;
  BRs2Idx:=GetRegIndex(ALine.Params[3].Name); if BRs2Idx<0 then  begin ALine.Params[3].AppendError('e','Invalid RS2 register [R:TAsmMcuRV.CodeGenFpuRR]'); break; end;

@@ -188,7 +188,7 @@ Var
 Begin
  Inherited;
  FKeyWordsA:=' align file option text data bss globl type size ident comm ';
- FKeyWordsB:=' '+CCmdNamesRV+' '+CCmdPseudoRV+' ';
+ FKeyWordsB:=' '+CCmdNamesRVa+' '+CCmdPseudoRV+' ';
  BObjectsSrv:='x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 eip';
  while BObjectsSrv<>'' do Objects.Append(UpperCase(ReadParamStr(BObjectsSrv)));
  BObjectsSrv:='zero ra sp gp tp t0 t1 t2 s0 s1 a0 a1 a2 a3 a4 a5';
@@ -371,7 +371,7 @@ Begin
  if StrInList(FExt,'asm') then begin FParent.ImageIndex:=1; FHighlighter:=TZHighlighterAsm.Create(FEdit); end
  else if StrInList(FExt,'s srv i') then begin FParent.ImageIndex:=7; FHighlighter:=TZHighlighterSrv.Create(FEdit); end
  else if StrInList(FExt,'pas') then begin FParent.ImageIndex:=2; FHighlighter:=TZHighlighterPas.Create(FEdit); end
- else if StrInList(FExt,'c ci') then begin FParent.ImageIndex:=3; FHighlighter:=TZHighlighterCpp.Create(FEdit); end
+ else if StrInList(FExt,'c cpp ci') then begin FParent.ImageIndex:=3; FHighlighter:=TZHighlighterCpp.Create(FEdit); end
  else if StrInList(FExt,'py') then begin FParent.ImageIndex:=4; FHighlighter:=TSynPythonSyn.Create(FEdit); end
  else if StrInList(FExt,'rs') then begin FParent.ImageIndex:=5; FHighlighter:=TZHighlighterRust.Create(FEdit); end
  else if StrInList(FExt,'wasm') then begin BSpecialType:=stWasm; FParent.ImageIndex:=8; FHighlighter:=TZHighlighterWasm.Create(FEdit); FEdit.ReadOnly:=TRUE; end // ToDo: ## Add disassembly

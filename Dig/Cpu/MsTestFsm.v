@@ -29,7 +29,7 @@ module MsTestFsm
 
  MsDffList #(.CRegLen(CStLen+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BState, BLoadFW}),
    .ADataO({FState, FLoadFW})
   );

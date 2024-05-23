@@ -1,10 +1,10 @@
 module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, CIoSpace=16'h0300, CIrqCnt=8)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input AExecEn, input ADbgStep,
+  input AClkH, AResetHN, AClkHEn,
+  input AExecEn, ADbgStep,
   output [31:3] ARomAddr, input [63:0] ARomMiso, output ARomRdEn,
   output [31:3] ARamAddr, input [63:0] ARamMiso, output [63:0] ARamMosi, output [7:0] ARamWrEn, ARamRdEn,
-  output [15:0] AIoAddr, input [63:0] AIoMiso, output [63:0] AIoMosi, output [3:0] AIoWrSize, AIoRdSize, input AIoBusy,
+  output [15:0] AIoAddr, input [63:0] AIoMiso, output [63:0] AIoMosi, output [3:0] AIoWrSize, AIoRdSize, input AIoBusy, input AIoSrq,
   input [CCoreCnt-1:0] ADbgCoreIdx, input [11:0] ADbgRegRdIdx, output [63:0] ADbgRegMiso,
   output [CCoreCnt-1:0] ATEnd, ATrap, output [CCoreCnt*32-1:0] AIpThis, output [CCoreCnt-1:0] ACmdDecReady,
   input [CIrqCnt-1:0] AIrq,
@@ -60,7 +60,7 @@ module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, C
  wire [CCoreCnt*64-1:0] BPortMosi;
  wire [63:0] BPortMiso;
  wire [CCoreCnt*4-1:0] BPortWrSize, BPortRdSize;
- wire [CCoreCnt-1:0] BPortAck;
+ wire [CCoreCnt-1:0] BPortAck, BPortSrq;
 
  wire [31:3] BRomAddr; wire BRomRdEn;
 
@@ -71,10 +71,10 @@ module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, C
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ACodeAddr(BCodeAddr), .ACodeMiso(BCodeMiso), .ACodeReq(BCodeReq), .ACodeAck(BCodeAck),
    .ADataAddr(BDataAddr), .ADataMiso(BDataMiso), .ADataMosi(BDataMosi), .ADataWrSize(BDataWrSize), .ADataRdSize(BDataRdSize), .ADataAck(BDataAck),
-   .APortAddr(BPortAddr), .APortMiso(BPortMiso), .APortMosi(BPortMosi), .APortWrSize(BPortWrSize), .APortRdSize(BPortRdSize), .APortAck(BPortAck),
+   .APortAddr(BPortAddr), .APortMiso(BPortMiso), .APortMosi(BPortMosi), .APortWrSize(BPortWrSize), .APortRdSize(BPortRdSize), .APortAck(BPortAck), .APortSrq(BPortSrq),
    .ARomAddr(BRomAddr), .ARomMiso(ARomMiso), .ARomRdEn(BRomRdEn),
    .ARamAddr(ARamAddr), .ARamMiso(ARamMiso), .ARamMosi(ARamMosi), .ARamWrEn(ARamWrEn), .ARamRdEn(ARamRdEn),
-   .AIoAddr(AIoAddr), .AIoMosi(AIoMosi), .AIoMiso(AIoMiso), .AIoWrSize(AIoWrSize), .AIoRdSize(AIoRdSize), .AIoBusy(AIoBusy)
+   .AIoAddr(AIoAddr), .AIoMosi(AIoMosi), .AIoMiso(AIoMiso), .AIoWrSize(AIoWrSize), .AIoRdSize(AIoRdSize), .AIoBusy(AIoBusy), .AIoSrq(AIoSrq)
   );
 
  assign ARomAddr = BRomAddr | BCtrlRomAddr;
@@ -100,7 +100,7 @@ module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, C
    .ADataAddr(BDataAddrCpu), .ADataMiso(BDataMisoCpu), .ADataMosi(BDataMosiCpu), .ADataWrSize(BDataWrSizeCpu), .ADataRdSize(BDataRdSizeCpu), .ADataAck(BDataAckCpu),
    .ASysCoreSel(BSysCoreSel | ADbgCoreIdx), .AContPtrMiso(BContPtrMisoA), .AIsIsr(BIsIsr), .AContPtrWrEn(BContPtrWrEn),
    .ASetIrqSwtBase(BSetIrqSwtBase),
-   .AIrqBusyList(BIrqBusyListA), .AIrqToProcess(BIrqToProcess),
+   .AIrqBusyList(BIrqBusyListA), .AIrqToProcess(BIrqToProcess), .ASrq(BPortSrq),
    .ARegMosi(BRegMosi), .ARegMiso(BRegMisoA), .ARegRdIdx(BRegRdIdx | ADbgRegRdIdx), .ARegWrIdx(BRegWrIdx),
    .ATEnd(ATEnd), .ATrap(ATrap), .AIpThis(AIpThis), .ACmdDecReady(ACmdDecReady),
    .ASysReq(BSysReq), .ASysAck(BSysAck), .ASiLock(BSiLock),
@@ -157,7 +157,7 @@ module MssdMpuItem
  wire [31:0] BAddrToAdd = LCmpGran ? {LNewAddrA, 12'h0} : {8'h0, LNewAddrA, 4'h0};
  wire BIsHit = (BAddrToCmp>=LCmpAddrS) & (BAddrToCmp<LCmpAddrE);
 
- assign AAddrAdd = BInUse ? BAddrToAdd : 32'h0;
+ assign AAddrAdd = (BInUse & BIsHit) ? BAddrToAdd : 32'h0;
  
  assign AInUse = BInUse;
  assign AIsHit = BIsHit;

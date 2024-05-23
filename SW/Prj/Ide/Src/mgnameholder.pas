@@ -29,6 +29,8 @@ Type
            ocOutF,
          ocSrcG, ocGrpG,
            ocSrcF,
+         ocLocG,
+           ocLocF,
          ocTstG,
            ocTstF,
        ocTleG,
@@ -37,7 +39,9 @@ Type
          ocLnkG,
            ocLnkF,
        ocDbgG,
-         ocDbgF
+         ocDbgF,
+       ocModG,
+         ocModF
     );
 
 {

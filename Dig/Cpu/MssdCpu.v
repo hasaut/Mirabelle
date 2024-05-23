@@ -8,6 +8,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
   input ASysCoreSel, output [31:3] AContPtrMiso, output AIsIsr, input AContPtrWrEn,
   output ASetIrqSwtBase,
   output [CIrqCnt-1:0] AIrqBusyList, input [CIrqCnt-1:0] AIrqToProcess, // Avoid IRQ re-entering
+  input ASrq,
   input [63:0] ARegMosi, output [63:0] ARegMiso, input [11:0] ARegRdIdx, ARegWrIdx,
   output ATEnd, ATrap, output [31:0] AIpThis, output ACmdDecReady,
   // Sys Req/Ack {unlock, lock, end, Swt}
@@ -20,7 +21,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
    IsColRowConflict = (|(AColRowA[11:8] & AColRowB[11:8])) & (|(AColRowA[7:0] & AColRowB[7:0]));
  endfunction
 
- localparam CVliwLen = 119;
+ localparam CVliwLen = 125;
  localparam CVliwNil = {CVliwLen{1'b0}};
 
  // SysCtrl
@@ -42,7 +43,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
 
  MsDffList #(.CRegLen(29+CIrqCnt+CStateLen+16+3+1+1+CVliwLen+23+1+8+256)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BContPtr, BIrqBusyList, BState, BPplList, BSysReq, BSiLock, BStateNZ, BVliw, BIpCache, BKeepIpCache, BLoopDData, BMpuRegs}),
    .ADataO({FContPtr, FIrqBusyList, FState, FPplList, FSysReq, FSiLock, FStateNZ, FVliw, FIpCache, FKeepIpCache, FLoopDData, FMpuRegs})
   );
@@ -71,7 +72,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
  wire  [7:0] LAluSelU,     MAluSelU;
  wire  [3:0] LAluSelS,     MAluSelS;
  wire  [3:0] LAluSelT,     MAluSelT;
- wire  [6:0] LAluSelF,     MAluSelF;
+ wire [12:0] LAluSelF,     MAluSelF;
  wire  [1:0] LMioWrRdEn,   MMioWrRdEn;
  wire  [1:0] LMioSize,     MMioSize;
  wire  [2:0] LMioSignExt,  MMioSignExt;
@@ -137,7 +138,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
  assign BKeepIpCache = BEipJmpUpdate | (FKeepIpCache & ~BCmdValid);
 
  // SysReq
- assign BSysReq = (FSysReq & {3{~ASysAck}}) | {LSysReq[2:1], BJmpEn & LSysReq[0]}; // Lock End Swt
+ assign BSysReq = (FSysReq & {3{~ASysAck}}) | {LSysReq[2:1], BJmpEn & LSysReq[0]} | {2'h0, ASrq}; // Lock End Swt
 
  // CmdQueue
  wire [23:1] BQueLda; // Load address
@@ -205,7 +206,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
  wire BPendDevB = |BDevBPendAny;
  wire BConflictAny = |{BConflictColRow, BRReqDevB & BPendDevB, BEipUpdateAny, BPendMask==12'h701, BPendAnyA & (|MSysReq), LSysReq, FSysReq};
  assign BCmdLenValid = (BQueLen>=MCmdLen) & BQueLenNZ;
- assign BCmdValid = BStateNZ | (&{BCmdLenValid, ~BConflictAny, AExecEn, ACoreEn});
+ assign BCmdValid = BStateNZ | (&{BCmdLenValid, ~BConflictAny, AExecEn, ACoreEn, ~ASrq});
  assign BState = BCmdValid ? BStepNextM : CStateNil;
 
  assign
@@ -264,7 +265,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
    // Alu and Addr
    BRegMuxUX |
    {56'h0, (BGprRdIdxU==12'h201) ? LRegsThis[31:24] : 8'h0} |
-   {32'h0, LSelIp[1] ? {8'h0, LEipThis, 1'b0} : 8'h0} |
+   {32'h0, LSelIp[1] ? {8'h0, LEipThis, 1'b0} : 32'h0} |
    // Sys
    {32'h0, BGprRdIdx[0] ? LRegsThis[31:0] : 32'h0};
 
@@ -352,6 +353,8 @@ module MssdCpu #(parameter CIrqCnt = 16)
   };
  wire [63:0] BMpuRegMiso; MsSelectRow #(.CRowCnt(4), .CColCnt(64)) UMpuRegMiso ( .ADataI(FMpuRegs), .AMask(BMpuRdIdx[3:0]), .ADataO(BMpuRegMiso) );
 
+ wire [23:1] BEipAdd = {FMpuRegs[59:40], 3'h0};
+
  // Ext
  assign AMpuRegs = FMpuRegs;
  assign AContPtrMiso = ASysCoreSel ? FContPtr : 29'h0;
@@ -359,7 +362,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
  assign ASetIrqSwtBase = LSysReq[4];
  assign AIrqBusyList = FIrqBusyList;
  assign ARegMiso = (BGprRdIdxNZ ? BRegMuxU : 64'h0) | BMpuRegMiso;
- assign AIpThis = {8'h0, LEipThis, 1'b0};
+ assign AIpThis = {8'h0, LEipThis+BEipAdd, 1'b0};
  assign ACmdDecReady = &{BCmdLenValid, ~BConflictAny};
  assign ATEnd = LTrap[1];
  assign ATrap = LTrap[0];
@@ -482,7 +485,7 @@ module MssdRegTask
  wire [7:0] FFlags, BFlags; assign BFlags = AFlagWrBus;
  MsDffList #(.CRegLen(23+8)) URegFlEip
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BEip, BFlags}),
    .ADataO({FEip, FFlags})
   );
@@ -522,13 +525,13 @@ endmodule
 
 module MssdAlignToCol ( input [63:0] AData, input [3:0] ADstCol, output [63:0] AResult );
  assign AResult =
-   ((ADstCol==4'hF) ? AData[63:0] : 32'h0) |
-   ((ADstCol==4'h8) ? {AData[31:0], 32'h0} : 32'h0) |
-   ((ADstCol==4'h7) ? {32'h0, AData[31:0]} : 32'h0) |
-   ((ADstCol==4'h4) ? {32'h0, AData[15:0], 16'h0} : 32'h0) |
-   ((ADstCol==4'h3) ? {32'h0, 16'h0, AData[15:0]} : 32'h0) |
-   ((ADstCol==4'h2) ? {32'h0, 16'h0, AData[7:0], 8'h0} : 32'h0) |
-   ((ADstCol==4'h1) ? {32'h0, 16'h0, 8'h0, AData[7:0]} : 32'h0);
+   ((ADstCol==4'hF) ? AData[63:0] : 64'h0) |
+   ((ADstCol==4'h8) ? {AData[31:0], 32'h0} : 64'h0) |
+   ((ADstCol==4'h7) ? {32'h0, AData[31:0]} : 64'h0) |
+   ((ADstCol==4'h4) ? {32'h0, AData[15:0], 16'h0} : 64'h0) |
+   ((ADstCol==4'h3) ? {32'h0, 16'h0, AData[15:0]} : 64'h0) |
+   ((ADstCol==4'h2) ? {32'h0, 16'h0, AData[7:0], 8'h0} : 64'h0) |
+   ((ADstCol==4'h1) ? {32'h0, 16'h0, 8'h0, AData[7:0]} : 64'h0);
 endmodule
 
 module MssdRegMux ( input [511:0] ARegFile, input [11:0] ARegRdIdx, output [63:0] AMux );
@@ -733,7 +736,7 @@ module MssdAluSlow
   input [31:0] AMuxS, AMuxU,
   input [1:0] AWwS, AWwU, AWwR,
   input [7:0] AAluSelU,
-  input [6:0] AAluSelF,
+  input [12:0] AAluSelF,
   input [11:0] ADstColRow,
   output [31:0] ABusBData, output [11:0] ABusBLoad, ABusBPend, output APendAny
  );
@@ -807,7 +810,7 @@ module MssdAluU
 
  MsDffList #(.CRegLen(1+1+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BBusy, BBusH, BZeroDiv}),
    .ADataO({FBusy, FBusH, FZeroDiv})
   );

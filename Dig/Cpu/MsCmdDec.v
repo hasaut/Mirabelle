@@ -11,7 +11,7 @@ module MsCmdDec
   output [1:0] AWwConst, output [31:0] AConst, output [4:0] AMlsc, output [2:0] ALoopD,
   output [7:0] AMuxSrc, output [2:1] ASelIp,
   output [5:0] ARegIdxR, output ADstFlagWr,
-  output AAluSignExt, output [3:0] AAluSelA, output [7:0] AAluSelU, output [3:0] AAluSelS, output [3:0] AAluSelT, output [6:0] AAluSelF,
+  output AAluSignExt, output [3:0] AAluSelA, output [7:0] AAluSelU, output [3:0] AAluSelS, output [3:0] AAluSelT, output [12:0] AAluSelF,
   output [1:0] AMioWrRdEn, output [1:0] AMioSize, output [2:0] AMioSignExt,
   input ACmdLenValid, input [9:0] AStepThis, output [9:0] AStepNext,
   input [15:0] APplListThis, output [15:0] APplListNext,
@@ -42,7 +42,7 @@ module MsCmdDec
  wire  [7:0] MSdAluSelU,       MRvAluSelU;
  wire  [3:0] MSdAluSelS,       MRvAluSelS;
  wire  [3:0] MSdAluSelT,       MRvAluSelT;
- wire  [6:0] MSdAluSelF,       MRvAluSelF;
+ wire [12:0] MSdAluSelF,       MRvAluSelF;
  wire  [1:0] MSdMioWrRdEn,     MRvMioWrRdEn;
  wire  [1:0] MSdMioSize,       MRvMioSize;
  wire  [2:0] MSdMioSignExt,    MRvMioSignExt;

@@ -22,7 +22,7 @@ module MsFpuSA
  (
   input AClkH, input AResetHN, input AClkHEn,
   input [31:0] AMuxS, input [31:0] AMuxU,
-  input [6:0] AAluSel, // # round trunc itf div mul sub add
+  input [12:0] AAluSel, // feq flt fle fsgnjx fsgnjn fsgnj round trunc itf div mul sub add
   // Common MulDiv
   output [31:0] AMulDivDataS, output [31:0] AMulDivDataD, output [1:0] AMulDivStart,
   input [31:0] AMulDivDataH, AMulDivDataR, input AMulDivWrEn, // DataH = Resid
@@ -30,25 +30,31 @@ module MsFpuSA
   output [31:0] AFpuRes, output AFpuAck
  );
 
- localparam IOperRnd = 6;
- localparam IOperTru = 5;
- localparam IOperItf = 4;
- localparam IOperDiv = 3;
- localparam IOperMul = 2;
- localparam IOperSub = 1;
- localparam IOperAdd = 0;
+ localparam IOperFeq = 12;
+ localparam IOperFlt = 11;
+ localparam IOperFle = 10;
+ localparam IOperSjx =  9;
+ localparam IOperSjn =  8;
+ localparam IOperSj  =  7;
+ localparam IOperRnd =  6;
+ localparam IOperTru =  5;
+ localparam IOperItf =  4;
+ localparam IOperDiv =  3;
+ localparam IOperMul =  2;
+ localparam IOperSub =  1;
+ localparam IOperAdd =  0;
 
  // Implementation
- wire [6:0] FOper, BOper;
+ wire [12:0] FOper, BOper;
  wire [31:0] FDataS, BDataS;
  wire [31:0] FDataD, BDataD;
  wire [1:0] FMulDivOper, BMulDivOper;
  wire FMulDivReady, BMulDivReady;
  wire FZeroDiv, BZeroDiv;
 
- MsDffList #(.CRegLen(7+32+32+2+1+1)) ULocalVars
+ MsDffList #(.CRegLen(13+32+32+2+1+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BOper, BDataS, BDataD, BMulDivOper, BMulDivReady, BZeroDiv}),
    .ADataO({FOper, FDataS, FDataD, FMulDivOper, FMulDivReady, FZeroDiv})
   );
@@ -60,14 +66,16 @@ module MsFpuSA
  wire [23:0] BDataDM_Init = BAluSelNZ ? {|AMuxU[30:0], AMuxU[22:0]} : 24'h0;
 
  assign {BOper, BDataS[31:23], BDataD[31:23], BZeroDiv} =
-  (BAluSelNZ ? {AAluSel[6:0], AMuxS[31:23], AMuxU[31:23], ~(|AMuxS[30:0]) & AAluSel[3]} : 26'h0) |
-  ((~BBusBWrEn) ? {FOper, FDataS[31:23], FDataD[31:23], FZeroDiv} : 26'h0);
+  (BAluSelNZ ? {AAluSel[12:0], AMuxS[31:23], AMuxU[31:23], ~(|AMuxS[30:0]) & AAluSel[3]} : 32'h0) |
+  ((~BBusBWrEn) ? {FOper, FDataS[31:23], FDataD[31:23], FZeroDiv} : 32'h0);
 
  // Common
  wire BOperIsAddSub = |FOper[IOperSub:IOperAdd];
  //wire BOperIsMulDiv = |FOper[IOperDiv:IOperMul];
  wire BOperIsTruRnd = |FOper[IOperRnd:IOperTru];
  wire BOperIsItf    =  FOper[IOperItf];
+ wire BOperIsSgn    = |FOper[IOperSjx:IOperSj];
+ wire BOperIsCmp    = |FOper[IOperFeq:IOperFle];
 
  // Common Shr
  wire [31:0] BShrDataI;
@@ -109,11 +117,11 @@ module MsFpuSA
  //wire BDivReady = FMulDivOper[1] & AMulDivWrEn;
 
  assign BDataD[22:0] =
-  ((|{AAluSel[IOperSub:IOperAdd], AAluSel[IOperRnd:IOperTru], AAluSel[IOperItf]}) ? AMuxU[22:0] : 23'h0) |
+  ((|{AAluSel[IOperSub:IOperAdd], AAluSel[IOperRnd:IOperTru], AAluSel[IOperItf], AAluSel[IOperSjx:IOperSj]}) ? AMuxU[22:0] : 23'h0) |
   (BMulDivReady ? AMulDivDataR[22:0] : 23'h0);
 
  assign BDataS[22:0] =
-  ((|{AAluSel[IOperSub:IOperAdd]}) ? AMuxS[22:0] : 23'h0) |
+  ((|{AAluSel[IOperSub:IOperAdd], AAluSel[IOperSjx:IOperSj]}) ? AMuxS[22:0] : 23'h0) |
   (BMulDivReady ? {FMulDivOper[1] & (|AMulDivDataH), 16'h0, AMulDivDataR[28:23]} : 23'h0);
 
  wire [29:0] LDataRMulDivA = {FDataS[5:0], FDataD[22:0], FDataS[22]};
@@ -212,11 +220,25 @@ module MsFpuSA
   (BOperIsTruRnd ? BShrIdxTruRnd : 6'h0);
 
  // MCU Ctrl
+ wire BOperIsC = BOperIsCmp;
+ wire BOperIsS = BOperIsSgn;
  wire BOperIsI = BOperIsTruRnd;
  wire BOperIsF = |{FOper[IOperItf], FMulDivReady, BOperIsAddSub};
- assign BBusBWrEn = BOperIsI | BOperIsF;
+ assign BBusBWrEn = BOperIsC | BOperIsS | BOperIsI | BOperIsF;
+
+ wire BSignSgn =
+  (FOper[IOperSjx] & (FDataD[31] ^ FDataS[31])) |
+  (FOper[IOperSjn] & ~FDataS[31]) |
+  (FOper[IOperSj ] &  FDataS[31]);
+
+ wire [31:0] BDataRC =
+  (FOper[IOperFeq] ? {31'h0, FDataD==FDataS} : 32'h0) |
+  (FOper[IOperFlt] ? {31'h0, FDataD<FDataS} : 32'h0) |
+  (FOper[IOperFle] ? {31'h0, FDataD<=FDataS} : 32'h0);
 
  wire [31:0] BBusBDataI =
+  (BOperIsC ? BDataRC : 32'h0) |
+  (BOperIsS ? {BSignSgn, FDataD[30:0]} : 32'h0) |
   (BOperIsI ? BDataRI : 32'h0) |
   (BOperIsF ? BDataRF : 32'h0);
 

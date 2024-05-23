@@ -1,4 +1,4 @@
-module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, CIrqCnt=8)
+module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIrqCnt=8)
  (
   input AClkH, input AResetHN, input AClkHEn,
   input AExecEn, input ADbgStep,
@@ -85,7 +85,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
 
  MsDffList #(.CRegLen(2+2+CStateMLen+CStateSysLen+CCoreCnt+3+64+4+CCoreCnt*2+3*8+4+64+64+CCoreCnt+30+30+3*CIrqCnt+CCoreCnt)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BSubcoreIdxBase, BSubcoreIdxStop, BStateM, BStateSys, BCoreEn, BSysReqFn, BRomMiso, BCoreIdxA, BSysReqSrc, BSysCoreSel, BQueMask, BTailIdx, BHeadIdx, BRegIdx, BRamMosi, BRamMiso, BSiLock, BIrqBase, BSwtBase, BIrqIn, BIrqAll, BIrqThis, BCoreCandidate}),
    .ADataO({FSubcoreIdxBase, FSubcoreIdxStop, FStateM, FStateSys, FCoreEn, FSysReqFn, FRomMiso, FCoreIdxA, FSysReqSrc, FSysCoreSel, FQueMask, FTailIdx, FHeadIdx, FRegIdx, FRamMosi, FRamMiso, FSiLock, FIrqBase, FSwtBase, FIrqIn, FIrqAll, FIrqThis, FCoreCandidate})
   );
@@ -124,7 +124,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
  wire [CCoreCnt-1:0] BIrqAck = FStateSys[IStIrqEndA] ? FSysCoreSel : CCoreNil;
 
  wire BSysAckNZ = |ASysAck;
- MsMatrOrRow #(.CRowCnt(CCoreCnt), .CColCnt(3)) USysReqSrc ( .ADataI(BSysAckNZ ? {CCoreCnt{1'b0}} : ASysReq), .ADataO(BSysReqSrc) );
+ MsMatrOrRow #(.CRowCnt(CCoreCnt), .CColCnt(3)) USysReqSrc ( .ADataI(BSysAckNZ ? {(3*CCoreCnt){1'b0}} : ASysReq), .ADataO(BSysReqSrc) );
 
  // IRQ
  // ** Irq
@@ -259,7 +259,7 @@ module MsCpuCtrl #(parameter CCoreCnt=8'h2, CStartAddr=32'h0000, CVersion=8'h8, 
                       FStateSys[IStIrqSwtB] & ARamAck &  LLastRegGpr,
                       FStateSys[IStIrqSwtG] & LLastRegMpu
                      };
- assign BRegIdx = (BRegIdxKeep & ~BRegIdxZero) ? FRegIdx+{3'h0, BRegIdxNext} : 3'h0;
+ assign BRegIdx = (BRegIdxKeep & ~BRegIdxZero) ? FRegIdx+{3'h0, BRegIdxNext} : 4'h0;
 
  assign BRamMiso = ((FStateSys[IStSysSwtF] | FStateSys[IStIrqSwtF]) & ARamAck) ? ARamMiso : FRamMiso;
  assign BRamMosi =  (FStateSys[IStSysSwtA] | FStateSys[IStIrqSwtA]) ? ARegMiso : FRamMosi;
@@ -333,7 +333,7 @@ module MsUnityCtrl #(parameter CLineCnt=2)
  wire [CLineCnt-1:0] FUnityIdx, BUnityIdx;
  MsDffList #(.CRegLen(CLineCnt)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BUnityIdx}),
    .ADataO({FUnityIdx})
   );
@@ -377,10 +377,10 @@ module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CRomBase=32'h1000, CRomSize
   input AClkH, input AResetHN, input AClkHEn,
   input [CCoreCnt*32-1:0] ACodeAddr, output [63:0] ACodeMiso, input [CCoreCnt-1:0] ACodeReq, output [CCoreCnt-1:0] ACodeAck,
   input [CDataCnt*32-1:0] ADataAddr, output [63:0] ADataMiso, input [CDataCnt*64-1:0] ADataMosi, input [CDataCnt*4-1:0] ADataWrSize, ADataRdSize, output [CDataCnt-1:0] ADataAck,
-  input [CCoreCnt*16-1:0] APortAddr, output [63:0] APortMiso, input [CCoreCnt*64-1:0] APortMosi, input [CCoreCnt*4-1:0] APortWrSize, APortRdSize, output [CCoreCnt-1:0] APortAck,
+  input [CCoreCnt*16-1:0] APortAddr, output [63:0] APortMiso, input [CCoreCnt*64-1:0] APortMosi, input [CCoreCnt*4-1:0] APortWrSize, APortRdSize, output [CCoreCnt-1:0] APortAck, APortSrq,
   output [31:3] ARomAddr, input [63:0] ARomMiso, output ARomRdEn,
   output [31:3] ARamAddr, input [63:0] ARamMiso, output [63:0] ARamMosi, output [7:0] ARamWrEn, ARamRdEn,
-  output [15:0] AIoAddr, input [63:0] AIoMiso, output [63:0] AIoMosi, output [3:0] AIoWrSize, AIoRdSize, input AIoBusy
+  output [15:0] AIoAddr, input [63:0] AIoMiso, output [63:0] AIoMosi, output [3:0] AIoWrSize, AIoRdSize, input AIoBusy, input AIoSrq
  );
 
  localparam CCoreNil = {CCoreCnt{1'b0}};
@@ -392,16 +392,19 @@ module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CRomBase=32'h1000, CRomSize
  wire [2:0] FDataScaleAddr, BDataScaleAddr;
  wire [7:0] FDataRdMask, BDataRdMask;
  wire [CCoreCnt-1:0] FPortIdx, BPortIdx;
+ wire [CCoreCnt-1:0] FPortAck, BPortAck;
  wire [15:0] FIoAddr, BIoAddr;
  wire [63:0] FIoMosi, BIoMosi;
  wire [3:0] FIoWrSize, BIoWrSize;
  wire [3:0] FIoRdSize, BIoRdSize;
+ wire FIoBusy, BIoBusy;
+ wire [63:0] FPortMiso, BPortMiso;
 
- MsDffList #(.CRegLen(CCoreCnt+CDataCnt+1+3+8+CCoreCnt+16+64+4+4)) ULocalVars
+ MsDffList #(.CRegLen(CCoreCnt+CDataCnt+1+3+8+CCoreCnt+CCoreCnt+16+64+4+4+1+64)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BCodeIdx, BDataIdx, BDataInRom, BDataScaleAddr, BDataRdMask, BPortIdx, BIoAddr, BIoMosi, BIoWrSize, BIoRdSize}),
-   .ADataO({FCodeIdx, FDataIdx, FDataInRom, FDataScaleAddr, FDataRdMask, FPortIdx, FIoAddr, FIoMosi, FIoWrSize, FIoRdSize})
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .ADataI({BCodeIdx, BDataIdx, BDataInRom, BDataScaleAddr, BDataRdMask, BPortIdx, BPortAck, BIoAddr, BIoMosi, BIoWrSize, BIoRdSize, BIoBusy, BPortMiso}),
+   .ADataO({FCodeIdx, FDataIdx, FDataInRom, FDataScaleAddr, FDataRdMask, FPortIdx, FPortAck, FIoAddr, FIoMosi, FIoWrSize, FIoRdSize, FIoBusy, FPortMiso})
   );
 
  // Code
@@ -461,20 +464,36 @@ module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CRomBase=32'h1000, CRomSize
    .ADataI(BPortReq), .ADataO(BPortIdxA)
   );
 
- assign BPortIdx = AIoBusy ? FPortIdx : BPortIdxA;
- MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(16)) UIoAddr ( .ADataI(APortAddr), .AMask(BPortIdx), .ADataO(BIoAddr) );
- MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(64)) UIoMosi ( .ADataI(APortMosi), .AMask(BPortIdx), .ADataO(BIoMosi) );
- MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(4)) UIoWrSize ( .ADataI(APortWrSize), .AMask(BPortIdx), .ADataO(BIoWrSize) );
- MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(4)) UIoRdSize ( .ADataI(APortRdSize), .AMask(BPortIdx), .ADataO(BIoRdSize) );
+ assign BIoBusy = AIoBusy;
+
+ wire [15:0] BIoAddrA;  MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(16)) UIoAddr ( .ADataI(APortAddr), .AMask(BPortIdxA), .ADataO(BIoAddrA) );
+ wire [63:0] BIoMosiA;  MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(64)) UIoMosi ( .ADataI(APortMosi), .AMask(BPortIdxA), .ADataO(BIoMosiA) );
+ wire [3:0] BIoWrSizeA; MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(4)) UIoWrSize ( .ADataI(APortWrSize), .AMask(BPortIdxA), .ADataO(BIoWrSizeA) );
+ wire [3:0] BIoRdSizeA; MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(4)) UIoRdSize ( .ADataI(APortRdSize), .AMask(BPortIdxA), .ADataO(BIoRdSizeA) );
+
+ // BPortIdxA is changing all the time
+ // So we cannot just lock it when AIoBusy is set. AIoBusy may be kept active for a while, but BPortIdxA will change
+ // That's why we need this complicated construction below
+ wire BBusKeep = FIoBusy & AIoBusy;
+ assign BPortIdx = BBusKeep ? FPortIdx : BPortIdxA;
+ assign {BIoAddr, BIoMosi, BIoWrSize, BIoRdSize} = BBusKeep ? {FIoAddr, FIoMosi, FIoWrSize, FIoRdSize} : {BIoAddrA, BIoMosiA, BIoWrSizeA, BIoRdSizeA};
+ wire [CCoreCnt-1:0] BPortIdxB = FIoBusy ? FPortIdx : BPortIdxA;
+
+ assign BPortAck = AIoBusy ? {CCoreCnt{1'b0}} : BPortIdxB;
+ wire BIoRdSizeNZ = |AIoRdSize;
+ assign BPortMiso = (AIoBusy | ~BIoRdSizeNZ) ? 64'h0 : AIoMiso;
 
  // Out
- assign APortAck = AIoBusy ? {CCoreCnt{1'b0}} : FPortIdx;
- assign APortMiso = AIoMiso;
+ assign APortAck = FPortAck;
+ assign APortSrq = {CCoreCnt{~AIoBusy & AIoSrq}} & BPortIdxB;
+ assign APortMiso = FPortMiso;
 
- assign AIoAddr = FIoAddr;
- assign AIoMosi = FIoMosi;
- assign AIoWrSize = FIoWrSize;
- assign AIoRdSize = FIoRdSize;
+ // There is a combinatorial loop by AIoBusy. That's why FIoBusy is introduced.
+ // Some signals are coming from DFF, and {BIoAddrA, BIoMosiA, BIoWrSizeA, BIoRdSizeA} are independent from AIoBusy
+ assign AIoAddr = FIoBusy ? FIoAddr : BIoAddrA;
+ assign AIoMosi = FIoBusy ? FIoMosi : BIoMosiA;
+ assign AIoWrSize = FIoBusy ? FIoWrSize : BIoWrSizeA;
+ assign AIoRdSize = FIoBusy ? FIoRdSize : BIoRdSizeA;
 
 endmodule
 
@@ -493,7 +512,7 @@ module MsRegX #(parameter CDataLen = 8)
  wire [CDataLen-1:0] FRegData, BRegData;
  MsDffList #(.CRegLen(CDataLen)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI(BRegData),
    .ADataO(FRegData)
   );
@@ -518,7 +537,7 @@ module MsCmdQue
  wire [127:0] FQueBuf, BQueBuf;
  MsDffList #(.CRegLen(23+128)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BQueLda, BQueBuf}),
    .ADataO({FQueLda, FQueBuf})
   );
@@ -555,7 +574,7 @@ module MsMioCtrl #(parameter CAddrLen=32)
 
  MsDffList #(.CRegLen(CAddrLen+64+2+3)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BAddr, BData, BArgSize, BSignExt}),
    .ADataO({FAddr, FData, FArgSize, FSignExt})
   );
@@ -588,8 +607,8 @@ module MsMioCtrl #(parameter CAddrLen=32)
 
  assign AExtAddr = BAddr;
  assign AExtMosi = BData;
- assign AExtWrSize = BWrRdActive[1] ? BArgSizeDec : 3'h0;
- assign AExtRdSize = BWrRdActive[0] ? BArgSizeDec : 3'h0;
+ assign AExtWrSize = BWrRdActive[1] ? BArgSizeDec : 4'h0;
+ assign AExtRdSize = BWrRdActive[0] ? BArgSizeDec : 4'h0;
 endmodule
 
 // *********************
@@ -617,7 +636,7 @@ module MsBusBCtrl_20210426 #(parameter CDataLen=32)
 
  MsDffList #(.CRegLen(2+2+1+2*12+CDataLen)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BState, BOper, BPendAny, BLoadRegIdx, BPendRegIdx, BExtMiso}),
    .ADataO({FState, FOper, FPendAny, FLoadRegIdx, FPendRegIdx, FExtMiso})
   );
@@ -667,7 +686,7 @@ module MsBusBCtrl #(parameter CDataLen=32)
 
  MsDffList #(.CRegLen(2+1+2*12)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BOper, BPendAny, BLoadRegIdx, BPendRegIdx}),
    .ADataO({FOper, FPendAny, FLoadRegIdx, FPendRegIdx})
   );
@@ -755,7 +774,7 @@ module MsMulDiv
 
  MsDffList #(.CRegLen(32+33+32+3+2+3+1+2)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BDataC, BDataB, BDataA, BStep, BOper, BSizeI, BSizeF, BNegRes}),
    .ADataO({FDataC, FDataB, FDataA, FStep, FOper, FSizeI, FSizeF, FNegRes})
   );

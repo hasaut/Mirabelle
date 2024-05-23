@@ -1,15 +1,15 @@
 object SdMainForm: TSdMainForm
   Left = 552
-  Height = 490
+  Height = 466
   Top = 184
   Width = 745
   Caption = 'Mirabelle IDE'
-  ClientHeight = 470
+  ClientHeight = 466
   ClientWidth = 745
   Menu = MainMenu1
   OnClose = FormClose
   OnShow = FormShow
-  LCLVersion = '2.2.0.2'
+  LCLVersion = '3.2.0.0'
   object PnlTop: TPanel
     Left = 0
     Height = 19
@@ -25,7 +25,7 @@ object SdMainForm: TSdMainForm
   object PnlBot: TPanel
     Left = 0
     Height = 103
-    Top = 367
+    Top = 363
     Width = 745
     Align = alBottom
     BevelOuter = bvLowered
@@ -38,11 +38,11 @@ object SdMainForm: TSdMainForm
       Height = 101
       Top = 1
       Width = 743
-      ActivePage = TsBrkp
+      ActivePage = TsVars
       Align = alClient
       Images = IlFrames
       ParentFont = False
-      TabIndex = 2
+      TabIndex = 3
       TabOrder = 0
       object TsInfo: TTabSheet
         Caption = 'TsInfo'
@@ -90,20 +90,20 @@ object SdMainForm: TSdMainForm
     Cursor = crVSplit
     Left = 0
     Height = 5
-    Top = 362
+    Top = 358
     Width = 745
     Align = alBottom
     ResizeAnchor = akBottom
   end
   object SpTvProject: TSplitter
     Left = 0
-    Height = 343
+    Height = 339
     Top = 19
     Width = 5
   end
   object SpDebugWnd: TSplitter
     Left = 740
-    Height = 343
+    Height = 339
     Top = 19
     Width = 5
     Align = alRight

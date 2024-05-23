@@ -47,7 +47,7 @@ ProcMainA:
         mov     al,0x15
         mov     [IobTimerACtrl],al
         mov     ax,0x0001
-        mov     [IowIrqEn],ax
+        ;mov     [IowIrqEn],ax
 
         mov     al,0x90
         setfl
@@ -58,7 +58,12 @@ ProcMainA:
         ;call    UartRecvB
 
      pmaWait:
-        call    MainA
+        ;call    MainA
+        mov     al,0x80
+        mov     [IobTimerAIrqR],al
+        inc     bwx
+        nop
+        nop
         inc     dr
         swt     pmaWait
 

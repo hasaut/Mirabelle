@@ -3,6 +3,7 @@ Public AppendThreadRv
 Public AppendIrqSd
 
 Public AppendThreadRv_2seg
+Public AppendThreadRv_2seg_IO
 
 .seg code
 
@@ -63,6 +64,29 @@ AppendThreadRv_2seg:
         mov     [ewx++],zwx
         mov     [ewx++],zwx
         mov     [ewx++],zwx
+        mov     awx,[esp+8]
+        mov     [dwx],awx
+        mov     [bwx++],dwx
+        leave   awx|cwx|ewx,0,0
+
+AppendThreadRv_2seg_IO:
+        enter   awx|cwx|ewx,0
+        mov     cl,16
+        mov     ewx,dwx
+   atr2sioFillZNext:
+        mov     [ewx++],zwx
+        dec     cl
+        bnz     atr2sioFillZNext
+        mov     [ewx++],fwx
+        mov     [ewx++],fr
+        mov     [ewx++],gwx
+        mov     [ewx++],gr
+        mov     [ewx++],zwx
+        mov     [ewx++],zwx
+        mov     awx,0x01000000
+        mov     [ewx++],awx
+        mov     awx,0x60000000
+        mov     [ewx++],awx
         mov     awx,[esp+8]
         mov     [dwx],awx
         mov     [bwx++],dwx

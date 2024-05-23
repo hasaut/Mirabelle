@@ -18,7 +18,11 @@ Const
                    'urem srem '+
                    'inc dec nop trap getfl setfl udiv sdiv mul fadd fsub fmul fdiv itf trunc round '+
                    'info siend silock siunlock siconf pushzx pushsx bt btr bts btx';
-  CCmdNamesRV    = 'swt ecall eret auipc fence add sub sll slt sltu xor srl sra or and addi slti sltiu xori ori andi slli srli srai jal jalr lui beq bne blt bge bltu bgeu mul mulh mulhsu mulhu div divu rem remu amoswap amoadd amoxor amoand amoor';
+  CCmdNamesRV    = 'swt ecall eret auipc fence add sub sll slt sltu xor srl sra or and addi slti sltiu xori ori andi slli srli srai '+
+                   'jal jalr lui beq bne blt bge bltu bgeu '+
+                   'mul mulh mulhsu mulhu div divu rem remu '+
+                   'fadd fsub fmul fdiv fcvt feq flt fle fsgnj fsgnjn fsgnjx '+
+                   'amoswap amoadd amoxor amoand amoor';
   CCmdPseudoRV   = 'ret lb lh lw lbu lhu sb sh sw jr call li la mv j beqz bnez bltz bgez blez bgtu bgt ble bgtu bleu trap nop snez sgtz sltz seqz tail neg';
 
 implementation

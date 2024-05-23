@@ -21,6 +21,7 @@ Const
     ' repeat until'+
     ' begin end'+
     ' array of'+
+    ' absolute'+
     ' '
    );
 
@@ -109,7 +110,7 @@ Function TParsPas.IsTargConstant ( Const ANameS : string ) : string;
 Var
   BNameS,
   BNameA        : string;
-  BDataC        : Cardinal;
+  BDataC        : QWord;
   BDataF        : Extended;
   BLen          : Integer;
   BDataI        : Integer;
@@ -147,13 +148,14 @@ Begin
   BDataC:=0;
   while BNameS<>'' do
    begin
-   if BDataC>=$0FFFFFFF then break;
+   if BDataC>$FFFFFFFF then break;
    if BNameS[1] in ['0'..'9'] then BDataC:=(BDataC shl 4) or Cardinal(ord(BNameS[1])-ord('0'))
    else if BNameS[1] in ['a'..'f'] then BDataC:=(BDataC shl 4) or Cardinal(ord(BNameS[1])-ord('a')+10)
    else break;
    Delete(BNameS,1,1);
    end;
   if BNameS<>'' then break;
+  if BDataC>$FFFFFFFF then break;
   Result:=ParsFormatConstX(BDataC);
   break;
   end;
@@ -164,13 +166,14 @@ Begin
   BDataC:=0;
   while BNameS<>'' do
    begin
-   if BDataC>=$0FFFFFFF then break;
+   if BDataC>$FFFFFFFF then break;
    if BNameS[1] in ['0'..'9'] then BDataC:=(BDataC shl 4) or Cardinal(ord(BNameS[1])-ord('0'))
    else if BNameS[1] in ['a'..'f'] then BDataC:=(BDataC shl 4) or Cardinal(ord(BNameS[1])-ord('a')+10)
    else break;
    Delete(BNameS,1,1);
    end;
   if BNameS<>'' then break;
+  if BDataC>$FFFFFFFF then break;
   Result:=ParsFormatConstX(BDataC);
   break;
   end;
@@ -356,6 +359,7 @@ Begin
  if IsAllowedName(BReadS)=FALSE then AppendError('e','\r cannot be used as a variable name');
  if Pos(' '+BReadS+' ',BVarList)<>0 then AppendError('e','Identifier \r has just been declared');
  if Pos(CTagM+BReadS+CTagE+' ',BFilterS)<>0 then AppendError('e','Identifier \r is already declared');
+ if Pos(CTagM+BReadS+CTagA,BFilterS)<>0 then AppendError('e','Identifier \r is already declared');
  BVarList:=BVarList+' '+BReadS+' ';
  BReadS:=RdTextS;
  if BReadS=':' then begin ParseTypeA(BTypeS,AKnownTypes,TRUE); break; end;
@@ -458,6 +462,7 @@ Begin
  if IsAllowedName(BReadS)=FALSE then AppendError('e','\r cannot be used as a Const name [R:TParsPas.ParseConst]');
  if FModule.AliasExists(BConstName,TRUE) then AppendError('e','Identifier \r is already declared [R:TParsPas.ParseConst]');
  if Pos(CTagM+BReadS+CTagE+' ',BKnownNamesS)<>0 then AppendError('e','Identifier \r is already declared [R:TParsPas.ParseConst]');
+ if Pos(CTagM+BReadS+CTagA,BKnownNamesS)<>0 then AppendError('e','Identifier \r is already declared [R:TParsPas.ParseConst]');
  if RdTextS<>'=' then begin AppendError('e','= expected, \r found [R:TParsPas.ParseConst]'); SkipText(';'); break; end;
  BReadS:=RdTextS; BConstData:=BReadS;
  repeat
@@ -1203,6 +1208,7 @@ Var
   BNameB        : string;
   BNow          : Double;
   BVarName      : string;
+  BAbsConst     : Cardinal;
 Begin
  Inherited;
 
@@ -1276,7 +1282,17 @@ Begin
   BResultB:=FALSE;
   repeat
   BItemListS:=ParseVar(BVisi,FModule.PublicNames+FModule.PrivateNames+FModule.VisibleNames,FModule.PublicNames+FModule.PrivateNames+FModule.VisibleNames);
-  if RdTextS<>';' then begin AppendError('e','; expected, \r found'); break; end;
+  BReadS:=RdTextS;
+  if BReadS='absolute' then
+   begin
+   DelFirstLastSpace(BItemListS);
+   if Pos(' ',BItemListS)<>0 then begin AppendError('e','Absolute location can be defined to only one variable at a time [R:TParsPas.Parse]'); break; end;
+   BReadS:=RdTextS;
+   if TryStrToInt0x(BReadS,BAbsConst)=FALSE then begin AppendError('e','Cannot convert \r to constant [R:TParsPas.Parse]'); break; end;
+   Insert(CTagA+IntToHex(BAbsConst,8),BItemListS,Length(BItemListS)); BItemListS:=BItemListS+' ';
+   BReadS:=RdTextS;
+   end;
+  if BReadS<>';' then begin AppendError('e','; expected, \r found'); break; end;
   if BVisi='h' then FModule.PublicNames:=FModule.PublicNames+BItemListS
   else FModule.PrivateNames:=FModule.PrivateNames+BItemListS;
   if SensCase(LuTextS)='external' then

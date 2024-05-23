@@ -59,7 +59,7 @@ Type
 
     Procedure Init ( AParent : TTabSheet; ACoreType : char; ACoreIdx : Cardinal; ACorrectSizes : TRegsCorrectSizes );
     Procedure Done;
-    Procedure SetState ( AActive : boolean; Const AMcuType : string; Const AMcxPrev, AMcxThis, AMcxComb : string );
+    Procedure SetState ( AActive : boolean; AMcuType : byte; Const AMcxPrev, AMcxThis, AMcxComb : string );
 
     Function GetViewDeltaX : Integer;
     Function GetViewDeltaY : Integer;
@@ -134,12 +134,9 @@ Begin
  end; // case
 End;
 
-Procedure TDbgRegs.SetState ( AActive : boolean; Const AMcuType : string; Const AMcxPrev, AMcxThis, AMcxComb : string );
-Var
-  BMcuType  : Cardinal;
+Procedure TDbgRegs.SetState ( AActive : boolean; AMcuType : byte; Const AMcxPrev, AMcxThis, AMcxComb : string );
 Begin
- HexToDWordCheck(AMcuType,BMcuType);
- if FMcuType<>BMcuType then begin FMcuType:=BMcuType; SetSizeOpti; CorrectParentSizes; end;
+ if FMcuType<>AMcuType then begin FMcuType:=AMcuType; SetSizeOpti; CorrectParentSizes; end;
  FActive:=AActive;
  FMcxPrev:=AMcxPrev;
  FMcxThis:=AMcxThis;

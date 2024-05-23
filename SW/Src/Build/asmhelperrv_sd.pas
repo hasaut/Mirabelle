@@ -109,14 +109,20 @@ Begin
   ReadParamA(' ',BParamA,BTextPos);
   break;
   end;
-{ if BCmdL='.file' then
+ if Pos('.cfi_',BCmdL)=1 then
+  begin
+  FCmdIs:=acOther;
+  ReadParamA(' ',BParamA,BTextPos);
+  break;
+  end;
+ if BCmdL='.file' then
   begin
   FCmdIs:=acOther;
   ReadParamA(' ',BParamA,BTextPos); AppendParam(BParamA,BTextPos);
   ReadParamA(' ',BParamB,BTextPos); AppendParam(BParamB,BTextPos);
   if BParamB='' then break;
-  if FAsmBase=nil then break;
-  TAsmHelperRiscV(FAsmBase).ParseDotFile(BParamA,BParamB);
+  //if FAsmBase=nil then break;
+  //TAsmHelperRiscV(FAsmBase).ParseDotFile(BParamA,BParamB);
   break;
   end;
  if BCmdL='.loc' then
@@ -126,10 +132,10 @@ Begin
   ReadParamA(' ',BParamB,BTextPos); AppendParam(BParamB,BTextPos);
   ReadParamA(' ',BParamC,BTextPos); AppendParam(BParamC,BTextPos);
   if BParamC='' then break;
-  if FAsmBase=nil then break;
-  TAsmHelperRiscV(FAsmBase).ParseDotLoc(BParamA,BParamB,BParamC);
+  //if FAsmBase=nil then break;
+  //TAsmHelperRiscV(FAsmBase).ParseDotLoc(BParamA,BParamB,BParamC);
   break;
-  end;}
+  end;
  if BCmdL='.option' then
   begin
   FCmdIs:=acOther;
@@ -227,6 +233,15 @@ Begin
   if TryStrToInt(FParams[1].Name,BDummyInt)=FALSE then AppendError('e',FParams[1],'Cannot convert Align to integer [R:TAsmFlowLineRiscV.Parse]');
   FAlign:=1 shl BDummyInt;
   ReadParamA(' ',BParamA,BTextPos); if BParamA<>'' then AppendError('e',AppendParam(BParamA,BTextPos),'Extra parameter in line '+BParamA+' [R:TAsmFlowLineRiscV.Parse]');
+  break;
+  end;
+ if BCmdL='.attribute' then
+  begin
+  ReadParamA(',',BParamA,BTextPos); if BParamA='' then begin AppendError('e',FParams[0],'Attribute parameter is missing [R:TAsmFlowLineRiscV.Parse]'); break; end;
+  if LowerCase(BParamA)='arch' then break;
+  if LowerCase(BParamA)='unaligned_access' then break;
+  if LowerCase(BParamA)='stack_align' then break;
+  AppendError('e',FParams[0],'Attibute parameter is not recognized or not supported [R:TAsmFlowLineRiscV.Parse]');
   break;
   end;
  if BCmdL='.comm' then
@@ -338,6 +353,18 @@ Begin
   until FALSE;
   break;
   end;
+ if BCmdL='.uleb128' then
+  begin
+  if FAsmBase.SkipCodeGen then break;
+  AppendError('e',FParams[0],'Unsupported or not implemented [R:TAsmFlowLineRiscV.Parse]');
+  break;
+  end;
+ if BCmdL='.sleb128' then
+  begin
+  if FAsmBase.SkipCodeGen then break;
+  AppendError('e',FParams[0],'Unsupported or not implemented [R:TAsmFlowLineRiscV.Parse]');
+  break;
+  end;
  if BCmdL='.string' then
   begin
   if FAsmBase.SkipCodeGen then break;
@@ -349,6 +376,7 @@ Begin
   ReadParamC(',',BParamA,BTextPos); if BParamA='' then break;
   AppendParam(BParamA,BTextPos);
   until FALSE;
+  AppendParam('0',BTextPos);
   break;
   end;
  if BCmdL='.data' then

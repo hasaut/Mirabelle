@@ -1,9 +1,10 @@
 module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, parameter CResetDelayW=16)
  (
-  input AClkH, input AResetHN, input AClkHEn,
+  input AClkH, input AResetHN, input AClkHEn, input AResetEN,
   input [15:0] AIoAddr, input [63:0] AIoMosi, input [3:0] AIoWrSize, output AIoAddrAck, output AIoAddrErr,
   input AClkI, input AResetIN,
-  output AClkO, output AResetON 
+  output AClkO, output AResetON,
+  output [7:0] ATest 
  );
 
  localparam CResetDelayWSim = 4;
@@ -60,7 +61,7 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
  wire [CResetDelayWSim-1:0] FResetON, BResetON;
  MsDffList #(.CRegLen(CResetDelayWSim)) ULocalVars
   (
-   .AClkH(AClkO), .AResetHN(AResetIN), .AClkHEn(1'b1),
+   .AClkH(AClkO), .AResetHN(AResetIN), .AClkHEn(1'b1), 
    .ADataI({BResetON}),
    .ADataO({FResetON})
   );
@@ -69,6 +70,7 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
  assign AClkO = AClkI;
  assign AResetON = FResetON[CResetDelayWSim-1];
 
+ assign ATest = {AClkI, AClkO, AResetIN, AResetEN, AResetHN, |FDivider, BCntDecNZ, 1'b0};
 endmodule
 
 module TimerClockSync #(parameter CDividerWidth=8, CDividerValue=8'hFF)
@@ -199,7 +201,7 @@ module ClkDivM #(parameter CBitCnt=4, CHalfME=4'h9) // HalfME = Half-1
 
  MsDffList #(.CRegLen(CBitCnt+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BDivider, BClkOut}),
    .ADataO({FDivider, FClkOut})
   );
@@ -238,7 +240,7 @@ module ClkDivMX
 
  MsDffList #(.CRegLen(8+8+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),  
    .ADataI({BCnt, BSReg, BClkOut}),
    .ADataO({FCnt, FSReg, FClkOut})
   );

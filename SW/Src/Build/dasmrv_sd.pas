@@ -18,7 +18,7 @@ Type
     rvccAddi, rvccSlti, rvccSltiu, rvccXori, rvccOri, rvccAndi, rvccSlli, rvccSrli, rvccSrai,
     rvccAdd, rvccSub, rvccSll, rvccSlt, rvccSltu, rvccXor, rvccSrl, rvccSra, rvccOr, rvccAnd,
     rvccMul, rvccMulh, rvccMulhsu, rvccMulhu, rvccDiv, rvccDivu, rvccRem, rvccRemu,
-    rvccFAdd, rvccFSub, rvccFMul, rvccFDiv,
+    rvccFAdd, rvccFSub, rvccFMul, rvccFDiv, rvccFSgnjS, rvccFSgnjnS, rvccFSgnjxS, rvccFEQS, rvccFLTS, rvccFLES, rvccFCvtWS, rvccFCvtSW,
     rvccFence, rvccFenceI, rvccEcall, rvccEbreak,
     rvccCsrRW, rvccCsrRS, rvccCsrRC
    );
@@ -42,6 +42,8 @@ Type
     FAsmLine    : TAsmFlowLine;
     FAsmBase    : TAsmBase;
 
+    FWriteBack  : boolean;
+
     Procedure RvSubdecR ( ACode : Cardinal );
     Procedure RvSubdecI ( ACode : Cardinal );
     Procedure RvSubdecS ( ACode : Cardinal );
@@ -60,7 +62,7 @@ Type
     Function CmdDecC : boolean;
 
     Function RvCmdDecARx ( ACode73 : word ) : TRvCmdCode;
-    Function RvCmdDecFRx ( ACode7 : word ) : TRvCmdCode;
+    Function RvCmdDecFRx ( Const ASubdec : TRvSubdec ) : TRvCmdCode;
   public
     Constructor Create; Override;
     Destructor Destroy; Override;
@@ -77,6 +79,7 @@ Type
 
     property CmdCode : TRvCmdCode read FCmdCode;
     property Subdec : TRvSubdec read FSubdec;
+    property WriteBack : boolean read FWriteBack;
   end;
 
 implementation
@@ -106,7 +109,7 @@ Const
     'addi', 'slti', 'sltiu', 'xori', 'ori', 'andi', 'slli', 'srli', 'srai',
     'add', 'sub', 'sll', 'slt', 'sltu', 'xor', 'srl', 'sra', 'or', 'and',
     'mul', 'mulh', 'mulhsu', 'mulhu', 'div', 'divu', 'rem', 'remu',
-    'fadd.s', 'fsub.s', 'fmul.s', 'fdiv.s',
+    'fadd.s', 'fsub.s', 'fmul.s', 'fdiv.s', 'fsgnj.s', 'fsgnjn.s', 'fsgnjx.s', 'feq.s', 'flt.s', 'fle.s', 'fcvt.w.s', 'fcvt.s.w',
     'fence', 'fencei',
     'ecall', 'ebreak',
     'csrrw', 'csrrs', 'csrrc'
@@ -308,14 +311,26 @@ Begin
  end;
 End;
 
-Function TExecLineRV.RvCmdDecFRx ( ACode7 : word ) : TRvCmdCode;
+Function TExecLineRV.RvCmdDecFRx ( Const ASubdec : TRvSubdec ) : TRvCmdCode;
 Begin
  Result:=rvccInvalid;
- case ACode7 of
+ case ASubdec.FFn7 of
   $00: Result:=rvccFAdd;
   $04: Result:=rvccFSub;
   $08: Result:=rvccFMul;
   $0C: Result:=rvccFDiv;
+  $10: begin
+       if ASubdec.FFn3=0 then Result:=rvccFSgnjS
+       else if ASubdec.FFn3=1 then Result:=rvccFSgnjnS
+       else if ASubdec.FFn3=2 then Result:=rvccFSgnjxS
+       end;
+  $50: begin
+       if ASubdec.FFn3=2 then Result:=rvccFEQS
+       else if ASubdec.FFn3=1 then Result:=rvccFLTS
+       else if ASubdec.FFn3=0 then Result:=rvccFLES
+       end;
+  $60: if ASubdec.FRs2=0 then Result:=rvccFCvtWS;
+  $68: if ASubdec.FRs2=0 then Result:=rvccFCvtSW;
  end;
 End;
 
@@ -598,6 +613,7 @@ Function TExecLineRV.CmdDec ( AVirtAddr : Cardinal; Const ACodeBin : string ) : 
 Var
   BCode     : Cardinal;
   BSubFn    : Cardinal;
+  BRmS      : string;
 Begin
  Result:=FALSE; FLastError:='';
  FVirtAddr:=AVirtAddr; FBaseAddr:=AVirtAddr;
@@ -626,8 +642,24 @@ Begin
         end;
    $6F: begin // JAL
         RvSubdecJ(BCode); SignExtImm($100000);
-        FCmdCode:=rvccJal;
-        GenCode('%c %d,%r');
+        if FSubdec.FRd=$F then // Replace this with SWT command
+         begin
+         BCode:=((FSubdec.FImm shl 19) and $FFF00000) or $1067;
+         FCodeBin[4]:=Chr((BCode shr 24) and $FF);
+         FCodeBin[3]:=Chr((BCode shr 16) and $FF);
+         FCodeBin[2]:=Chr((BCode shr  8) and $FF);
+         FCodeBin[1]:=Chr((BCode shr  0) and $FF);
+         RvSubdecI(BCode); SignExtImm($800);
+         FSubdec.FImm:=FSubdec.FImm shl 1;
+         FCmdCode:=rvccSwt;
+         GenCode('%c %r');
+         FWriteBack:=TRUE;
+         end
+        else // Normal JAL
+         begin
+         FCmdCode:=rvccJal;
+         GenCode('%c %d,%r');
+         end;
         end;
    $67: begin // JALR
         RvSubdecI(BCode); SignExtImm($800);
@@ -696,10 +728,21 @@ Begin
         end;
    $53: begin // FP
         RvSubdecR(BCode);
-        if FSubdec.FFn3<>0 then begin FLastError:='eOnly RM=000 (i.e. "rne") option is supported for this core [R:TExecLineRV.CmdDec]'; break; end;
-        FCmdCode:=RvCmdDecFRx(FSubdec.FFn7);
+        FCmdCode:=RvCmdDecFRx(FSubdec);
         if FCmdCode=rvccInvalid then begin FLastError:='eInvalid Fn7 code for ARx code [R:TExecLineRV.CmdDec]'; break; end;
-        GenCode('%c %d,%u,%s,rne');
+        if FCmdCode in [rvccFSgnjS, rvccFSgnjnS, rvccFSgnjxS, rvccFEQS, rvccFLTS, rvccFLES] then // no RM field
+         begin
+         GenCode('%c %d,%u,%s');
+         end
+        else
+         begin
+         BRmS:='';
+         if FSubdec.FFn3=0 then BRmS:='rne' // Round to zero RNE
+         else if FSubdec.FFn3=7 then BRmS:='rdy' // Dynamic rounding
+         else begin FLastError:='eOnly RM=000 and RM=111 (i.e. "rne" or dynamic) option is supported for this core [R:TExecLineRV.CmdDec]'; break; end;
+         if FCmdCode in [rvccFCvtWS, rvccFCvtSW] then GenCode('%c %d,%u,'+BRmS)
+         else GenCode('%c %d,%u,%s,'+BRmS);
+         end;
         end;
    $73: begin
         RvSubdecI(BCode);
@@ -798,4 +841,81 @@ Begin
 End;
 
 end.
+{
+aaj@melexis.com
+abu@melexis.com
+aef@melexis.com
+afg@melexis.com
+akh@melexis.com
+alv@melexis.com
+aoc@melexis.com
+aoi@melexis.com
+aui@melexis.com
+bfa@melexis.com
+blb@melexis.com
+bur@melexis.com
+cel@melexis.com
+cgh@melexis.com
+cgu@melexis.com
+chc@melexis.com
+cle@melexis.com
+crv@melexis.com
+csc@melexis.com
+dbq@melexis.com
+dos@melexis.com
+dru@melexis.com
+ebc@melexis.com
+eca@melexis.com
+eid@melexis.com
+elo@melexis.com
+elf@melexis.com
+eng@melexis.com
+epi@melexis.com
+fae@melexis.com
+fhi@melexis.com
+gcl@melexis.com
+gcr@melexis.com
+gdp@melexis.com
+gpn@melexis.com
+hgd@melexis.com
+hwa@melexis.com
+iok@melexis.com
+jcb@melexis.com
+jch@melexis.com
+jcn@melexis.com
+jrs@melexis.com
+jug@melexis.com
+lba@melexis.com
+lld@melexis.com
+llg@melexis.com
+lmb@melexis.com
+lob@melexis.com
+lto@melexis.com
+lzs@melexis.com
+mgl@melexis.com
+mto@melexis.com
+muo@melexis.com
+ndp@melexis.com
+nuf@melexis.com
+oll@melexis.com
+ozh@melexis.com
+pfa@melexis.com
+plp@melexis.com
+psg@melexis.com
+rel@melexis.com
+slr@melexis.com
+sbd@melexis.com
+shu@melexis.com
+sou@melexis.com
+tmh@melexis.com
+tls@melexis.com
+vlr@melexis.com
+voe@melexis.com
+vpo@melexis.com
+wxv@melexis.com
+wya@melexis.com
+yae@melexis.com
+yel@melexis.com
+ysm@melexis.com
+}
 

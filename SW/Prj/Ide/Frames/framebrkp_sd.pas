@@ -102,14 +102,16 @@ End;
 Procedure TWndBrkpSd.LvListResize(Sender: TObject);
 Var
   BWidth    : Integer;
+  BWidthA   : Integer;
 Begin
  repeat
  if FResizeLock then break;
  LvList.Columns[0].Width:=50+LvList.Canvas.TextWidth('000000');
- BWidth:=LvList.ClientWidth-LvList.Columns[0].Width;
+ BWidth:=LvList.ClientWidth-LvList.Columns[0].Width; if BWidth<10 then BWidth:=10;
  LvList.Columns[1].Width:=Round(0.3*BWidth);
  LvList.Columns[2].Width:=Round(0.3*BWidth);
- LvList.Columns[3].Width:=LvList.ClientWidth-LvList.Columns[0].Width-LvList.Columns[1].Width-LvList.Columns[2].Width-20;
+ BWidthA:=LvList.ClientWidth-LvList.Columns[0].Width-LvList.Columns[1].Width-LvList.Columns[2].Width-20; if BWidthA<10 then BWidthA:=10;
+ LvList.Columns[3].Width:=BWidthA;
  until TRUE;
 End;
 

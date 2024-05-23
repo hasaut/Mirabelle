@@ -11,7 +11,7 @@ module RamSX #(parameter CAddrLen=13, CDataLen=128)
 
  MsDffList #(.CRegLen(1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BRdEn}),
    .ADataO({FRdEn})
   );
@@ -46,7 +46,7 @@ module RamSX_Part #(parameter CAddrLen=13, CDataLen=128, CMemSize=2**CAddrLen)
 
  MsDffList #(.CRegLen(1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BRdEn}),
    .ADataO({FRdEn})
   );
@@ -81,14 +81,14 @@ module RamDX #(parameter CAddrLen=11, CDataLen=8)
 
  MsDffList #(.CRegLen(1)) ULocalVarsA
   (
-   .AClkH(AClkA), .AResetHN(AResetAN), .AClkHEn(AClkAEn),
+   .AClkH(AClkA), .AResetHN(AResetAN), .AClkHEn(AClkAEn), 
    .ADataI({BRdEnA}),
    .ADataO({FRdEnA})
   );
 
  MsDffList #(.CRegLen(1)) ULocalVarsB
   (
-   .AClkH(AClkB), .AResetHN(AResetBN), .AClkHEn(AClkAEn),
+   .AClkH(AClkB), .AResetHN(AResetBN), .AClkHEn(AClkAEn), 
    .ADataI({BRdEnB}),
    .ADataO({FRdEnB})
   );

@@ -371,7 +371,7 @@ Begin
  if StrInList(FExt,'asm') then begin FParent.ImageIndex:=1; FHighlighter:=TZHighlighterAsm.Create(FEdit); end
  else if StrInList(FExt,'s srv i') then begin FParent.ImageIndex:=7; FHighlighter:=TZHighlighterSrv.Create(FEdit); end
  else if StrInList(FExt,'pas') then begin FParent.ImageIndex:=2; FHighlighter:=TZHighlighterPas.Create(FEdit); end
- else if StrInList(FExt,'c ci') then begin FParent.ImageIndex:=3; FHighlighter:=TZHighlighterCpp.Create(FEdit); end
+ else if StrInList(FExt,'c cpp ci') then begin FParent.ImageIndex:=3; FHighlighter:=TZHighlighterCpp.Create(FEdit); end
  else if StrInList(FExt,'py') then begin FParent.ImageIndex:=4; FHighlighter:=TSynPythonSyn.Create(FEdit); end
  else if StrInList(FExt,'rs') then begin FParent.ImageIndex:=5; FHighlighter:=TZHighlighterRust.Create(FEdit); end
  else if StrInList(FExt,'wasm') then begin BSpecialType:=stWasm; FParent.ImageIndex:=8; FHighlighter:=TZHighlighterWasm.Create(FEdit); FEdit.ReadOnly:=TRUE; end // ToDo: ## Add disassembly

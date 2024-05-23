@@ -15,6 +15,7 @@ Function ParsExtractElemType ( Const ATarg : string ) : string;
 Function ParsExtractRetType ( Const ATarg : string ) : string;
 Function ParsExtractTypeElemType ( Const AType : string ) : string;
 Function ParsExtractName ( Const ATarg : string ) : string;
+Function ParsExtractNameAbsLoc ( Const ATarg : string; Out AAbsLoc : string ) : string;
 Function ParsExtractNameL ( Const ATarg : string ) : string;
 Function ParsCreateParamsSpec ( Const AProcParams : string ) : string;
 Function ParsReadFieldList ( Const AType : string ) : string;
@@ -24,6 +25,8 @@ Procedure ParsSplitProcRetParams ( Const ATypeS : string; Out ARet, AParams : st
 Function ParsIsConst ( Const ATarg : string ) : boolean;
 Function ParsIsType ( Const ATarg : string ) : boolean;
 Function ParsIsGlobalOrExtern ( Const ATarg : string ) : boolean;
+Function ParsIsAbsLoc ( Const ATarg : string ) : boolean;
+Function ParsExtractNameLoc ( Const AName : string ) : string;
 Function ParsIsExtern ( Const ATarg : string ) : boolean;
 Function ParsIsLocalOrTmp ( Const ATarg : string ) : boolean;
 Function ParsIsLocalOrParamOrTmp ( Const ATarg : string ) : boolean;
@@ -95,6 +98,7 @@ Function ParsRemoveQTypeRef ( Const ATarg : string ) : string;
 Function ParsExtractTypeParentType ( Var AType : string ) : string;
 
 Function ParsRemoveExtern ( Const AVarList : string ) : string;
+Function ParsRemoveAbsLoc ( Const AVarList : string ) : string;
 Function ParsAppendVarListS ( Var AVarListS : string; Const ATarg : string ) : boolean;
 Function ParsSearchTarg ( Const AVarListS : string; Const AName : string ) : string;
 
@@ -224,14 +228,27 @@ End;
 
 Function ParsExtractName ( Const ATarg : string ) : string;
 Var
-  BTarg         : string;
-  BName         : string;
+  BPos          : Integer;
 Begin
- BTarg:=ATarg;
- ReadTillS(BTarg,CTagM);
- BName:=ReadTillS(BTarg,CTagE);
- if Pos(CTagP,BName)=0 then Result:=BName else Result:=ReadTillS(BName,CTagP);
+ Result:=ParsReadBrackets(ATarg,CTagM,CTagE);
+ BPos:=Pos(CTagP,Result); if BPos<>0 then Delete(Result,BPos,Length(Result)-BPos+1);
+ BPos:=Pos(CTagA,Result); if BPos<>0 then Delete(Result,BPos,Length(Result)-BPos+1);
 End;
+
+Function ParsExtractNameAbsLoc ( Const ATarg : string; Out AAbsLoc : string ) : string;
+Var
+  BPos          : Integer;
+Begin
+ AAbsLoc:='';
+ Result:=ParsReadBrackets(ATarg,CTagM,CTagE);
+ BPos:=Pos(CTagP,Result); if BPos<>0 then Delete(Result,BPos,Length(Result)-BPos+1);
+ BPos:=Pos(CTagA,Result); if BPos<>0 then
+  begin
+  AAbsLoc:=Copy(Result,BPos+1,Length(Result)-BPos);
+  Delete(Result,BPos,Length(Result)-BPos+1);
+  end;
+End;
+
 
 Function ParsExtractNameL ( Const ATarg : string ) : string;
 Var
@@ -326,6 +343,20 @@ Var
 Begin
  BSpec:=ParsExtractSpec(ATarg);
  Result:=(Pos('dh',BSpec)=1) or (Pos('df',BSpec)=1) or (Pos('dg',BSpec)=1);
+End;
+
+Function ParsIsAbsLoc ( Const ATarg : string ) : boolean;
+Begin
+ Result:=Pos(CTagA,ATarg)<>0;
+End;
+
+Function ParsExtractNameLoc ( Const AName : string ) : string;
+Var
+  BPos      : Integer;
+Begin
+ Result:='';
+ BPos:=Pos(CTagA,AName);
+ if BPos<>0 then Result:=Copy(AName,BPos+1,Length(AName)-BPos);
 End;
 
 Function ParsIsExtern ( Const ATarg : string ) : boolean;
@@ -1020,6 +1051,21 @@ Begin
   BTarg:=ReadParamStr(BVarList);
   if BTarg='' then break;
   if ParsIsExtern(BTarg)=FALSE then Result:=Result+BTarg+' ';
+  end;
+End;
+
+Function ParsRemoveAbsLoc ( Const AVarList : string ) : string;
+Var
+  BVarList      : string;
+  BTarg         : string;
+Begin
+ BVarList:=AVarList;
+ Result:='';
+ while BVarList<>'' do
+  begin
+  BTarg:=ReadParamStr(BVarList);
+  if BTarg='' then break;
+  if ParsIsAbsLoc(BTarg)=FALSE then Result:=Result+BTarg+' ';
   end;
 End;
 

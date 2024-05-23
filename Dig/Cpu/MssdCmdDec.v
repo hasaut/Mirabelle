@@ -36,7 +36,7 @@ module MssdCmdDec
   output [1:0] AWwConst, output [31:0] AConst, output [4:0] AMlsc, output [2:0] ALoopD,
   output [7:0] AMuxSrc, output [2:1] ASelIp,
   output [5:0] ARegIdxR, output ADstFlagWr,
-  output AAluSignExt, output [3:0] AAluSelA, output [7:0] AAluSelU, output [3:0] AAluSelS, output [3:0] AAluSelT, output [6:0] AAluSelF,
+  output AAluSignExt, output [3:0] AAluSelA, output [7:0] AAluSelU, output [3:0] AAluSelS, output [3:0] AAluSelT, output [12:0] AAluSelF,
   output [1:0] AMioWrRdEn, output [1:0] AMioSize, output [2:0] AMioSignExt,
   input ACmdLenValid, input [9:0] AStepThis, output [9:0] AStepNext,
   input [15:0] APplListThis, output [15:0] APplListNext,
@@ -188,7 +188,7 @@ module MssdCmdDec
  wire BPplListMoreThanE;
 
  // *** Step ***
- wire [13:0] BStepThis = AUseThisCpu ? AStepThis : 14'h0;
+ wire [9:0] BStepThis = AUseThisCpu ? AStepThis : 10'h0;
  wire BStepThisNZ = |BStepThis;
  wire [1:0] BBTxWrRdEn;
 
@@ -341,17 +341,17 @@ module MssdCmdDec
 
  assign AAluSelS    = ((|{BCmdIs[IIsARUI], BCmdIs[IIsARUS]}) ? LCmd4ADec[11:8] : 4'h0);
 
- assign AAluSelT    = ((|{BCmdIs[IIsBTR], AStepNext[IStBtAlu]}) ? LCmd2ADec : 3'h0);
+ assign AAluSelT    = ((|{BCmdIs[IIsBTR], AStepNext[IStBtAlu]}) ? LCmd2ADec : 4'h0);
 
                       // round trunc itf div mul sub add
- assign AAluSelF    = (BCmdIs[IIsAF] ? {LCmd3CDec[2:0], 4'h0} : 7'h0) |
-                      ((|{BCmdIs[IIsFRUC], BCmdIs[IIsFRRS]}) ? {3'h0, LCmd3CDec[ 3:0]} : 7'h0) |
-                      ((|{BCmdIs[IIsARUI], BCmdIs[IIsARUS]}) ? {3'h0, LCmd4ADec[15:12]} : 7'h0);
+ assign AAluSelF    = (BCmdIs[IIsAF] ? {6'h0, LCmd3CDec[2:0], 4'h0} : 13'h0) |
+                      ((|{BCmdIs[IIsFRUC], BCmdIs[IIsFRRS]}) ? {6'h0, 3'h0, LCmd3CDec[ 3:0]} : 13'h0) |
+                      ((|{BCmdIs[IIsARUI], BCmdIs[IIsARUS]}) ? {6'h0, 3'h0, LCmd4ADec[15:12]} : 13'h0);
 
  assign ARegIdxR    = ((|{BCmdIs[IIsARUC], BCmdIs[IIsARRS] & ~LCmd3ADec[3] & ~LCmd3ADec[6], BCmdIs[IIsIDE], BCmdIs[IIsREM]}) ? {LWw, LRegRR} : 6'h0) |
                       ((|{BCmdIs[IIsARRS] & (LCmd3ADec[3] | LCmd3ADec[6])}) ? {LWw, 4'h0} : 6'h0) |
                       ((|{BCmdIs[IIsBM], BCmdIs[IIsBA]}) ? {2'h0, LRegRR} : 6'h0) |
-                      ((|{BCmdIs[IIsBC]}) ? {2'h0, 2'h0} : 6'h0) |
+                      ((|{BCmdIs[IIsBC]}) ? {2'h0, 4'h0} : 6'h0) |
                       ((|{BCmdIs[IIsAF], BCmdIs[IIsBTR], BCmdIs[IIsFRUC], BCmdIs[IIsFRRS]}) ? {2'h2, LRegRR} : 6'h0) |
                       ((|{BCmdIs[IIsARUI], BCmdIs[IIsARUS]}) ? {LWwR, LRegRR} : 6'h0) |
                       ((|{BCmdIs[IIsNTRE] & LCmd3CDec[6]}) ? 6'h01 : 6'h0) |
@@ -375,8 +375,8 @@ module MssdCmdDec
 
  assign AMioSize    = ((|{BCmdIs[IIsMAID], BCmdIs[IIsMARC]}) ? LWw : 2'h0) |
                       ((|{BCmdIsPushC, BCmdIs[IIsPEX]}) ? 2'h2 : 2'h0) |
-                      (BPplWrRdEn ? 2'h2 : 2'h0) |
-                      (BBTxWrRdEn ? 2'h0 : 2'h0);
+                      ((|BPplWrRdEn) ? 2'h2 : 2'h0) |
+                      ((|BBTxWrRdEn) ? 2'h0 : 2'h0);
 
  assign AMioSignExt = {
                        |{BCmdIs[IIsPEX] & AQueTop[10]},

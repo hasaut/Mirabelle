@@ -5,13 +5,14 @@ unit DasmBase_sd;
 interface
 
 uses
-  Classes, AsmTypes_sd, SysUtils;
+  Classes, AsmTypes_sd, SysUtils, ElfFile;
 
 Type
   TCallOrJmp = (cjUnknown, cjJmp, cjCall);
 
   TExecLineBase = class (TObject)
   protected
+    FElfFile    : TElfFile;
     FVirtAddr,
     FBaseAddr   : Cardinal;
     FCodeBin    : string;
@@ -49,6 +50,8 @@ Type
 
     property LabelName : string read FLabelName;
     property DstLabel : string read FDstLabel;
+
+    property ElfFile : TElfFile read FElfFile write FElfFile;
   end;
 
   TSubdecProc = Procedure ( ALine : TExecLineBase );
@@ -58,6 +61,7 @@ Type
   TCodeChunk = class (TObject)
   private
     FParent     : TObject;
+    FElfFile    : TElfFile;
     FConstName  : string;
     FFixBinBase : Cardinal;
     FFixBinData : string;
@@ -76,10 +80,12 @@ Type
     Destructor Destroy; Override;
 
     Procedure Init ( AParent : TObject; Const AFilename : string; ABinBase : Cardinal; Const ABinData : string );
+    Procedure Init ( AParent : TObject; AElfFile : TElfFile; Const AFilename : string; ABase, ASize : Cardinal; ARawData : PByte );
     Function IsInside ( AAddr : Cardinal ) : boolean;
     Function IsOverlap ( AChunk : TCodeChunk ) : boolean;
     Function ReadBinS ( AAddr, ASize : Cardinal ) : string;
     Function ReadBinD ( AAddr : Cardinal; Out AData : Cardinal ) : boolean;
+    Procedure WriteBinS ( AAddr : Cardinal; Const AData : string );
     Function FindMarker ( Const AMarker : string ) : boolean;
     Function ParseRelHdr ( Out AErrorS : string ) : boolean;
 
@@ -95,6 +101,8 @@ Type
     property RelFileHdr : Cardinal read FRelFileHdr;
     property VirtRamBase : Cardinal read FVirtRamBase;
     property VirtRamSize : Cardinal read FVirtRamSize;
+
+    property ElfFile : TElfFile read FElfFile;
   end;
 
   TCodeChunkList = array of TCodeChunk;
@@ -178,10 +186,18 @@ Begin
 End;
 
 Procedure TExecLineBase.SetLabel ( AAddLabel : char );
+Var
+  BPrefLabelName    : string;
 Begin
  repeat
  if FLabelName<>'' then break;
  if AAddLabel=#0 then break;
+ if FElfFile<>nil then
+  begin
+  BPrefLabelName:=FElfFile.FindSymName(FVirtAddr,2);
+  if BPrefLabelName='' then FElfFile.FindProcName(FVirtAddr);
+  if BPrefLabelName<>'' then begin FLabelName:=BPrefLabelName; break; end;
+  end;
  case AAddLabel of
    'j': FLabelName:='m_'+IntToHex(FVirtAddr,8);
    'c': FLabelName:='Proc_'+IntToHex(FVirtAddr,8);
@@ -252,6 +268,32 @@ Begin
  FConstName:=BConstName;
 End;
 
+Procedure TCodeChunk.Init ( AParent : TObject; AElfFile : TElfFile; Const AFilename : string; ABase, ASize : Cardinal; ARawData : PByte );
+Var
+  BConstName    : string;
+  BPos          : Integer;
+  BDataIdx      : Cardinal;
+Begin
+ FParent:=AParent;
+ FElfFile:=AElfFile;
+ FFixBinBase:=ABase;
+ SetLength(FFixBinData,ASize);
+ BDataIdx:=0;
+ while BDataIdx<ASize do
+  begin
+  FFixBinData[1+BDataIdx]:=Char(ARawData[BDataIdx]);
+  inc(BDataIdx);
+  end;
+ InitExecList;
+ BConstName:=ExtractFilename(AFilename);
+ repeat
+ BPos:=Pos('.',BConstName);
+ if BPos=0 then break;
+ BConstName[BPos]:='_';
+ until FALSE;
+ FConstName:=BConstName;
+End;
+
 Function TCodeChunk.IsInside ( AAddr : Cardinal ) : boolean;
 Begin
  Result:=(AAddr>=FFixBinBase) and (AAddr<(FFixBinBase+Length(FFixBinData)));
@@ -297,6 +339,22 @@ Begin
         (Cardinal(BDataS[2]) shl  8) or
         (Cardinal(BDataS[1]) shl  0);
  Result:=TRUE;
+ until TRUE;
+End;
+
+Procedure TCodeChunk.WriteBinS ( AAddr : Cardinal; Const AData : string );
+Var
+  BIndex    : Integer;
+Begin
+ repeat
+ if IsInside(AAddr)=FALSE then break;
+ if Length(FFixBinData)<=(AAddr+Length(AData)-FFixBinBase) then break;
+ BIndex:=0;
+ while BIndex<Length(AData) do
+  begin
+  FFixBinData[1+AAddr-FFixBinBase+BIndex]:=AData[1+BIndex];
+  inc(BIndex);
+  end;
  until TRUE;
 End;
 

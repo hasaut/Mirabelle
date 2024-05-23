@@ -4,6 +4,6 @@ object CdModuleFrame: TCdModuleFrame
   Top = 0
   Width = 450
   TabOrder = 0
-  DesignLeft = 432
-  DesignTop = 421
+  DesignLeft = 174
+  DesignTop = 852
 end

@@ -12,7 +12,7 @@ module IoHex #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(3+16+8+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BLedRgb, BDataHex, BLedY, BLedPwr}),
    .ADataO({FLedRgb, FDataHex, FLedY, FLedPwr})
   );

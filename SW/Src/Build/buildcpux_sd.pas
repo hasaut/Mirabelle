@@ -37,6 +37,7 @@ Begin
  else if BExtL='.srv' then Result:=TAsmMcuRV.Create
  else if BExtL='.i' then Result:=TAsmMcuRV.Create
  else if BExtL='.hex' then Result:=THexMcuRV.Create
+ else if BExtL='.elf' then Result:=THexMcuRV.Create
  else if BExtL='.wasm' then Result:=THexMcuWA.Create
  else if BExtL='.pas' then Result:=TPasMcuMs.Create
  else if (BExtL='.ci') or (BextL='.h') then Result:=TCppMcuMs.Create

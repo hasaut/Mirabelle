@@ -80,6 +80,7 @@ Type
 
     Procedure SetMcuType ( AMcuType : byte );
 
+    property McuType : byte read FMcuType;
     property MemSegList : TMemSegList read FMemSegList;
     property ExecLog : TStringList read FExecLog;
 
@@ -245,7 +246,7 @@ Begin
  while BCoreIdx<Length(FCoreList) do
   begin
   BRegsThis:=BRegsThis+FCoreList[BCoreIdx].RdRegs;
-  if FMcuType=9 then BRegsThis:=BRegsThis+DWordAsStr(0)+DWordAsStr(0)+DWordAsStr(0)+DWordAsStr(0); // Add "MPU" registers
+  if FMcuType=9 then BRegsThis:=BRegsThis+QWordAsStr(0)+QWordAsStr(0)+QWordAsStr(0)+QWordAsStr(0); // Add "MPU" registers
   inc(BCoreIdx);
   end;
  Result:=BRegsThis;

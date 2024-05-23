@@ -282,7 +282,7 @@ Begin
   begin
   BDialog:=TOpenDialog.Create(nil);
   BDialog.Title:='FPGA reflash: select file';
-  BDialog.Filter:='All recognizable files (*.rpd; *.hex; *.bit; *.mcs)|*.rpd;*.hex;*.bit;*.mcs|HEX files (*.hex)|*.hex|All files (*.*)|*.*';
+  BDialog.Filter:='All recognizable files (*.rpd; *.hex; *.bit; *.mcs; *.mcsi)|*.rpd;*.hex;*.bit;*.mcs;*.mcsi|HEX files (*.hex)|*.hex|All files (*.*)|*.*';
   if BDialog.Execute=FALSE then break;
   BFilename:=BDialog.FileName;
   if BFilename='' then break;

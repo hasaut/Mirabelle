@@ -20,9 +20,10 @@ ProcMainB:
         mov     esp,FStack
         mov     al,0x90
         setfl
-        call    MainB
+        ;call    MainB
      pmbWait:
         inc     er
+        bra     pmbWait
         swt     pmbWait
 
 

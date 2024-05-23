@@ -18,6 +18,7 @@ Type
   private
     FFileList           : TStringList;
     FIncSearchPath      : TStringList;
+    FLocSearchPath      : TStringList;
     FOnAppendError      : TOnViewAny;
     FPrjPath,
     FDstPath            : string;
@@ -80,6 +81,7 @@ Type
     Procedure InitPrj ( Const APrjFullName, ADstPath : string; Const ACoreList : string; Const ASegListS : string; Const ADefSegNames : string; Const AExtCompiler, ALinkOptions : string );
     Procedure AppendIncPath ( Const APath : string );
     Procedure AppendSrcName ( Const AFilename : string );
+    Procedure AppendLocPath ( Const APath : string );
     Function AppendSrc ( Const AFilename : string; Const ADbgPath : string ) : TAsmBase;
     Function AppendInc ( Const AFilename : string ) : TAsmBase;
     Function DeleteOld : boolean;
@@ -177,6 +179,7 @@ Begin
  Inherited;
  FFileList:=TStringList.Create;
  FIncSearchPath:=TStringList.Create;
+ FLocSearchPath:=TStringList.Create;
  FLst:=TStringList.Create;
  FDbg:=TStringList.Create;
  FBin:=TMemoryStream.Create;
@@ -192,6 +195,7 @@ Begin
  FBin.Free;
  FDbg.Free;
  FLst.Free;
+ FLocSearchPath.Free;
  FIncSearchPath.Free;
  FFileList.Free;
  Inherited;
@@ -203,6 +207,7 @@ Begin
  ClearSrcList;
  ClearIncList;
  FIncSearchPath.Clear;
+ FLocSearchPath.Clear;
  FFileList.Clear;
  FCodeBin:='';
  FLst.Clear;
@@ -282,6 +287,18 @@ Begin
  FFileList.Append(AFilename);
 End;
 
+Procedure TBuildBase.AppendLocPath ( Const APath : string );
+Var
+  BPath     : string;
+Begin
+ repeat
+ BPath:=ReplacePathSlash(APath); if BPath='' then break;
+ ExcludeTrailingPathDelimiter(BPath);
+ if DirectoryExists(BPath)=FALSE then break;
+ FLocSearchPath.Append(BPath);
+ until TRUE;
+End;
+
 {Procedure TBuildBase.SetSegments ( ACodeSeg, ADataSeg : word );
 Begin
  FCodeStart:=ACodeSeg;
@@ -336,7 +353,7 @@ Var
   BIndex        : Integer;
 Begin
  Result:=CreateUnit(AFilename);
- Result.Init(AFilename,FPrjPath,FDstPath,FIncSearchPath,FDefCodeSeg,FDefDataSeg,@GetUses,@ReadInc,@FUid);
+ Result.Init(AFilename,FPrjPath,FDstPath,FIncSearchPath,FLocSearchPath,FDefCodeSeg,FDefDataSeg,@GetUses,@ReadInc,@FUid);
  if Result.Module<>nil then Result.Module.DbgPath:=ADbgPath;
  BIndex:=Length(FSrcList); SetLength(FSrcList,BIndex+1); FSrcList[BIndex]:=Result;
  Result.OnAppendError:=@AppendErrorA;
@@ -347,7 +364,7 @@ Var
   BIndex        : Integer;
 Begin
  Result:=CreateUnit(AFilename);
- Result.Init(AFilename,FPrjPath,FDstPath,FIncSearchPath,FDefCodeSeg,FDefDataSeg,@GetUses,@ReadInc,@FUid);
+ Result.Init(AFilename,FPrjPath,FDstPath,FIncSearchPath,FLocSearchPath,FDefCodeSeg,FDefDataSeg,@GetUses,@ReadInc,@FUid);
  BIndex:=Length(FIncList); SetLength(FIncList,BIndex+1); FIncList[BIndex]:=Result;
  Result.OnAppendError:=@AppendErrorA;
 End;

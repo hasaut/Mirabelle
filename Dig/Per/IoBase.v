@@ -39,8 +39,9 @@ module IoIntf2a #(parameter CAddrBase=16'h0000, CAddrUsed=32'h00000000)
  assign {AWrEnW, ARdEnW} = {{4{BWrSize[1]}}, {4{BRdSize[1]}}} & {BAddrDec, BAddrDec};
  assign {AWrEnB, ARdEnB} = {{4{BWrSize[0]}}, {4{BRdSize[0]}}} & {BAddrDec, BAddrDec};
 
+ wire BWrRdSizeNZ = |{AWrSize, ARdSize};
  assign AAddrAck = |(CAddrUsed & {AWrEnQ, ARdEnQ, AWrEnD, ARdEnD, AWrEnW, ARdEnW, AWrEnB, ARdEnB});
- assign AAddrErr = BAddrCmp & ~AAddrAck;
+ assign AAddrErr = BWrRdSizeNZ & BAddrCmp & ~AAddrAck;
 
 endmodule
 
@@ -61,8 +62,9 @@ module IoIntf2s #(parameter CAddrBase=16'h0000, CAddrUsed=32'h00000000)
    {4{BWrSize[3]}}, {4{BRdSize[3]}}, {4{BWrSize[2]}}, {4{BRdSize[2]}}, {4{BWrSize[1]}}, {4{BRdSize[1]}}, {4{BWrSize[0]}}, {4{BRdSize[0]}}
   };
 
+ wire BWrRdSizeNZ = |{AIoWrSize, AIoRdSize};
  assign AAddrAck = |(CAddrUsed & AIoAccess);
- assign AAddrErr = BAddrCmp & ~AAddrAck;
+ assign AAddrErr = BWrRdSizeNZ & BAddrCmp & ~AAddrAck;
 endmodule
 
 module IoSizeToMask ( input [3:0] ASize, output [7:0] AMask );
@@ -151,7 +153,7 @@ module PerifTimer #(parameter CDataLen=16)
 
  MsDffList #(.CRegLen(CDataLen+CDataLen+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BTOut, BTimer, BTimerNZ}),
    .ADataO({FTOut, FTimer, FTimerNZ})
   );
@@ -182,7 +184,7 @@ module PerifGpio
 
  MsDffList #(.CRegLen(4+4+4)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BGpioI, BGpioO, BGpioE}),
    .ADataO({FGpioI, FGpioO, FGpioE})
   );
@@ -210,7 +212,7 @@ module MsFifoMx #(parameter CAddrLen=8, CDataLen=16)
 
  MsDffList #(.CRegLen(CAddrLen+1+CAddrLen+1+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BWrIdx, BRdIdx, BHasData}),
    .ADataO({FWrIdx, FRdIdx, FHasData})
   );
@@ -251,7 +253,7 @@ module MsFifo4x #(parameter CDataLen = 8)
 
  MsDffList #(.CRegLen(CDataLen*4+3+3)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BData, BWrIdx, BRdIdx}),
    .ADataO({FData, FWrIdx, FRdIdx})
   );
@@ -288,7 +290,7 @@ module MsFifoDff #(parameter CAddrLen = 2, CDataLen = 8)
 
  MsDffList #(.CRegLen(CDataLen*CRegCnt+(CAddrLen+1)*2)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BData, BWrIdx, BRdIdx}),
    .ADataO({FData, FWrIdx, FRdIdx})
   );
@@ -324,7 +326,7 @@ module MsFifo256b
 
  MsDffList #(.CRegLen(9+9+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BWrIdx, BRdIdx, BHasData}),
    .ADataO({FWrIdx, FRdIdx, FHasData})
   );
@@ -366,7 +368,7 @@ module MsFifo256x #(parameter CDataLen=16)
 
  MsDffList #(.CRegLen(9+9+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BWrIdx, BRdIdx, BHasData}),
    .ADataO({FWrIdx, FRdIdx, FHasData})
   );
@@ -407,7 +409,7 @@ module MsFifo1K
 
  MsDffList #(.CRegLen(11+11+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BWrIdx, BRdIdx, BHasData}),
    .ADataO({FWrIdx, FRdIdx, FHasData})
   );
@@ -448,7 +450,7 @@ module PerifFifoMem #(parameter CAddrLen = 3)
 
  MsDffList #(.CRegLen(CDataLen)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BData}),
    .ADataO({FData})
   );
@@ -522,7 +524,7 @@ module PerifFifoSend #(parameter CAddrLen = 5)
 
  MsDffList #(.CRegLen(1+CAddrLen+1+CAddrLen+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BWrIdx, BRdIdx, BHasData}),
    .ADataO({FWrIdx, FRdIdx, FHasData})
   );
@@ -572,7 +574,7 @@ module PerifFifoRecv #(parameter CAddrLen = 5)
 
  MsDffList #(.CRegLen(1+CAddrLen+1+CAddrLen+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BWrIdx, BRdIdx, BHasData}),
    .ADataO({FWrIdx, FRdIdx, FHasData})
   );
@@ -620,7 +622,7 @@ module PerifCfgBlock #(parameter CRegLen=8, CRegCnt=6)
 
  MsDffList #(.CRegLen(CRegCnt)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BWrIdx}),
    .ADataO({FWrIdx})
   );

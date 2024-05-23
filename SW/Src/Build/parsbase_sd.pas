@@ -615,6 +615,7 @@ Begin
   BReadS:=ReadParamStr(BVisibleNames); if BReadS='' then break;
   if Pos(CTagM+SensCase(BNameS)+CTagE,SensCase(BReadS))<>0 then begin Result:=BReadS; break; end;
   if Pos(CTagM+SensCase(BNameS)+CTagP,SensCase(BReadS))<>0 then begin Result:=BReadS; break; end;
+  if Pos(CTagM+SensCase(BNameS)+CTagA,SensCase(BReadS))<>0 then begin Result:=BReadS; break; end;
   end;
  if Result='' then
   begin
@@ -624,6 +625,7 @@ Begin
    BReadS:=ReadParamStr(BVisibleNames); if BReadS='' then break;
    if Pos(CTagM+SensCase(BNameS)+CTagE,SensCase(BReadS))<>0 then begin Result:=BReadS; break; end;
    if Pos(CTagM+SensCase(BNameS)+CTagP,SensCase(BReadS))<>0 then begin Result:=BReadS; break; end;
+   if Pos(CTagM+SensCase(BNameS)+CTagA,SensCase(BReadS))<>0 then begin Result:=BReadS; break; end;
    end;
   if Result<>'' then AProc.Module.AppendExternName(Result);
   end;

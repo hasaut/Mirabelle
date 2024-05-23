@@ -5,7 +5,7 @@ unit AsmBase_sd;
 interface
 
 uses
-  Classes, SysUtils, ParsBase_sd, LlvmBase_sd, LlvmDbg_sd, AsmTypes_sd, DataFiles, MemSeg_sd, DasmBase_sd;
+  Classes, SysUtils, ParsBase_sd, LlvmBase_sd, LlvmDbg_sd, AsmTypes_sd, DataFiles, ElfFile, MemSeg_sd, DasmBase_sd;
 
 Type
   TCmdIs = (acUnparsed, acSysComment, acEmpty, acInclude, acIncData, acSegName, acOrg, acAlign, acData, acStack, acLabel, acPublic, acExtern, acEqu, acCmd, acOther, acM16aGlobal, acRiscVGlobal);
@@ -124,7 +124,7 @@ Type
     Procedure ClearParams;
     Procedure SplitExecTail ( Const AReadS : string );
     Procedure Parse ( Const AReadS : string; Const AFileName : string; ATextLine : Integer ); Virtual;
-    Procedure Parse ( AMemSeg : TMemSeg; AVirtAddr, ABaseAddr : Cardinal; ACodeBin : string; Const AReadable : string; Const AFilename : string );
+    Procedure Parse ( AMemSeg : TMemSeg; AVirtAddr, ABaseAddr : Cardinal; ACodeBin : string; Const AReadable : string; Const AFilename : string; ATextLine : Integer );
 
     Procedure ClearDataBin;
     Procedure AppendDataBinB ( AData : byte );
@@ -201,6 +201,7 @@ Type
 
   TAsmBase = class(TLlvmObj)
   private
+    FElfFile        : TElfFile;
     FVerifList      : TStringList;
     FCodeStart      : Cardinal;
 
@@ -231,7 +232,8 @@ Type
     FAsmName            : string;
     FTextSrc,
     FAsmSrc             : TStringList;
-    FIncSearchPath      : TStringList;
+    FIncSearchPath,
+    FLocSearchPath      : TStringList;
     FDefCodeSeg,
     FDefDataSeg         : string;
 
@@ -275,7 +277,7 @@ Type
     Procedure ConstFileAppend ( Const AName : string; Const ADataS : string );
     Function ConstFileGetLineData ( AName : string ) : TAsmFlowLine;
 
-    Procedure Init ( Const AFilename : string; Const APrjPath, ADstPath : string; AIncSearchPath : TStringList; Const ADefCodeSeg, ADefDataSeg : string; AGetUses : TGetUses; AReadInc : TReadInc; AUid : PUid );
+    Procedure Init ( Const AFilename : string; Const APrjPath, ADstPath : string; AIncSearchPath, ALocSearchPath : TStringList; Const ADefCodeSeg, ADefDataSeg : string; AGetUses : TGetUses; AReadInc : TReadInc; AUid : PUid );
     Function LoadSrc : boolean;
     Procedure AppendSrcLine ( Const ALine : string );
     Procedure AppendFlowLine ( ALine : TAsmFlowLine );
@@ -708,9 +710,9 @@ Begin
  until TRUE;
 End;
 
-Procedure TAsmFlowLine.Parse ( AMemSeg : TMemSeg; AVirtAddr, ABaseAddr : Cardinal; ACodeBin : string; Const AReadable : string; Const AFilename : string );
+Procedure TAsmFlowLine.Parse ( AMemSeg : TMemSeg; AVirtAddr, ABaseAddr : Cardinal; ACodeBin : string; Const AReadable : string; Const AFilename : string; ATextLine : Integer );
 Begin
- Parse(AReadable,AFilename,0);
+ Parse(AReadable,AFilename,ATextLine);
  FMemSeg:=AMemSeg;
  FVirtAddr:=AVirtAddr;
  FBaseAddr:=ABaseAddr;
@@ -1053,7 +1055,8 @@ Begin
  FVerifList:=TStringList.Create;
  FTextSrc:=TStringList.Create;
  FAsmSrc:=TStringList.Create;
- FIncSearchPath:=TStringList.Create;
+ //FIncSearchPath:=TStringList.Create;
+ //FLocSearchPath:=TStringList.Create;
  FConstStrList:=TStringList.Create;
  FEquList:=TStringList.Create;
  FHiddenLine:=NewFlowLine; FHiddenLine.AsmBase:=Self;
@@ -1064,6 +1067,7 @@ End;
 
 Destructor TAsmBase.Destroy;
 Begin
+ if FElfFile<>nil then FElfFile.Free;
  FHiddenLine.Free;
  FEquList.Free;
  FConstStrList.Free;
@@ -1071,7 +1075,8 @@ Begin
  RefListClear(FExternList);
  RefListClear(FLabelList);
  ClearFlowList;
- FIncSearchPath.Free;
+ //FLocSearchPath.Free;
+ //FIncSearchPath.Free;
  FAsmSrc.Free;
  FTextSrc.Free;
  FVerifList.Free;
@@ -1142,13 +1147,15 @@ Begin
  until TRUE;
 End;
 
-Procedure TAsmBase.Init ( Const AFilename : string; Const APrjPath, ADstPath : string; AIncSearchPath : TStringList; Const ADefCodeSeg, ADefDataSeg : string; AGetUses : TGetUses; AReadInc : TReadInc; AUid : PUid );
+Procedure TAsmBase.Init ( Const AFilename : string; Const APrjPath, ADstPath : string; AIncSearchPath, ALocSearchPath : TStringList; Const ADefCodeSeg, ADefDataSeg : string; AGetUses : TGetUses; AReadInc : TReadInc; AUid : PUid );
 Begin
+ if FElfFile<>nil then FElfFile.Free;
  FSrcName:=AFilename;
  FAsmName:=AFilename;
  FPrjPath:=APrjPath;
  FDstPath:=ADstPath;
- FIncSearchPath.Assign(AIncSearchPath);
+ FIncSearchPath:=AIncSearchPath;
+ FLocSearchPath:=ALocSearchPath;
  FDefCodeSeg:=ADefCodeSeg;
  FDefDataSeg:=ADefDataSeg;
  if FParser<>nil then
@@ -1245,23 +1252,27 @@ Procedure TAsmBase.ExportExecLine ( Const ASegList : TMemSegList; AExec : TExecL
 Var
   BLine     : TAsmFlowLine;
   BMemSeg   : TMemSeg;
+  BSrcName  : string;
+  BSrcPos   : Integer;
 Begin
  repeat
  BMemSeg:=MemSegSearch(ASegList,AExec.BaseAddr);
  if BMemSeg=nil then begin AppendErrorA(FormatError('eMemory segment is not found for disassembled line "'+AExec.AsmLineS+'"',FSrcName,'0')+'[R:TAsmBase.ExportExecLine]'); break; end;
+ BSrcName:=FAsmName; {This is HEX name} BSrcPos:=0;
+ if AExec.ElfFile<>nil then AExec.ElfFile.ResolveSrc(AExec.VirtAddr,BSrcName,BSrcPos);
  if AExec.LabelName<>'' then
   begin
   if (Pos('Proc_',AExec.LabelName)=1) or (Pos('Entry_',AExec.LabelName)=1) then
    begin
    BLine:=AppendFlowLine(AExec.BaseAddr);
-   BLine.Parse(BMemSeg,AExec.VirtAddr,AExec.BaseAddr,'','',FAsmName);
+   BLine.Parse(BMemSeg,AExec.VirtAddr,AExec.BaseAddr,'','',BSrcName,BSrcPos);
    end;
   BLine:=AppendFlowLine(AExec.BaseAddr);
-  BLine.Parse(BMemSeg,AExec.VirtAddr,AExec.BaseAddr,'',AExec.LabelName+':',FAsmName);
+  BLine.Parse(BMemSeg,AExec.VirtAddr,AExec.BaseAddr,'',AExec.LabelName+':',BSrcName,BSrcPos);
   end;
  AExec.CheckFixDstLabel;
  BLine:=AppendFlowLine(AExec.BaseAddr);
- BLine.Parse(BMemSeg,AExec.VirtAddr,AExec.BaseAddr,AExec.CodeBin,AExec.AsmLineS,FAsmName);
+ BLine.Parse(BMemSeg,AExec.VirtAddr,AExec.BaseAddr,AExec.CodeBin,AExec.AsmLineS,BSrcName,BSrcPos);
  until TRUE;
 End;
 
@@ -1296,27 +1307,32 @@ Var
   BFixBinBase   : Cardinal;
   BFixBinData   : string;
   BChunk        : TCodeChunk;
-  BLineIdx      : Integer;
-  BHexOffset    : Cardinal;
+  //BLineIdx      : Integer;
+  //BHexOffset    : Cardinal;
   BChunkIdx     : Integer;
   BErrorS       : string;
+  BProgIdx      : SizeInt;
+  BProgItem     : TElfProgItem;
+
 Begin
  Result:=FALSE;
  FVerifList.Clear;
+ if FElfFile<>nil then FElfFile.Free;
  CodeChunkListClear(FCodeChunkList);
 
  repeat
 
- try
-  FTextSrc.LoadFromFile(FSrcName);
- except
-  break;
- end;
-
  BFileExtS:=LowerCase(ExtractFileExt(FSrcName));
  if BFileExtS='.hex' then
   begin
+  try
+   FTextSrc.LoadFromFile(FSrcName);
+  except
+   break;
+  end;
+
   // Read sections of HEX
+  { Parse with NoPad option
   BError:=''; BLineIdx:=0; BHexOffset:=0;
   repeat
   BError:=HexFileParse(FTextSrc,BLineIdx,BHexOffset,BFixBinBase,BFixBinData);
@@ -1330,7 +1346,21 @@ Begin
   BChunk:=TCodeChunk.Create;
   BChunk.Init(Self,FSrcName,BFixBinBase,BFixBinData);
   CodeChunkListAppend(FCodeChunkList,BChunk);
-  until FALSE;
+  until FALSE;}
+
+  // Parse as 1 section
+  BError:=HexFileParse(FTextSrc,BFixBinBase,BFixBinData);
+  if BFixBinData='' then break;
+  if BError<>'' then
+   begin
+   BLineNr:=ReadParamStr(BError); DelFirstSpace(BError);
+   AppendErrorA(FormatError('e'+BError,FSrcName,BLineNr)+'[R:TAsmBase.LoadSrc]');
+   break;
+   end;
+  BChunk:=TCodeChunk.Create;
+  BChunk.Init(Self,FSrcName,BFixBinBase,BFixBinData);
+  CodeChunkListAppend(FCodeChunkList,BChunk);
+
   if BError<>'' then break;
   // Scan sections for marker
   BChunkIdx:=0; BChunk:=nil;
@@ -1343,13 +1373,53 @@ Begin
   if BChunkIdx>=Length(FCodeChunkList) then begin Result:=TRUE; break; end;
   if Length(FCodeChunkList)<>1 then begin AppendErrorA(FormatError('eThe file is recognised as externally linked HEX, it should contain only 1 section | Origin: "'+FTextSrc.Strings[0]+'"',FSrcName,'1')+'[R:TAsmBase.LoadSrc]'); break; end;
   if BChunk.ParseRelHdr(BErrorS)=FALSE then begin AppendErrorA(FormatError('e'+BErrorS+' | Origin: "'+FTextSrc.Strings[0]+'"',FSrcName,'1')+'[R:TAsmBase.LoadSrc]');   break; end;
-  end
- else
-  begin
-  CorrectTabs(FTextSrc,8);
-  DbgExtractVerifInfo(FTextSrc,FVerifList);
+  Result:=TRUE;
+  break;
   end;
 
+ if BFileExtS='.elf' then
+  begin
+  FElfFile:=TElfFile.Create(FOnAppendError,FSrcName);
+  if FElfFile.Load=FALSE then break;
+  if FElfFile.ParseAll=FALSE then break;
+  FElfFile.MapLocPath(FLocSearchPath);
+
+  BProgIdx:=0;
+  while BProgIdx<FElfFile.ProgList.Count do
+   begin
+   BProgItem:=FElfFile.ProgList.Items[BProgIdx];
+   if (BProgItem.IsLoadable) and (BProgItem.AddrP=FElfFile.ProgramEntry) then
+    begin
+    BChunk:=TCodeChunk.Create;
+    BChunk.Init(Self,FElfFile,FSrcName,BProgItem.AddrP,BProgItem.FileSZ,BProgItem.RawData);
+    CodeChunkListAppend(FCodeChunkList,BChunk);
+    end;
+   inc(BProgIdx);
+   end;
+
+  // Scan sections for marker
+  BChunkIdx:=0; BChunk:=nil;
+  while BChunkIdx<Length(FCodeChunkList) do
+   begin
+   BChunk:=FCodeChunkList[BChunkIdx];
+   if BChunk.FindMarker('MirabelleSD RVE') then break;
+   inc(BChunkIdx);
+   end;
+  if BChunkIdx>=Length(FCodeChunkList) then begin Result:=TRUE; break; end;
+  if Length(FCodeChunkList)<>1 then begin AppendErrorA(FormatError('eThe file is recognised as externally linked ELF, it should contain only 1 section | Origin: "'+FTextSrc.Strings[0]+'"',FSrcName,'1')+'[R:TAsmBase.LoadSrc]'); break; end;
+  if BChunk.ParseRelHdr(BErrorS)=FALSE then begin AppendErrorA(FormatError('e'+BErrorS+' | Origin: "'+FTextSrc.Strings[0]+'"',FSrcName,'1')+'[R:TAsmBase.LoadSrc]');   break; end;
+  Result:=TRUE;
+  break;
+  end;
+
+ // Regular ASM file
+ try
+  FTextSrc.LoadFromFile(FSrcName);
+ except
+  break;
+ end;
+ CorrectTabs(FTextSrc,8);
+ DbgExtractVerifInfo(FTextSrc,FVerifList);
  Result:=TRUE;
  until TRUE;
 End;

@@ -6,7 +6,7 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
   output ASpiSck, input ASpiMiso, output ASpiMosi, output ASpiNCS,
   input [3:0] ASpiGpioI, output [3:0] ASpiGpioO, output [3:0] ASpiGpioE,
   input AClkDutStopped,
-  output [7:0] ATest
+  output [15:0] ATest
  );
 
  // IobCtrl = +0; // WR: SpiCS MSB/LSB 2xTimerSrc Mode[1:0] 2xRFU
@@ -33,7 +33,7 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(1+1+2+2+1+8+1+1+8+8+4+8)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BOutEn, BMsbLsb, BTimerSrc, BMode, BBusy, BSpiBaud, BSpiSck, BSpiMiso, BSpiDataO, BSpiDataI, BBitCount, BBaudDiv}),
    .ADataO({FOutEn, FMsbLsb, FTimerSrc, FMode, FBusy, FSpiBaud, FSpiSck, FSpiMiso, FSpiDataO, FSpiDataI, FBitCount, FBaudDiv})
   );
@@ -64,7 +64,7 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
 
  // Interface RD
  assign AIoMiso =
-   (BIoAccess[IoSizeB+IoOperR+0] ? {56'h0, FOutEn, FMsbLsb, FBusy, BTimerNZ, FMode, 2'h0} : 64'h0) |
+   (BIoAccess[IoSizeB+IoOperR+0] ? {56'h0, FOutEn, AClkDutStopped, FBusy, BTimerNZ, FMode, 2'h0} : 64'h0) | //{56'h0, FOutEn, FMsbLsb, FBusy, BTimerNZ, FMode, 2'h0} : 64'h0) |
    (BIoAccess[IoSizeB+IoOperR+1] ? {56'h0, FSpiBaud} : 64'h0) |
    (BIoAccess[IoSizeB+IoOperR+2] ? {56'h0, FSpiDataI} : 64'h0) |
    (BIoAccess[IoSizeB+IoOperR+3] ? {56'h0, BGpioI} : 64'h0) |
@@ -118,7 +118,11 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
  assign ASpiSck = FSpiSck;
  assign ASpiMosi = FSpiDataO[7];
  assign ASpiNCS = ~FOutEn;
- assign ATest = {ASpiMosi, ASpiMiso, ASpiSck, ASpiNCS, 1'b0, BDataLatch, BBusy, BTimerNZ};
+ assign ATest =
+  {
+   AClkH, BWrData, 6'h0,
+   ASpiMosi, ASpiMiso, ASpiSck, ASpiNCS, 1'b0, BDataLatch, BBusy, BTimerNZ
+  };
 endmodule
 
 // *********************
@@ -316,7 +320,7 @@ module IoI2cM #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(1+2+1+8)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BWrRd, BTimerSrc, BOutEn, BBaud}),
    .ADataO({FWrRd, FTimerSrc, FOutEn, FBaud})
   );
@@ -434,7 +438,7 @@ module IoI2cM_Fsm
 
  MsDffList #(.CRegLen(CStLen+1+1+1+1+4+8+9+9+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BState, BSda, BScl, BSdaIA, BSdaIB, BBitCount, BBaudDiv, BDataO, BDataI, BBusy}),
    .ADataO({FState, FSda, FScl, FSdaIA, FSdaIB, FBitCount, FBaudDiv, FDataO, FDataI, FBusy})
   );
@@ -502,7 +506,7 @@ module SpiFsmMS #(parameter CBaudLen=3, CBaudRate=3'h7)
 
  MsDffList #(.CRegLen(8+4+1+1+CBaudLen)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BDataS, BHalfBitIdx, BActive, BFsmRecv, BBaudDiv}),
    .ADataO({FDataS, FHalfBitIdx, FActive, FFsmRecv, FBaudDiv})
   );
@@ -719,21 +723,23 @@ endmodule
 
 module IoMupetM #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoBusy, output AIoAddrAck, output AIoAddrErr,
-  input ASync1M, input ASync1K, output AIrq,
-  output AMupetSck, input AMupetMiso, output AMupetMosi,
-  input [3:0] AGpioI, output [3:0] AGpioO, AGpioE,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, AIoRdSize, output wire AIoBusy, AIoAddrAck, AIoAddrErr,
+  input wire ASync1M, ASync1K, output wire AIrq,
+  output wire AMupetSck, input wire AMupetMiso, output wire AMupetMosi,
+  input wire [3:0] AGpioI, output wire [3:0] AGpioO, AGpioE,
+  output wire [7:0] ATest
  );
 
  // IobCtrl = +0; // WR: RFU UseTimer TimerSrc[1:0] 4xRFU
  //               // RD: 2xRFU Busy TOutNZ 2xRFU CanWrite CanRead
- // IowBaud = +1; // Read to reset Mosi
- // IobCrc  = +1; // WR: Resets | RD: Crc-4
- // IobData = +2;
+ // IowBaud = +1; // WR: Baud rate
+                  // RD: Read to reset Mosi
+ // IobCrc  = +1; // WR: Resets CRC block | RD: Crc4
+ // IobData = +2; // WR/RD: Transmission/Reception data buffer
  // IodTOut = +3; // Read to reset timer. After reset, timer will count from TOut downto zero
- // IobGpio = +3; //
+ // IobGpio = +3; // WR: GpioE[3:0] GpioO[3:0]
+ //               // RD: 4x0 GpioI[3:0]
 
  // Local variables
  wire [15:0] FMupetBaud, BMupetBaud;
@@ -751,7 +757,7 @@ module IoMupetM #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(16+2+1+1+4+1+1+1+4+16)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BMupetBaud, BTimerSrc, BUseTimer, BBusy, BTckState, BMupetSck, BMupetMosi, BMupetMiso, BCrc, BBaudDiv}),
    .ADataO({FMupetBaud, FTimerSrc, FUseTimer, FBusy, FTckState, FMupetSck, FMupetMosi, FMupetMiso, FCrc, FBaudDiv})
   );
@@ -855,4 +861,5 @@ module IoMupetM #(parameter CAddrBase=16'h0000)
  assign AMupetMosi = FMupetMosi;
  assign ATest = {AClkH, AGpioO[0], BSendRdEn, BRecvWrEn, FBusy, FMupetSck, FMupetMosi, FMupetMiso};
 endmodule
+
 

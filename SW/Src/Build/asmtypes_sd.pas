@@ -25,6 +25,8 @@ Type
    v = From TreeView to Editor
    a = Add file
   }
+
+  TIndex = SizeInt;
   TOnViewAny = Procedure ( Const AMessage : string ) of Object;
   TOnProcAny = Procedure ( Const ACmd : string ) of Object;
   TOnLocalizeError = Procedure ( Const AFilename : string; ATextL, ATextP : Integer; Const AComment : string ) of object;
@@ -55,6 +57,7 @@ Const
   CTagE         = '#';
   CTagM         = ':';
   CTagP         = ',';
+  CTagA         = '|'; // Absolute location
 
   CAsmResWordsA : string = (' extern public code data align startaddr ');
   CAsmResWordsB : string = (' equ dup ');

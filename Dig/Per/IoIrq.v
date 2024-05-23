@@ -29,7 +29,7 @@ module IoIrq16A #(parameter CAddrBase=16'h0000, CIrqCnt=16)
 
  MsDffList #(.CRegLen(16)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BIrqEn}),
    .ADataO({FIrqEn})
   );

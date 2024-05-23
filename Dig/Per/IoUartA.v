@@ -8,7 +8,7 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
  );
 
  // Interface
- // IobCtrl   +0 ; // WR: TxEn RxEn 2xTimerSrc 2Stop TimerAutoRstEn 2xIrqEn
+ // IobCtrl   +0 ; // WR: TxEn RxEn 2xTimerSrc 2Stop TimerAutoRstEn 2xIrqEn  // 00 - stopped, 01 - 1K, 10 - 1M, 11 - CLK
  //                // RD: TxEn RxEn RFU TimerNZ SendBusy BaudUpdate CanWrite CanRead
  // IowBaud   +1 ; // WR/RD: Baud rate
  // IobData   +2 ; // WR/RD: Data
@@ -41,7 +41,7 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(8+16+2+16+1+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BCtrl, BBaud, BFlags, BBaudResult, BBaudUpdate, BSendBusyA}),
    .ADataO({FCtrl, FBaud, FFlags, FBaudResult, FBaudUpdate, FSendBusyA})
   );
@@ -170,7 +170,7 @@ module IoUartAB_F256b #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(8+16+2+16+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BCtrl, BBaud, BFlags, BBaudResult, BBaudUpdate}),
    .ADataO({FCtrl, FBaud, FFlags, FBaudResult, FBaudUpdate})
   );
@@ -273,12 +273,14 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
  );
 
  // Interface
- // IobCtrl   +0 ; // WR: TxEn RxEn 2xTimerSrc 2Stop TimerAutoRstEn 2xIrqEn
- //                // RD: TxEn RxEn RFU TimerNZ SendBusy BaudUpdate CanWrite CanRead
- // IowBaud   +1 ; // WR/RD: Baud rate
- // IobData   +2 ; // WR/RD: Data
- // IowTOut   +3 ; // WR: TOut (Starts from this value and decrementing until zero. Starts at reception, transmission and writing to this port)
- //              ; // RD: TimerThis
+ // IobCtrl      +0 ; // WR: TxEn RxEn 2xTimerSrc 2Stop TimerAutoRstEn 2xIrqEn
+ //                   // RD: TxEn RxEn RFU TimerNZ SendBusy BaudUpdate CanWrite CanRead
+ // IowBaud      +1 ; // WR/RD: Baud rate
+ // IobData      +2 ; // WR/RD: Data
+ // IowTxLow     +2 ; // WR: Set TX low for this time. Period = TimerSrc
+ // IowSendSpace +2 ; // RD: SendSpace
+ // IowTOut      +3 ; // WR: TOut (Starts from this value and decrementing until zero. Starts at reception, transmission and writing to this port)
+ //                 ; // RD: TimerThis
 
  localparam IoSizeQ = 3*8;
  localparam IoSizeD = 2*8;
@@ -288,7 +290,7 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
  localparam IoOperR = 0;
 
  wire [31:0] BIoAccess;
- IoIntf2s #(.CAddrBase(CAddrBase), .CAddrUsed(32'h0000AA55)) UIntf
+ IoIntf2s #(.CAddrBase(CAddrBase), .CAddrUsed(32'h0000EE55)) UIntf
   (
    .AIoAddr(AIoAddr), .AIoWrSize(AIoWrSize), .AIoRdSize(AIoRdSize),
    .AIoAccess(BIoAccess),
@@ -302,12 +304,13 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
  // Local vars (Autobaud)
  wire [15:0] FBaudResult, BBaudResult;
  wire FBaudUpdate, BBaudUpdate;
+ wire [15:0] FSendSpace, BSendSpace;
 
- MsDffList #(.CRegLen(8+16+2+16+1)) ULocalVars
+ MsDffList #(.CRegLen(8+16+2+16+1+16)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BCtrl, BBaud, BFlags, BBaudResult, BBaudUpdate}),
-   .ADataO({FCtrl, FBaud, FFlags, FBaudResult, FBaudUpdate})
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .ADataI({BCtrl, BBaud, BFlags, BBaudResult, BBaudUpdate, BSendSpace}),
+   .ADataO({FCtrl, FBaud, FFlags, FBaudResult, FBaudUpdate, FSendSpace})
   );
 
  // Aliases
@@ -333,19 +336,22 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
  assign AIoMiso =
   (BIoAccess[IoSizeW+IoOperR+3] ? {48'h0, BTimerThis} : 64'h0) |
   (BIoAccess[IoSizeB+IoOperR+2] ? {56'h0, BRecvFifo} : 64'h0) |
+  (BIoAccess[IoSizeW+IoOperR+2] ? {48'h0, FSendSpace} : 64'h0) |
   (BIoAccess[IoSizeW+IoOperR+1] ? {48'h0, FBaudResult} : 64'h0) |
   (BIoAccess[IoSizeB+IoOperR+0] ? {56'h0, FCtrl[7:5], BTimerNZ, BSendBusy, FBaudUpdate, FFlags} : 64'h0);
 
 
  // Fifo (Send)
  wire BSendReq, BSendAck; wire [7:0] BSendData;
+ wire [15:0] BSendDataSize;
  MsFifoMx #(.CAddrLen(CFifoAddrLen), .CDataLen(8)) UFifoSend
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI(AIoMosi[7:0]), .AWrEn(BIoAccess[IoSizeB+IoOperW+2]),
    .ADataO(BSendData), .ARdEn(BSendAck),
-   .AClr(1'b0), .AHasData(BSendReq), .AHasSpace(BFlags[1]), .ADataSize()
+   .AClr(1'b0), .AHasData(BSendReq), .AHasSpace(BFlags[1]), .ADataSize(BSendDataSize)
   );
+ assign BSendSpace = {{(15-CFifoAddrLen){1'b0}}, 1'b1, {CFifoAddrLen{1'b0}}} - BSendDataSize;//({{(16-CFifoAddrLen){1'b0}}, {CFifoAddrLen{1'b1}}} & ~BSendDataSize)+16'h1;
 
  // Fifo (Recv)
  wire [7:0] BRecvData; wire BRecvNow;
@@ -363,6 +369,7 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
  assign BBaudResult = BBaudUpdateA ? BBaudResultA : FBaudResult;
 
  // Codec
+ wire BTxPin;
  UartACodec UCodec
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
@@ -370,7 +377,7 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
    .ABaudI(FBaud), .ABaudO(BBaudResultA), .ABaudUpdate(BBaudUpdateA),
    .AFifoSendData(BSendData), .AFifoSendReady(BSendReq), .AFifoSendRd(BSendAck), .ASendBusy(BSendBusy), .ASyncStart(1'b1),
    .AFifoRecvData(BRecvData), .AFifoRecvWr(BRecvNow),
-   .ARx(ARxPin), .ATx(ATxPin),
+   .ARx(ARxPin), .ATx(BTxPin),
    .ATest()
   );
 
@@ -381,6 +388,16 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
    .AIoMosi(AIoMosi[15:0]), .AIoWrEn(BIoAccess[IoSizeW+IoOperW+3]),
    .ASyncSel(FCtrl[5:4]), .ASync1M(ASync1M), .ASync1K(ASync1K),
    .ATimerReset(LTimerAre & (BSendBusy | BRecvNow)), .ACountEn(1'b1), .ATimerThis(BTimerThis), .ATimerNZ(BTimerNZ)
+  );
+
+ // TxLow
+ wire BTxLow;
+ PerifTimer UTxLow
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AIoMosi(AIoMosi[15:0]), .AIoWrEn(BIoAccess[IoSizeW+IoOperW+2]),
+   .ASyncSel(FCtrl[5:4]), .ASync1M(ASync1M), .ASync1K(ASync1K),
+   .ATimerReset(1'b0), .ACountEn(~BSendBusy), .ATimerThis(), .ATimerNZ(BTxLow)
   );
 
  // Flush
@@ -394,8 +411,9 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
 
  // Common part
  assign AIrq = |(FFlags & LIrqEn);
+ assign ATxPin = ~BTxLow & BTxPin;
 
- assign ATest = {ARxPin, ATxPin, 2'h0, BRecvNow, BIoAccess[IoSizeB+IoOperR+2], FFlags[1:0]};
+ assign ATest = {ARxPin, ATxPin, FBaudUpdate, BIoAccess[IoSizeW+IoOperR+1], BRecvNow, BIoAccess[IoSizeB+IoOperR+2], FFlags[1:0]};
 endmodule
 
 // *** Codec part
@@ -408,7 +426,7 @@ module UartACodec
   input [7:0] AFifoSendData, input AFifoSendReady, output AFifoSendRd, output ASendBusy,
   output [7:0] AFifoRecvData, output AFifoRecvWr,
   input ARx, output ATx,
-  output [7:0] ATest
+  output [15:0] ATest
  );
 
  // Local variables
@@ -425,7 +443,7 @@ module UartACodec
 
  MsDffList #(.CRegLen(9+13+4+2+2+8+13+4)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BSendReg, BSendBaud, BSendBitIdx, BRxBuf, BRecvState, BRecvReg, BRecvBaud, BRecvBitIdx}),
    .ADataO({FSendReg, FSendBaud, FSendBitIdx, FRxBuf, FRecvState, FRecvReg, FRecvBaud, FRecvBitIdx})
   );
@@ -490,13 +508,16 @@ module UartACodec
  assign AFifoRecvWr   = BRecvNextByte;
 
  // Baud part
+ wire [7:0] BAutobaudTest;
  UartAutobaud55A UAutobaud
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ARx(FRxBuf),
    .ABaudUpdate(ABaudUpdate), .ABaudResult(ABaudO),
-   .ATest(ATest)
+   .ATest(BAutobaudTest)
   );
+
+ assign ATest = {AClkH, ABaudUpdate, ARx, ATx, 4'h0, BAutobaudTest};
 
 
  // Common part
@@ -520,7 +541,7 @@ module UartAutobaud55A
 
  MsDffList #(.CRegLen(1+13+4+16+13)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BActive, BSLen, BBitIdx, BBaud, BCmp}),
    .ADataO({FActive, FSLen, FBitIdx, FBaud, FCmp})
   );
@@ -532,36 +553,38 @@ module UartAutobaud55A
  wire BSLenOvf = &FSLen;
  wire BBaudOvf = &FBaud;
 
+ wire BBitIdxNZ = |FBitIdx;
  wire [13:0] BDeltaA = {1'h0, FCmp} - {1'h0, FSLen};
  wire [12:0] BDeltaM = BDeltaA[13] ? ~BDeltaA[12:0]+13'h1 : BDeltaA[12:0];
- wire BBitLenOK = (FBitIdx==4'h0) | // Ignore BitLen for 1st bit, because it is not yet measured
-                  //((FSLen>{4'h0, ATol, 1'h0}) & (BDeltaM<{5'h0, ATol}));
-                  ((FSLen>13'h4) & (BDeltaM<{7'h0, FCmp[12:2]}));
- //wire BBitLenViol = (FBitIdx!=4'h0) & (FSLen>(FCmp+{5'h0, ATol}));
- wire BBitLenViol = (FBitIdx!=4'h0) & (FSLen>(FCmp+{7'h0, FCmp[12:2]}));
+ wire BDeltaMInRange = BDeltaM<={2'h0, FCmp[12:2]};
+ wire BBitLenInRange = (~BBitIdxNZ) | // Ignore BitLen for 1st bit, because it is not yet measured
+                       ((FSLen>13'h2) & BDeltaMInRange);
+ wire BBitLenTooLong = BBitIdxNZ & (FSLen>(FCmp+{2'h0, FCmp[12:2]}));
 
- assign BSLen = BEdgeX ? 13'h1 : FSLen+{12'h0, ~BSLenOvf};
+ assign BSLen = (~FActive | BEdgeX) ? 13'h0 : FSLen+{12'h0, ~BSLenOvf};
 
  wire BStart = ~FActive & BEdgeF;
- wire BStopAny = (BEdgeX & (~BBitLenOK | FBitIdx[3])) | BSLenOvf | BBaudOvf | BBitLenViol;
+ wire BStopAny = (BEdgeX & ~BBitLenInRange) | BSLenOvf | BBaudOvf | (BEdgeX & FBitIdx[3]) | BBitLenTooLong;
 
  assign BActive = BStart | (FActive & ~BStopAny);
 
  assign BBitIdx = FActive ? FBitIdx + {3'h0, BEdgeX} : 4'h0;
- assign BBaud   = BStart ? 16'h1 : FBaud + {15'h0, FActive & ~BStopAny & ~BBitIdx[3]};
+ assign BBaud   = BStart ? 16'h0 : FBaud + {15'h0, FActive & ~BStopAny & ~BBitIdx[3]};
 
+ wire [3:0] BCmpSet = {4{BEdgeX}} & {FBitIdx==4'h7, FBitIdx==4'h3, FBitIdx==4'h1, FBitIdx==4'h0};
+ wire BCmpSetNZ = |BCmpSet;
  assign BCmp = {13{FActive}} &
    (
-    ((BEdgeX & (FBitIdx==4'h0)) ? FBaud[12:0] : 13'h0) |
-    ((BEdgeX & (FBitIdx==4'h1)) ? FBaud[13:1] : 13'h0) |
-    ((BEdgeX & (FBitIdx==4'h3)) ? FBaud[14:2] : 13'h0) |
-    ((BEdgeX & (FBitIdx==4'h7)) ? FBaud[15:3] : 13'h0) |
-    ((~BEdgeX | (FBitIdx!=4'h0) | (FBitIdx==4'h1) | (FBitIdx==4'h3) | (FBitIdx==4'h7)) ? FCmp : 13'h0)
+    (BCmpSet[0] ? FBaud[12:0] : 13'h0) |
+    (BCmpSet[1] ? FBaud[13:1] : 13'h0) |
+    (BCmpSet[2] ? FBaud[14:2] : 13'h0) |
+    (BCmpSet[3] ? FBaud[15:3] : 13'h0) |
+    (BCmpSetNZ ? 13'h0 : FCmp)
    );
 
- assign ABaudUpdate = FActive & BEdgeX & FBitIdx[3] & BBitLenOK & ~BSLenOvf & ~BBaudOvf;
- assign ABaudResult = FBaud - 16'h1;
- assign ATest = {ARx[0], BEdgeX, ABaudUpdate, FActive, BBitLenOK, BSLenOvf, BBaudOvf, BBitLenViol};
+ assign ABaudUpdate = FActive & BEdgeX & FBitIdx[3] & BBitLenInRange & ~BSLenOvf & ~BBaudOvf;
+ assign ABaudResult = FBaud;
+ assign ATest = {ARx[0], BEdgeX, ABaudUpdate, FActive, BBitLenInRange, BBitLenTooLong, BDeltaA[13], BDeltaMInRange};
 endmodule
 
 module UartFlush
@@ -580,7 +603,7 @@ module UartFlush
 
  MsDffList #(.CRegLen(2+2+1+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BBusy, BTimer, BTimerNZ, BFlush}),
    .ADataO({FBusy, FTimer, FTimerNZ, FFlush})
   );

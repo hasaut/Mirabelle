@@ -5,10 +5,11 @@ unit WDebug_sd;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, ComCtrls, StdCtrls, ExtCtrls, Buttons,
+  Classes, SysUtils, Forms, Controls, ComCtrls, ExtCtrls, Buttons,
   Graphics,
   MirLibBase, AsmTypes_sd, DbgBase_sd, DbgInfo_sd, DbgViewText_sd, DbgViewTextMs_sd, DbgViewTextRv_sd,
-  DbgHwPanel_sd, DbgViewStack_sd, DbgRegs_sd, ConComI, LlvmBeHelper_sd, DbgViewVars_sd;
+  DbgHwPanel_sd, DbgViewStack_sd, DbgRegs_sd, ConComI, LlvmBeHelper_sd, DbgViewVars_sd,
+  Mpu_sd;
 
 type
   TOnBreakChange = Procedure ( Const ABreakList : string ) of Object;
@@ -78,8 +79,10 @@ type
     FDbgStack           : TDbgViewStack;
     FDbgRegsList        : TDbgRegsList;
     FProgrBar           : TOzhProgrBar;
-    FIpList             : array of Cardinal;
-    FSpList             : array of Cardinal;
+    FEipListVirt,
+    FEspListVirt        : array of Cardinal;
+    FEipListReal,
+    FEspListReal        : array of Cardinal;
     FCoreIdx            : Integer;
     FActIdx             : Integer; // Set when we need to change ActiveCpuIndex due to Break/Trap
     FEip                : Cardinal;
@@ -140,9 +143,9 @@ type
     Procedure PresetBreakList ( Const ABreakList : string );
     Procedure DbgSrcLineChange ( Const AFilename : string; ASrcLineIdx : Integer );
     Function IsEmpty : boolean;
-    Function GetEip ( Out AAddr : Cardinal ) : boolean;
-    Function GetEip ( Out AAddr : Cardinal; Out ACore : char; Out ACoreIdx : Integer ) : boolean;
-    Function GetEsp ( Out AAddr : Cardinal ) : boolean;
+    Function GetEipReal ( Out AAddr : Cardinal ) : boolean;
+    Function GetEipReal ( Out AAddr : Cardinal; Out ACore : char; Out ACoreIdx : Integer ) : boolean;
+    Function GetEspReal ( Out AAddr : Cardinal ) : boolean;
 
     Procedure CloseAll;
     Procedure ProcessAny ( Const ADataS : string );
@@ -169,8 +172,8 @@ End;
 Destructor TMgDebug.Destroy;
 Begin
  FLineToIp:=nil;
- FSpList:=nil;
- FIpList:=nil;
+ FEspListVirt:=nil; FEipListVirt:=nil;
+ FEspListReal:=nil; FEipListReal:=nil;
  DbgListClear;
  FLst.Free;
  Inherited;
@@ -336,8 +339,7 @@ Var
   BImageIdx     : Integer;
 Begin
  BExt:=LowerCase(ExtractFileExt(AAsmName));
- if LowerCase(ExtractFileExt(ASrcName))='.hex' then BCpuType:='e'
- else if StrInList(LowerCase(ExtractFileExt(AAsmName)),'.srv .s .i') then BCpuType:='e'
+ if StrInList(BExt,'.srv .s .i .hex .elf') then BCpuType:='e'
  else BCpuType:='s';
 
  BImageIdx:=0;
@@ -347,7 +349,9 @@ Begin
  else if StrInList(BExt,'.py') then BImageIdx:=4
  else if StrInList(BExt,'.rst') then BImageIdx:=5
  else if StrInList(BExt,'.v') then BImageIdx:=6
- else if StrInList(BExt,'.srv .s .i') then BImageIdx:=7;
+ else if StrInList(BExt,'.srv .s .i') then BImageIdx:=7
+ else if StrInList(BExt,'.hex') then BImageIdx:=8
+ else if StrInList(BExt,'.elf') then BImageIdx:=9;
 
  BView:=nil;
  if ATabIdx<PcEdit.PageCount then
@@ -655,14 +659,16 @@ Var
 Begin
  RegsListClear;
  SetLength(FDbgRegsList,Length(ACoreList));
- SetLength(FIpList,Length(ACoreList));
- SetLength(FSpList,Length(ACoreList));
+ SetLength(FEipListVirt,Length(ACoreList));
+ SetLength(FEspListVirt,Length(ACoreList));
+ SetLength(FEipListReal,Length(ACoreList));
+ SetLength(FEspListReal,Length(ACoreList));
  BCoreIdx:=0;
  while BCoreIdx<Length(FDbgRegsList) do
   begin
   BTabSheet:=TTabSheet.Create(PcCoreFrame); BTabSheet.PageControl:=PcCoreFrame;
   BDbgRegs:=TDbgRegs.Create(Self); FDbgRegsList[BCoreIdx]:=BDbgRegs;
-  BDbgRegs.Init(BTabSheet,ACoreList[1+BCoreIdx],BCoreIdx);
+  BDbgRegs.Init(BTabSheet,ACoreList[1+BCoreIdx],BCoreIdx,@CorrectSizes);
   inc(BCoreIdx);
   end;
  CorrectSizes;
@@ -670,6 +676,7 @@ End;
 
 Procedure TMgDebug.CoreSetRegsState ( AActive : boolean; Const AMcuType : string; Const ARegsPrevThis : string );
 Var
+  BMcuType      : Cardinal;
   BRegsPrevThis : string;
   BCoreIdx      : Integer;
   BDbgRegs      : TDbgRegs;
@@ -681,9 +688,14 @@ Var
   BCombA        : string;
   //BMcxStat      : QWord;
   //BBreakTrapIdx : word;
-  BFlIp,
-  BFlSp         : Cardinal;
+  BFlIp         : Cardinal;
+  BEipVirt,
+  BEspVirt      : Cardinal;
+  BEipReal,
+  BEspReal      : Cardinal;
+  BMpuRegs      : TMpuRegs;
 Begin
+ HexToDWordCheck(AMcuType,BMcuType);
  BRegsPrevThis:=ARegsPrevThis;
  FExecActive:=AActive; SetBtnEn;
  BPrev:=ReadTillC(BRegsPrevThis,#13); BThis:=ReadTillC(BRegsPrevThis,#13); BComb:=ReadTillC(BRegsPrevThis,#13);
@@ -697,14 +709,28 @@ Begin
   BPrevA:=ReadParamStr(BPrev);
   BThisA:=ReadParamStr(BThis);
   BCombA:=ReadParamStr(BComb);
-  BFlIp:=Hex32ToInt(Copy(BThisA,9,8)); FIpList[BCoreIdx]:=BFlIp and $00FFFFFE;
-  BFlSp:=$0;
+  BFlIp:=Hex32ToInt(Copy(BThisA,9,8)); BEipVirt:=BFlIp and $00FFFFFE;
+  BEspVirt:=$0;
   case ((BFlIp shr 28) and $3) of
-    0: BFlSp:=Hex32ToInt(Copy(BThisA,41,8));
-    1: BFlSp:=Hex32ToInt(Copy(BThisA,1,8));
+    0: BEspVirt:=Hex32ToInt(Copy(BThisA,41,8));
+    1: BEspVirt:=Hex32ToInt(Copy(BThisA,1,8));
   end;
-  FSpList[BCoreIdx]:=BFlSp;
-  BDbgRegs.SetState(AActive,AMcuType,BPrevA,BThisA,BCombA);
+  if BMcuType=9 then
+   begin
+   BMpuRegs:=LoadMpuRegs(Copy(BThisA,1+128,64));
+   BEipReal:=UnmapMpuAddrCode(BMpuRegs,BEipVirt);
+   BEspReal:=UnmapMpuAddrData(BMpuRegs,BEspVirt);
+   end
+  else
+   begin
+   BEipReal:=BEipVirt;
+   BEspReal:=BEspVirt;
+   end;
+  FEipListVirt[BCoreIdx]:=BEipVirt;
+  FEspListVirt[BCoreIdx]:=BEspVirt;
+  FEipListReal[BCoreIdx]:=BEipReal;
+  FEspListReal[BCoreIdx]:=BEspReal;
+  BDbgRegs.SetState(AActive,BMcuType,BPrevA,BThisA,BCombA);
   inc(BCoreIdx);
   end;
  {
@@ -735,37 +761,37 @@ Begin
  until TRUE;
 End;
 
-Function TMgDebug.GetEip ( Out AAddr : Cardinal ) : boolean;
+Function TMgDebug.GetEipReal ( Out AAddr : Cardinal ) : boolean;
 Begin
  AAddr:=$FFFFFFFF;
  Result:=FALSE;
  repeat
  if (PcCoreFrame.TabIndex<0) or (PcCoreFrame.TabIndex>=Length(FDbgRegsList)) then break;
- AAddr:=FIpList[PcCoreFrame.TabIndex];
+ AAddr:=FEipListReal[PcCoreFrame.TabIndex];
  Result:=TRUE;
  until TRUE;
 End;
 
-Function TMgDebug.GetEip ( Out AAddr : Cardinal; Out ACore : char; Out ACoreIdx : Integer ) : boolean;
+Function TMgDebug.GetEipReal ( Out AAddr : Cardinal; Out ACore : char; Out ACoreIdx : Integer ) : boolean;
 Begin
  AAddr:=$FFFFFFFF; ACore:=#0; ACoreIdx:=-1;
  Result:=FALSE;
  repeat
  if (PcCoreFrame.TabIndex<0) or (PcCoreFrame.TabIndex>=Length(FDbgRegsList)) then break;
- AAddr:=FIpList[PcCoreFrame.TabIndex];
+ AAddr:=FEipListReal[PcCoreFrame.TabIndex];
  ACore:=FDbgRegsList[PcCoreFrame.TabIndex].CoreType;
  ACoreIdx:=PcCoreFrame.TabIndex;
  Result:=TRUE;
  until TRUE;
 End;
 
-Function TMgDebug.GetEsp ( Out AAddr : Cardinal ) : boolean;
+Function TMgDebug.GetEspReal ( Out AAddr : Cardinal ) : boolean;
 Begin
  AAddr:=$FFFFFFFF;
  Result:=FALSE;
  repeat
  if (PcCoreFrame.TabIndex<0) or (PcCoreFrame.TabIndex>=Length(FDbgRegsList)) then break;
- AAddr:=FSpList[PcCoreFrame.TabIndex];
+ AAddr:=FEspListReal[PcCoreFrame.TabIndex];
  Result:=TRUE;
  until TRUE;
 End;
@@ -811,7 +837,7 @@ Begin
    end;
   break;
   end;
- if GetEip(FEip)=FALSE then break;
+ if GetEipReal(FEip)=FALSE then break;
  FDbgAsmLine:=IpToLine(FEip); if FDbgAsmLine<0 then break;
  if PcEdit.PageCount=0 then break;
 
@@ -840,7 +866,7 @@ Begin
   SetDbgLine(FDbgFile.GetLine(FDbgAsmLine));
   end;
 
- if GetEsp(BEsp) then
+ if GetEspReal(BEsp) then
   begin
   if (FExecActive=FALSE) and (BEsp>0) then BStackSize:=TryDetermineStackSize(FDbgAsmLine)
   else BStackSize:=0;
@@ -862,7 +888,7 @@ Begin
  FDbgLine:=nil;
  repeat
  for BDbgIndex:=0 to PcEdit.PageCount-1 do GetDbgView(BDbgIndex).SetLineIp(-1);
- if GetEip(BAddr)=FALSE then break;
+ if GetEipReal(BAddr)=FALSE then break;
  FDbgAsmLine:=IpToLine(BAddr); if FDbgAsmLine<0 then break;
  if PcEdit.PageCount=0 then break;
  BDbgIndexA:=0;
@@ -945,6 +971,8 @@ Var
   BDataDI       : QWord;
   BDataSF       : single absolute BDataSI;
   BDataDF       : double absolute BDataDI;
+  BRegsThis     : string;
+  BCoreIdx      : Integer;
 Begin
  Result:=FALSE; ARdblLoc:=''; ARdblVal:='';
  repeat
@@ -976,7 +1004,8 @@ Begin
   else if BDummyS='h' then begin BRegOffs:=BRegOffs+12; BRegSize:=2; end
   else if BDummyS='l' then begin BRegOffs:=BRegOffs+14; BRegSize:=2; end
   else break;
-  BDataH:=Copy(FRegsThis,1+BRegOffs,BRegSize);
+  BRegsThis:=FRegsThis; BCoreIdx:=0; while BCoreIdx<FCoreIdx do begin ReadParamStr(BCoreIdx); Inc(BCoreIdx); end;
+  BDataH:=Copy(BRegsThis,1+BRegOffs,BRegSize);
   if HexToQWordCheck(BDataH,BData)=FALSE then break;
   ARdblLoc:=BRegName;
   BType:=ParsExtractType(AVsmItem.VarName);

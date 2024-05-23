@@ -28,7 +28,7 @@ module IoLedRgb16b #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(4+8+16+16+3)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BLedIdx, BPwmCnt, BLitIdx, BLitIdxOut, BColorOut}),
    .ADataO({FLedIdx, FPwmCnt, FLitIdx, FLitIdxOut, FColorOut})
   );
@@ -67,7 +67,7 @@ module LedRgbCtrlB
 
  MsDffList #(.CRegLen(24)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
    .ADataI({BColor}),
    .ADataO({FColor})
   );

@@ -632,6 +632,25 @@ Begin
      UpdateIp(Length(FExec.CodeBin));
      end;
 
+   rvccFCvtWS:
+     begin
+     BDataU:=RdReg(ASubdec.FRs1);
+     if ASubdec.FFn3=0 then BDataRF:=Round(BDataUF)
+     else if ASubdec.FFn3=1 then BDataRF:=Trunc(BDataUF)
+     else begin ViewAny('eUnsuppoerted or non-implemented rounding mode [R:TCoreRV.ExecCmd]'); break; end;
+     WrReg(ASubdec.FRd,BDataR);
+     UpdateIp(Length(FExec.CodeBin));
+     end;
+
+   rvccFCvtSW:
+     begin
+     BDataU:=RdReg(ASubdec.FRs1);
+     if ASubdec.FFn3=0 then BDataRF:=BDataU
+     else begin ViewAny('eUnsuppoerted or non-implemented rounding mode [R:TCoreRV.ExecCmd]'); break; end;
+     WrReg(ASubdec.FRd,BDataR);
+     UpdateIp(Length(FExec.CodeBin));
+     end;
+
    // CSR group
    rvccCsrRS:
      begin

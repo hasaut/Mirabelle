@@ -8,7 +8,7 @@ uses
   Classes, SysUtils;
 
 Const
-  CVersion = $01020102;
+  CVersion = $01020104;
 
   CChangeLog =
     '[2020.06.17] Version numeration started'+#13+
@@ -23,7 +23,9 @@ Const
     '[2021.03.25] Start FP testing'+#13+
     '[2021.03.27] CSR counters are implemented in the simulator'+#13+
     '[2021.08.16] ISS trap hit / StepOver bugfix'+#13+
-    '[2022.05.04] Format settings are localized to unify decimal separator parse'+#13;
+    '[2022.05.04] Format settings are localized to unify decimal separator parse'+#13+
+    '[2024.03.25] Support of Zfinx GCC V13: FSgn, FCvt'+#13+
+    '[2024.05.08] Core index input for debug variables bug is fixed'+#13;
 
 
 implementation
