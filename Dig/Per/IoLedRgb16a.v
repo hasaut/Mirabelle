@@ -1,8 +1,8 @@
 module IoLedRgb16b #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  output [15:0] ALedIdx, output [2:0] AColor
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
+  output wire [15:0] ALedIdx, output wire [2:0] AColor
  );
 
  wire [3:0] BWrEnQ, BRdEnQ;
@@ -58,9 +58,9 @@ endmodule
 
 module LedRgbCtrlB
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [23:0] AColor, input AWrEn,
-  input [7:0] APwmCnt, output [2:0] APwm
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [23:0] AColor, input wire AWrEn,
+  input wire [7:0] APwmCnt, output wire [2:0] APwm
  );
 
  wire [23:0] FColor, BColor;

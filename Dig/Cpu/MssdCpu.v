@@ -1,20 +1,21 @@
 module MssdCpu #(parameter CIrqCnt = 16)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input AExecEn, input ACoreEn,
-  output [4*64-1:0] AMpuRegs,
-  output [31:0] ACodeAddr, input [63:0] ACodeMiso, output ACodeReq, input ACodeAck,
-  output [31:0] ADataAddr, input [63:0] ADataMiso, output [63:0] ADataMosi, output [3:0] ADataWrSize, ADataRdSize, input ADataAck,
-  input ASysCoreSel, output [31:3] AContPtrMiso, output AIsIsr, input AContPtrWrEn,
-  output ASetIrqSwtBase,
-  output [CIrqCnt-1:0] AIrqBusyList, input [CIrqCnt-1:0] AIrqToProcess, // Avoid IRQ re-entering
-  input ASrq,
-  input [63:0] ARegMosi, output [63:0] ARegMiso, input [11:0] ARegRdIdx, ARegWrIdx,
-  output ATEnd, ATrap, output [31:0] AIpThis, output ACmdDecReady,
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire AExecEn, input wire ACoreEn,
+  output wire [4*64-1:0] AMpuRegs,
+  output wire [31:0] ACodeAddr, input wire [63:0] ACodeMiso, output wire ACodeReq, input wire ACodeAck,
+  output wire [31:0] ADataAddr, input wire [63:0] ADataMiso, output wire [63:0] ADataMosi, output wire [3:0] ADataWrSize, ADataRdSize, input wire ADataAck,
+  input wire ASysCoreSel, output wire [31:3] AContPtrMiso, output wire AIsIsr, input wire AContPtrWrEn,
+  output wire ASetIrqSwtBase,
+  output wire [CIrqCnt-1:0] AIrqBusyList, input wire [CIrqCnt-1:0] AIrqToProcess, // Avoid IRQ re-entering
+  input wire ASrq,
+  input wire [63:0] ARegMosi, output wire [63:0] ARegMiso, input wire [11:0] ARegRdIdx, ARegWrIdx,
+  output wire ATEnd, ATrap, output wire [31:0] AIpThis, output wire ACmdDecReady,
   // Sys Req/Ack {unlock, lock, end, Swt}
-  output [2:0] ASysReq, input ASysAck, output ASiLock,
-  output AUnityReq, input AUnityAck,
-  output AIrqEn
+  output wire [2:0] ASysReq, input wire ASysAck, output wire ASiLock,
+  output wire AUnityReq, input wire AUnityAck,
+  output wire AErrDec,
+  output wire AIrqEn
  );
 
  function IsColRowConflict ( input [11:0] AColRowA, AColRowB );
@@ -53,34 +54,34 @@ module MssdCpu #(parameter CIrqCnt = 16)
  wire  [1:0] MCmdLen;
 
  // VLIW
- wire  [3:0] LCond,        MCond;
- wire        LLoadEipImm,  MLoadEipImm;
- wire  [1:0] LTrap,        MTrap;
- wire  [4:0] LSysReq,      MSysReq;
- wire  [5:0] LRegIdxS,     MRegIdxS;
- wire  [5:0] LRegIdxU,     MRegIdxU;
- wire  [1:0] LWwConst,     MWwConst;
- wire [31:0] LConst,       MConst;
- wire  [4:0] LMlsc,        MMlsc;
+ wire  [3:0] LCond,        MCond;        // Branch condition
+ wire        LLoadEipImm,  MLoadEipImm;  // load IP by a special BusP (usually constant directly)
+ wire  [1:0] LTrap,        MTrap;        // Trap command
+ wire  [4:0] LSysReq,      MSysReq;      // System request (conf unlock lock end swt)
+ wire  [5:0] LRegIdxS,     MRegIdxS;     // Reg multiplexer S
+ wire  [5:0] LRegIdxU,     MRegIdxU;     // Reg multiplexer U
+ wire  [1:0] LWwConst,     MWwConst;     // Size of constant
+ wire [31:0] LConst,       MConst;       // Constant
+ wire  [4:0] LMlsc,        MMlsc;        // Short constant (usually for memory streaming, inc/dec)
  wire  [2:0] LLoopD,       MLoopD;      // BusB BusA
- wire  [7:0] LMuxSrc,      MMuxSrc;
- wire  [2:1] LSelIp,       MSelIp;
- wire  [5:0] LRegIdxR,     MRegIdxR;
- wire        LDstFlagWr,   MDstFlagWr;
- wire        LAluSignExt,  MAluSignExt;
- wire  [3:0] LAluSelA,     MAluSelA;
- wire  [7:0] LAluSelU,     MAluSelU;
- wire  [3:0] LAluSelS,     MAluSelS;
- wire  [3:0] LAluSelT,     MAluSelT;
- wire [12:0] LAluSelF,     MAluSelF;
- wire  [1:0] LMioWrRdEn,   MMioWrRdEn;
- wire  [1:0] LMioSize,     MMioSize;
- wire  [2:0] LMioSignExt,  MMioSignExt;
- wire        LUnityReq,    MUnityReq;
+ wire  [7:0] LMuxSrc,      MMuxSrc;      // Specal MUX source (see MssdCmdDec)
+ wire  [2:1] LSelIp,       MSelIp;       // Select EIP (instead of Z)
+ wire  [5:0] LRegIdxR,     MRegIdxR;     // Result destination
+ wire        LDstFlagWr,   MDstFlagWr;   // If flags to be updated
+ wire        LAluSignExt,  MAluSignExt;  // ALU sign extension
+ wire  [3:0] LAluSelA,     MAluSelA;     // ALU_A function
+ wire  [7:0] LAluSelU,     MAluSelU;     // ALU_U function
+ wire  [3:0] LAluSelS,     MAluSelS;     // Barrel shifter function
+ wire  [3:0] LAluSelT,     MAluSelT;     // BIT manipulation function
+ wire [12:0] LAluSelF,     MAluSelF;     // FPU function
+ wire  [1:0] LMioWrRdEn,   MMioWrRdEn;   // Memory/IO WrEn / RdEn
+ wire  [1:0] LMioSize,     MMioSize;     // Memory/IO transfer size
+ wire  [2:0] LMioSignExt,  MMioSignExt;  // Memory/IO sign extension
+ wire        LUnityReq,    MUnityReq;    // Unity (aromic) request
 
  // Bus A, B
- wire [63:0] BBusAData; wire [11:0] BBusALoad; wire [3:0] BBusFData; wire BBusFLoad;
- wire [63:0] BBusBData; wire [11:0] BBusBLoad, BBusBPend; wire BDevBPendAny;
+ wire [63:0] BBusAData; wire [11:0] BBusALoad; wire [3:0] BBusFData; wire BBusFLoad;  // Fast bus: numerical ALU, Barrel shifter. What takes 1 CLK. No wait cycles
+ wire [63:0] BBusBData; wire [11:0] BBusBLoad, BBusBPend; wire BDevBPendAny;          // Slow bus: Mul/Div, FPU, Memory. Multi-cycle, requires wait cycles
 
  // Buses
  wire [3:0] BMpuWrIdx; wire [7:0] BGprWrIdx; assign {BMpuWrIdx, BGprWrIdx} = ASysCoreSel ? ARegWrIdx : 12'h0;
@@ -156,6 +157,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
  wire [1:0] BQueLen = (|BQueLenA[3:2]) ? 2'h3 : BQueLenA[1:0];
  wire BQueLenNZ = |BQueLen;
 
+ // Queue alignment
  assign ACodeReq = ACoreEn & (BEipUpdateAny | (((BQueLda[4:3]-BEipNext[4:3])<2'h2) & ~ACodeAck));
  assign ACodeAddr = BEipUpdateAny ? {8'h0, BEipWrBus[23:3], 3'h0} : {8'h0, BQueLda[23:3], 3'h0};
  wire [95:0] BQueTopC = LEipThis[3] ? {BQueTopD[31:0], BQueTopD[127:64]} : BQueTopD[95:0];
@@ -185,6 +187,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
    .AMemPend(BMioPendAny)
   );
 
+ // Register column and row decoder
  //wire [11:0] MColRowS; MsDecColRow UColRowMS ( .ARegIdx(MRegIdxS), .ASelIp(MSelIp[2]), .AColRow(MColRowS) ); // <- This line may generate combinatorial loop
  wire [11:0] MColRowS; MsDecColRow UColRowMS ( .ARegIdx(MRegIdxS), .ASelIp(1'b0),      .AColRow(MColRowS) );
  wire [11:0] MColRowU; MsDecColRow UColRowMU ( .ARegIdx(MRegIdxU), .ASelIp(MSelIp[1]), .AColRow(MColRowU) );
@@ -194,6 +197,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
  wire [11:0] LColRowU; MsDecColRow UColRowLU ( .ARegIdx(LRegIdxU), .ASelIp(LSelIp[1]), .AColRow(LColRowU) );
  wire [11:0] LColRowR; MsDecColRow UColRowLR ( .ARegIdx(LRegIdxR), .ASelIp(1'b0),      .AColRow(LColRowR) );
 
+ // Check if there is a conflict with pending operation
  wire BPendAnyA = |BDevBPendAny;
  wire [11:0] BPendMask = BPendAnyA ? BBusBPend : 12'h0;
  wire [2:0] BConflictColRow =
@@ -208,7 +212,9 @@ module MssdCpu #(parameter CIrqCnt = 16)
  assign BCmdLenValid = (BQueLen>=MCmdLen) & BQueLenNZ;
  assign BCmdValid = BStateNZ | (&{BCmdLenValid, ~BConflictAny, AExecEn, ACoreEn, ~ASrq});
  assign BState = BCmdValid ? BStepNextM : CStateNil;
+ assign AErrDec = BQueLenNZ & ~(|MCmdLen);
 
+ // If instruction is decoded and there is no conflicts, update VLIW. Otherwise VLIW is all zeroes
  assign
   {
    LCond, LLoadEipImm, LTrap, LSysReq,
@@ -246,7 +252,9 @@ module MssdCpu #(parameter CIrqCnt = 16)
  wire [11:0] BGprRdIdxS = LMioWrRdEn[0] ? 12'h0 : LColRowS;
  wire [11:0] BGprRdIdxU = {{4{BGprRdIdxNZ}}, BGprRdIdx} | LColRowU;
 
- // Reg muxes
+ // Register multiplexers
+ // Suffixed "S" and "U" (result is suffixed "R"); Result is computed like this: "R = U + S"
+ // Multiplexers for all registers are the same except of IP. For IP there are a few exceptions
  wire [63:0] BRegMuxS;
  MssdRegMux URegMuxS
   (
@@ -269,23 +277,27 @@ module MssdCpu #(parameter CIrqCnt = 16)
    // Sys
    {32'h0, BGprRdIdx[0] ? LRegsThis[31:0] : 32'h0};
 
+ // Mlsc is a short constant, sign-extended. (Used for Inc, Dec streaming memory access, stack)
  wire [31:0] BMlsc = {{28{LMlsc[4]}}, LMlsc[3:0]};
 
  wire [1:0] BWwS = (LMuxSrc[0] ? LRegIdxS[5:4] : 2'h0) | ((|LMuxSrc[2:1]) ? LWwConst : 2'h0);
  wire [1:0] BWwU = LRegIdxU[5:4];
  wire [1:0] BWwR = LRegIdxR[5:4];
 
+ // "S" mux can be loaded with constant, not only register
  wire [31:0] BAluXMuxS;
  wire [31:0] BAluXMuxSA = (LMuxSrc[0] ? BRegMuxS[31:0] : 32'h0) |
                           (LMuxSrc[1] ? LConst : 32'h0) |
                           (LMuxSrc[2] ? BMlsc : 32'h0);
  MsSignExt UAluXMuxS ( .AData(BAluXMuxSA), .AWw(BWwS), .ASignExt(LAluSignExt), .AResult(BAluXMuxS) );
 
+ // "U" mux can be loaded with temporary data for multi-clk commands
  wire [31:0] BAluXMuxUA = (LMuxSrc[4] ? BRegMuxU[31:0] : 32'h0) |
                           (LLoopD[1] ? {24'h0, FLoopDData} : 32'h0);
  wire [31:0] BAluXMuxU;
  MsSignExt UAluXMuxU ( .AData(BAluXMuxUA), .AWw(BWwU), .ASignExt(LAluSignExt), .AResult(BAluXMuxU) );
 
+ // "Mio" = "Memory and IO". Regular multiplexers are optimized for generate address and output data
  wire [63:0] BMioWrDataA = LMuxSrc[5] ? {32'h0, LConst} : (BRegMuxS | {56'h0, LLoopD[2] ? FLoopDData : 8'h0});
  wire [63:0] BMioWrData; 
  assign BMioWrData[63:32] = BMioWrDataA[63:32]; MsSignExt UMioWrData ( .AData(BMioWrDataA[31:0]), .AWw(LMioSignExt[1:0]), .ASignExt(LMioSignExt[2]), .AResult(BMioWrData[31:0]) );
@@ -294,6 +306,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
  wire [23:0] BIpLoadBusA = BRegMuxS[23:0] + LConst[23:0];
  assign BIpLoadBus = BIpLoadBusA[23:1]; 
 
+ // Fast ALUs: regular arithmetic, barrel shifter and bit manupulation
  // Alu A+S+T
  wire [31:0] BAluADataA; wire [11:0] BAluALoadA;
  MssdAluFast UAluFast
@@ -308,6 +321,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
  MssdAlignToCol UBusAData ( .AData({32'h0, BAluADataA}), .ADstCol(BAluALoadA[11:8]), .AResult(BBusAData) );
  assign BBusALoad = BAluALoadA;
 
+ // Slow ALUs: Mul/Div and FPU
  // Alu U+F
  wire [31:0] BAluBDataA; wire [11:0] BAluBLoad, BAluBPend; wire BAluBPendAny;
  MssdAluSlow UAluSlow
@@ -319,7 +333,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
    .ABusBData(BAluBDataA), .ABusBLoad(BAluBLoad), .ABusBPend(BAluBPend), .APendAny(BAluBPendAny)
   );
 
- // Mem
+ // Memory and IO
  wire [63:0] BMioBDataA; wire [11:0] BMioBLoad, BMioBPend; wire BMioBPendAny;
  wire [11:0] BLoopDColRow = (|{LLoopD[2], LLoopD[0]} ? 12'h100 : 12'h0);
  MsMioCtrl #(.CAddrLen(32)) UMioCtrl
@@ -332,16 +346,16 @@ module MssdCpu #(parameter CIrqCnt = 16)
   );
  assign BMioPendAny = |BMioBPendAny;
 
- // LoopD
+ // LoopD: Temporary (hidden) register for multi-cycle operations
  assign BLoopDData =
   ((BMioBLoad==12'h100) ? BMioBDataA[7:0] : 8'h0) |
   (LLoopD[1] ? BAluADataA[7:0] : 8'h0);
 
-
+ // Memory/IO operations are multi-cycle and use BusB
  assign BBusBLoad = BAluBLoad | BMioBLoad;
  assign BBusBPend = BAluBPend | BMioBPend;
  assign BDevBPendAny = BAluBPendAny | BMioBPendAny;
- MssdAlignToCol UBusBData ( .AData({32'h0, BAluBDataA} | BMioBDataA), .ADstCol(BBusBLoad[11:8]), .AResult(BBusBData) );
+ MssdAlignToCol UBusBData ( .AData({32'h0, BAluBDataA} | BMioBDataA), .ADstCol(BBusBLoad[11:8]), .AResult(BBusBData) ); // Data read from memory needs to be aligned right in the bus
 
  // MPU
  assign BMpuRegs =
@@ -355,7 +369,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
 
  wire [23:1] BEipAdd = {FMpuRegs[59:40], 3'h0};
 
- // Ext
+ // External signals
  assign AMpuRegs = FMpuRegs;
  assign AContPtrMiso = ASysCoreSel ? FContPtr : 29'h0;
  assign AIsIsr = ASysCoreSel & LRegsThis[30];
@@ -379,7 +393,7 @@ endmodule
 // *** #Flow Section ***
 // *********************
 
-module MsCondAnalyzer ( input [3:0] ACond, input [3:0] AFlags, output AJmpEn );
+module MsCondAnalyzer ( input wire [3:0] ACond, input wire [3:0] AFlags, output wire AJmpEn );
  localparam IFlagV = 3;
  localparam IFlagN = 2;
  localparam IFlagZ = 1;
@@ -412,10 +426,10 @@ endmodule
 
 module MssdRegRwx
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [63:0] ARegWrBusA, input [3:0] AColWrEnA, input ARowWrEnA,
-  input [63:0] ARegWrBusB, input [3:0] AColWrEnB, input ARowWrEnB,
-  output [63:0] ADataThis
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [63:0] ARegWrBusA, input wire [3:0] AColWrEnA, input wire ARowWrEnA,
+  input wire [63:0] ARegWrBusB, input wire [3:0] AColWrEnB, input wire ARowWrEnB,
+  output wire [63:0] ADataThis
  );
 
  wire [3:0] BRegWrEnA = ARowWrEnA ? AColWrEnA : 4'h0;
@@ -457,12 +471,12 @@ endmodule
 
 module MssdRegTask
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [63:0] ARegWrBusA, input [11:0] ARegWrIdxA,
-  input [63:0] ARegWrBusB, input [11:0] ARegWrIdxB,
-  input [7:0] AFlagWrBus,
-  input [23:1] AEipWrBus,
-  output [511:0] ARegsThis
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [63:0] ARegWrBusA, input wire [11:0] ARegWrIdxA,
+  input wire [63:0] ARegWrBusB, input wire [11:0] ARegWrIdxB,
+  input wire [7:0] AFlagWrBus,
+  input wire [23:1] AEipWrBus,
+  output wire [511:0] ARegsThis
  );
 
  MssdRegRwx URegsRwx[7:1]
@@ -497,7 +511,7 @@ endmodule
 // *** #Sel Section ***
 // ********************
 
-module MsDecColRow ( input [5:0] ARegIdx, input ASelIp, output [11:0] AColRow );
+module MsDecColRow ( input wire [5:0] ARegIdx, input wire ASelIp, output wire [11:0] AColRow );
  wire [7:0] BColDec; MsDec3x8a UColDec ( .ADataI({ARegIdx[5:4], ARegIdx[3]}), .ADataO(BColDec) );
  wire [7:0] BRowDec; MsDec3x8a URowDec ( .ADataI(ARegIdx[2:0]), .ADataO(BRowDec) );
  wire [3:0] BColIdx =
@@ -512,7 +526,7 @@ module MsDecColRow ( input [5:0] ARegIdx, input ASelIp, output [11:0] AColRow );
  assign AColRow = {BColIdx, BRowDec[7:1], (ASelIp | BColDec[5] | BColDec[1]) & BRowDec[0]};
 endmodule
 
-module MssdAlignToAlu ( input [63:0] AData, input [3:0] ACol, output [63:0] AResult );
+module MssdAlignToAlu ( input wire [63:0] AData, input wire [3:0] ACol, output wire [63:0] AResult );
  assign AResult =
    ((ACol==4'hF) ? {       AData[63: 0]} : 64'h0) |
    ((ACol==4'h8) ? {32'h0, AData[63:32]} : 64'h0) |
@@ -523,7 +537,7 @@ module MssdAlignToAlu ( input [63:0] AData, input [3:0] ACol, output [63:0] ARes
    ((ACol==4'h1) ? {56'h0, AData[ 7: 0]} : 64'h0);
 endmodule
 
-module MssdAlignToCol ( input [63:0] AData, input [3:0] ADstCol, output [63:0] AResult );
+module MssdAlignToCol ( input wire [63:0] AData, input wire [3:0] ADstCol, output wire [63:0] AResult );
  assign AResult =
    ((ADstCol==4'hF) ? AData[63:0] : 64'h0) |
    ((ADstCol==4'h8) ? {AData[31:0], 32'h0} : 64'h0) |
@@ -534,13 +548,13 @@ module MssdAlignToCol ( input [63:0] AData, input [3:0] ADstCol, output [63:0] A
    ((ADstCol==4'h1) ? {32'h0, 16'h0, 8'h0, AData[7:0]} : 64'h0);
 endmodule
 
-module MssdRegMux ( input [511:0] ARegFile, input [11:0] ARegRdIdx, output [63:0] AMux );
+module MssdRegMux ( input wire [511:0] ARegFile, input wire [11:0] ARegRdIdx, output wire [63:0] AMux );
  wire [63:0] BMuxA; MsSelectRow #(.CRowCnt(8), .CColCnt(64)) UMuxA ( .ADataI(ARegFile), .AMask(ARegRdIdx[7:0]), .ADataO(BMuxA) );
  wire [63:0] BMuxB; MssdAlignToAlu UMuxB ( .AData(BMuxA), .ACol(ARegRdIdx[11:8]), .AResult(BMuxB) );
  assign AMux = BMuxB;
 endmodule
 
-module MssdColToSize ( input [3:0] ACol, output [3:0] ASize );
+module MssdColToSize ( input wire [3:0] ACol, output wire [3:0] ASize );
  assign ASize =
   ((ACol==4'hF) ? 4'h8 : 4'h0) |
   ((ACol==4'h8) ? 4'h4 : 4'h0) |
@@ -558,13 +572,13 @@ endmodule
 
 module MssdAluFast
  (
-  input [31:0] AMuxS, AMuxU, input [1:0] AWwS, AWwU, input AFlagC,
-  input [3:0] AAluSelA, // xor and sub add
-  input [3:0] AAluSelS, // asr rol shr shl
-  input [3:0] AAluSelT, // btx bts btr bt
-  input [11:0] ADstColRow, input ADstFlagWr,
-  output [31:0] AAluData, output [11:0] AAluLoad,
-  output [3:0] AFlagsData, output AFlagsLoad
+  input wire [31:0] AMuxS, AMuxU, input wire [1:0] AWwS, AWwU, input wire AFlagC,
+  input wire [3:0] AAluSelA, // xor and sub add
+  input wire [3:0] AAluSelS, // asr rol shr shl
+  input wire [3:0] AAluSelT, // btx bts btr bt
+  input wire [11:0] ADstColRow, input wire ADstFlagWr,
+  output wire [31:0] AAluData, output wire [11:0] AAluLoad,
+  output wire [3:0] AFlagsData, output wire AFlagsLoad
  );
 
  // AluA
@@ -607,18 +621,22 @@ module MssdAluFast
 endmodule
 
 // ## AluA
+// Arithmetical: (xor and sub add)
 
 module MssdAluA
  (
-  input [31:0] ADataS, ADataU, input [1:0] AWwS, AWwU, input [3:0] AOper, input [11:0] ADstColRow, input ADstFlagWr,
-  output [31:0] ABusAData, output [11:0] ABusALoad,
-  output  [3:0] ABusFData, output ABusFLoad
+  input wire [31:0] ADataS, ADataU, input wire [1:0] AWwS, AWwU, input wire [3:0] AOper, input wire [11:0] ADstColRow, input wire ADstFlagWr,
+  output wire [31:0] ABusAData, output wire [11:0] ABusALoad,
+  output  [3:0] ABusFData, output wire ABusFLoad
  );
 
  // For Mirabelle AOper is one-hot {xor, and, sub, add}
  // For Risc-V, if bit "sub" is set, then it is possible that bit "and" signifies to take "C" flag for the result (SLTXX commands)
  // In this case bit "xor" indicates if bit "C" in the result has to be inverted
 
+ // Physically only 3 operations are performed: XOR AND ADD
+ // SUB is optimized till ADD
+ // OR is optimized and XOR and AND at the same time
  wire [31:0] BResXor = ADataS ^ ADataU;
  wire [31:0] BResAnd = ADataS & ADataU;
  wire [31:0] BDataSA = {32{AOper[1]}} ^ ADataS;
@@ -650,12 +668,15 @@ module MssdAluA
  assign ABusFLoad = BOperNZ ? ADstFlagWr : 1'h0;
 endmodule
 
+// ## AluS
+// Barrel shifter
+
 module MssdAluS
  (
-  input [4:0] ADataS, input [31:0] ADataU,
-  input [3:0] AOper, input [11:0] ADstColRow, input ADstFlagWr,
-  output [31:0] ABusAData, output [11:0] ABusALoad,
-  output  [3:0] ABusFData, output ABusFLoad
+  input wire [4:0] ADataS, input wire [31:0] ADataU,
+  input wire [3:0] AOper, input wire [11:0] ADstColRow, input wire ADstFlagWr,
+  output wire [31:0] ABusAData, output wire [11:0] ABusALoad,
+  output  [3:0] ABusFData, output wire ABusFLoad
  );
 
  wire BOperNZ = |AOper;
@@ -701,18 +722,21 @@ module MssdAluS
  assign ABusFLoad = BOperNZ ? ADstFlagWr : 1'h0;
 endmodule
 
+// ## AluT
+// Bit manipulation
+
 module MssdAluT
  (
-  input [4:0] ADataS, input [31:0] ADataD, input [3:0] AOper, input [11:0] ADstColRow, input ADstFlagWr,
-  output [31:0] ABusAData, output [11:0] ABusALoad,
-  output  [3:0] ABusFData, output ABusFLoad
+  input wire [4:0] ADataS, input wire [31:0] ADataD, input wire [3:0] AOper, input wire [11:0] ADstColRow, input wire ADstFlagWr,
+  output wire [31:0] ABusAData, output wire [11:0] ABusALoad,
+  output  [3:0] ABusFData, output wire ABusFLoad
  );
 
  wire [31:0] BBitMask; MsDec5x32a UBitMask ( .ADataI(ADataS[4:0]), .ADataO(BBitMask) );
 
  wire BOperNZ = |AOper;
  wire [31:0] BResData =
-   //(AOper[3] ? (ADataD & ~BBitMask) | ({32{AFlagC}} & BBitMask) : 32'h0) | // btx
+   //(AOper[3] ? (ADataD & ~BBitMask) | ({32{AFlagC}} & BBitMask) : 32'h0) | // btx  <- deprecated
    (AOper[2] ?  ADataD |  BBitMask : 32'h0) |                              // bts
    (AOper[1] ?  ADataD & ~BBitMask : 32'h0) |                              // btr
    (AOper[0] ?  ADataD : 32'h0);                                           // bt
@@ -732,19 +756,21 @@ endmodule
 
 module MssdAluSlow
  (
-  input AClkH, AResetHN, AClkHEn,
-  input [31:0] AMuxS, AMuxU,
-  input [1:0] AWwS, AWwU, AWwR,
-  input [7:0] AAluSelU,
-  input [12:0] AAluSelF,
-  input [11:0] ADstColRow,
-  output [31:0] ABusBData, output [11:0] ABusBLoad, ABusBPend, output APendAny
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [31:0] AMuxS, AMuxU,
+  input wire [1:0] AWwS, AWwU, AWwR,
+  input wire [7:0] AAluSelU,
+  input wire [12:0] AAluSelF,
+  input wire [11:0] ADstColRow,
+  output wire [31:0] ABusBData, output wire [11:0] ABusBLoad, ABusBPend, output wire APendAny
  );
 
  wire [31:0] BMulDivDataH, BMulDivDataR; wire BMulDivWrEn;
  wire [31:0] BMulDivDataSU, BMulDivDataDU; wire [2:0] BMulDivSizeU; wire [1:0] BMulDivStartU;
  wire [2:0] BMulDivNegDataU;
 
+ // AluU
+ // Multiplier/Divider
  wire [31:0] BAluURes; wire BAluUAck;
  MssdAluU UAluU
   (
@@ -758,6 +784,8 @@ module MssdAluSlow
    .AAluRes(BAluURes), .AAluAck(BAluUAck)
   );
 
+ // FPU
+ // Single-recision FPU
  wire [31:0] BMulDivDataSF, BMulDivDataDF; wire [1:0] BMulDivStartF;
  wire [31:0] BAluFRes; wire BAluFAck;
  MsFpuSA UFpu
@@ -770,6 +798,7 @@ module MssdAluSlow
    .AFpuRes(BAluFRes), .AFpuAck(BAluFAck)
   );
 
+ // Both AluU and FPU reuse the same multiplier/divider
  MsMulDiv UMulDiv
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
@@ -778,6 +807,7 @@ module MssdAluSlow
    .ADataH(BMulDivDataH), .ADataR(BMulDivDataR), .ABusy(), .ABusBWrEn(BMulDivWrEn)
   );
 
+ // BusB controller: needs waiting cycles
  MsBusBCtrl UBusB
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
@@ -790,18 +820,20 @@ module MssdAluSlow
 
 endmodule
 
+// ## AluU
+// Not only mul/div but also reminder (rem)
 module MssdAluU
  (
-  input AClkH, AResetHN, AClkHEn,
-  input [31:0] ADataS, ADataU,
-  input [1:0] AWwS, AWwU, AWwR,
-  input [7:0] AOper, // urem srem udiv sdiv mulhu mulhsu mulh mul
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [31:0] ADataS, ADataU,
+  input wire [1:0] AWwS, AWwU, AWwR,
+  input wire [7:0] AOper, // urem srem udiv sdiv mulhu mulhsu mulh mul
   // Common MulDiv
-  output [31:0] AMulDivDataS, AMulDivDataD, output [2:0] AMulDivSize, output [1:0] AMulDivStart,
-  output [2:0] AMulDivNegData,
-  input [31:0] AMulDivDataH, AMulDivDataR, input AMulDivWrEn,
+  output wire [31:0] AMulDivDataS, AMulDivDataD, output wire [2:0] AMulDivSize, output wire [1:0] AMulDivStart,
+  output wire [2:0] AMulDivNegData,
+  input wire [31:0] AMulDivDataH, AMulDivDataR, input wire AMulDivWrEn,
   // Output
-  output [31:0] AAluRes, output AAluAck
+  output wire [31:0] AAluRes, output wire AAluAck
  );
 
  wire FBusy, BBusy;
@@ -815,7 +847,6 @@ module MssdAluU
    .ADataO({FBusy, FBusH, FZeroDiv})
   );
 
- //wire [15:0] BOper; MsDec4x16a UOper ( .ADataI(AOper), .ADataO(BOper) );
  wire [7:0] BOper = AOper;
 
  localparam auUrem = 7;
@@ -827,14 +858,12 @@ module MssdAluU
  localparam auMhss = 1;
  localparam auMul  = 0;
 
- assign AMulDivStart =
+ assign AMulDivStart = // means {Division, Multiplication}
    {
     |{BOper[auUrem], BOper[auUdiv], BOper[auSrem], BOper[auSdiv]},
     |{BOper[auMhuu], BOper[auMhsu], BOper[auMhss], BOper[auMul] }
    };
  wire BMulDivStartNZ = |AMulDivStart;
- //wire [1:0] BWwSrcDiv = ((AWwS==2'h2) | (AWwU==2'h2)) ? 2'h2 : (((AWwS==2'h1) | (AWwU==2'h1)) ? 2'h1 : 2'h0);
- //wire [1:0] BWwSrcMul = ((AWwS==2'h2) | (AWwU==2'h2) | (AWwR==2'h2)) ? 2'h2 : (((AWwS==2'h1) | (AWwU==2'h1) | (AWwR==2'h1)) ? 2'h1 : 2'h0);
  wire [1:0] BWwSrc = ((AWwS==2'h2) | (AWwU==2'h2) | (AWwR==2'h2)) ? 2'h2 : (((AWwS==2'h1) | (AWwU==2'h1) | (AWwR==2'h1)) ? 2'h1 : 2'h0);
  wire [1:0] BSizeA = (AMulDivStart[1] ? BWwSrc : 2'h0) |
                      (AMulDivStart[0] ? BWwSrc : 2'h0);
@@ -858,12 +887,9 @@ module MssdAluU
  assign BBusH = (BMulDivStartNZ & (|{BOper[auUrem], BOper[auSrem], BOper[auMhuu], BOper[auMhsu], BOper[auMhss]})) | (FBusH & ~AMulDivWrEn);
 
  // Final assignment
- //assign AAluRes = BBusBWrEn ? (FZeroDiv ? 32'hFFFFFFFF : AMulDivDataR) : (AOper[2] ? FResid : 32'h0);
  assign AAluRes = BBusBWrEn ? (FBusH ? AMulDivDataH : AMulDivDataR) : 32'h0;
  assign AAluAck = BBusBWrEn;
 endmodule
 
-// Core CmdDec
-// 8428 304
-// 8581 424
+
 

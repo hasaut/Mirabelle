@@ -6,18 +6,18 @@
 // Register A is sent first, then B and so on. StateWord at the end
 module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input ASync1M,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  input [7:0] ADbioAddr, input [63:0] ADbioMosi, output [63:0] ADbioMiso, input [3:0] ADbioMosiIdx, input [3:0] ADbioMisoIdx, input ADbioMosi1st, input ADbioMiso1st, input ADbioDataLenNZ, output ADbioIdxReset,
-  output ADbgExecEn, output ADbgResetS, output ADbgClkHEn, output ADbgStep,
-  output AMemAccess, output [31:3] AMemAddr, input [63:0] AMemMiso, output [63:0] AMemMosi, output [1:0] AMemWrRdEn,
-  output [CCoreCnt-1:0] ADbgCoreIdx, output [CRegCnt-1:0] ADbgRegIdx, input [63:0] ADbgRegMiso,
-  input [CCoreCnt*32-1:0] AIpThis, input [CCoreCnt-1:0] ACmdDecReady,
-  input [CCoreCnt-1:0] ATEndList, ATrapList, output AAttReq,
-  input [3:0] AStartupI, output [3:0] AStartupO, output [3:0] AStartupE,
-  output [39:0] ALogTimer,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ASync1M,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
+  input wire [7:0] ADbioAddr, input wire [63:0] ADbioMosi, output wire [63:0] ADbioMiso, input wire [3:0] ADbioMosiIdx, input wire [3:0] ADbioMisoIdx, input wire ADbioMosi1st, input wire ADbioMiso1st, input wire ADbioDataLenNZ, output wire ADbioIdxReset,
+  output wire ADbgExecEn, output wire ADbgResetS, output wire ADbgClkHEn, output wire ADbgStep,
+  output wire AMemAccess, output wire [31:3] AMemAddr, input wire [63:0] AMemMiso, output wire [63:0] AMemMosi, output wire [1:0] AMemWrRdEn,
+  output wire [CCoreCnt-1:0] ADbgCoreIdx, output wire [CRegCnt-1:0] ADbgRegIdx, input wire [63:0] ADbgRegMiso,
+  input wire [CCoreCnt*32-1:0] AIpThis, input wire [CCoreCnt-1:0] ACmdDecReady,
+  input wire [CCoreCnt-1:0] ATEndList, ATrapList, output wire AAttReq,
+  input wire [3:0] AStartupI, output wire [3:0] AStartupO, output wire [3:0] AStartupE,
+  output wire [39:0] ALogTimer,
+  output wire [7:0] ATest
  );
 
  localparam CCoreNil = {CCoreCnt{1'b0}};
@@ -216,26 +216,26 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8, CMcuType=8'h08, CRegC
  //assign ATest = {BMcuType[3:0], AClkH, ADbioMiso1st, BCpuInfoRdX[1:0]};
 endmodule
 
-module MsBrkCmpA ( input [31:0] ABrkIp, input [31:0] ABrkCmp, output AIsBreak );
+module MsBrkCmpA ( input wire [31:0] ABrkIp, input wire [31:0] ABrkCmp, output wire AIsBreak );
  wire BBrkCmpNZ = |ABrkCmp;
  assign AIsBreak = BBrkCmpNZ & (ABrkCmp==ABrkIp);
 endmodule
 
-module MsBrkCmp #(parameter CBrkCnt=9) ( input [31:0] ABrkIp, input [CBrkCnt*32-1:0] ABrkCmp, output AIsBreak );
+module MsBrkCmp #(parameter CBrkCnt=9) ( input wire [31:0] ABrkIp, input wire [CBrkCnt*32-1:0] ABrkCmp, output wire AIsBreak );
  wire [CBrkCnt-1:0] BBreakList; MsBrkCmpA UBreakList[CBrkCnt-1:0] ( .ABrkIp({CBrkCnt{ABrkIp}}), .ABrkCmp(ABrkCmp), .AIsBreak(BBreakList) );
  assign AIsBreak = |BBreakList;
 endmodule
 
-module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000)
+module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CMemCodeBase=32'h0000, CMemCodeSize=32'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [7:0] ADbioAddr, input [63:0] ADbioMosi, output [63:0] ADbioMiso, input [3:0] ADbioMosiIdx, ADbioMisoIdx, input ADbioMosi1st, ADbioMiso1st, input [15:0] ADbioDataLen, input ADbioDataLenNZ, output ADbioIdxReset,
-  output [7:0] ADbioSbData, output ADbioSbNow, // Data to be sent back immediately
-  output AMemAccess, output [31:3] AMemAddr, input [63:0] AMemMiso, output [63:0] AMemMosi, output AMemWrEn,
-  output ASpiMaster, input ASpiMiso, output ASpiMosi, output ASpiSck, output ASpiNCS,
-  input [31:0] ALdrAddr,
-  output AActive, output ASbActive,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] ADbioAddr, input wire [63:0] ADbioMosi, output wire [63:0] ADbioMiso, input wire [3:0] ADbioMosiIdx, ADbioMisoIdx, input wire ADbioMosi1st, ADbioMiso1st, input wire [15:0] ADbioDataLen, input wire ADbioDataLenNZ, output wire ADbioIdxReset,
+  output wire [7:0] ADbioSbData, output wire ADbioSbNow, // Data to be sent back immediately
+  output wire AMemAccess, output wire [31:3] AMemAddr, input wire [63:0] AMemMiso, output wire [63:0] AMemMosi, output wire AMemWrEn,
+  output wire ASpiMaster, input wire ASpiMiso, output wire ASpiMosi, output wire ASpiSck, output wire ASpiNCS,
+  input wire [31:0] ALdrAddr,
+  output wire AActive, output wire ASbActive,
+  output wire [7:0] ATest
  );
 
  // Interface
@@ -308,7 +308,7 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
  // Aux
  wire [7:0] BSpiMosi; wire [7:0] BSpiMiso; wire BSpiSend, BSpiBusy, BSpiRecv;
  wire BByteIdxNZ = |FByteIdx;
- wire BMemAddrEnd = FMemAddr>=CRomSize[31:3];
+ wire BMemAddrEnd = FMemAddr>=CMemCodeSize[31:3];
  // Flash part
  wire BDbioDataLenNZ = |FDbioDataLen;
  wire [7:0] BFifoFl;
@@ -464,7 +464,7 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CRomBase=32'h0000, CRomS
    };
 
  // External
- assign AMemAddr = FMemAddr+CRomBase[31:3];
+ assign AMemAddr = FMemAddr+CMemCodeBase[31:3];
  assign AMemMosi = FMemMosi;
  assign AMemWrEn = FState[IStForiRomWr];
  assign AMemAccess = FStateNZ;
@@ -491,9 +491,9 @@ endmodule
 
 module MsTestAdc
  (
-  input [7:0] ADbioAddr, input [63:0] ADbioMosi, output [63:0] ADbioMiso, input [3:0] ADbioMosiIdx, input [3:0] ADbioMisoIdx, input ADbioMosi1st, input ADbioMiso1st, input ADbioDataLenNZ, output ADbioIdxReset,
-  input [63:0] AAdcMiso, output [63:0] AAdcMosi, output AAdcWrEn, AAdcRdEn,
-  output [7:0] ATest
+  input wire [7:0] ADbioAddr, input wire [63:0] ADbioMosi, output wire [63:0] ADbioMiso, input wire [3:0] ADbioMosiIdx, input wire [3:0] ADbioMisoIdx, input wire ADbioMosi1st, input wire ADbioMiso1st, input wire ADbioDataLenNZ, output wire ADbioIdxReset,
+  input wire [63:0] AAdcMiso, output wire [63:0] AAdcMosi, output wire AAdcWrEn, AAdcRdEn,
+  output wire [7:0] ATest
  );
 
  localparam CAddrAdcDataWr   = 8'h00;

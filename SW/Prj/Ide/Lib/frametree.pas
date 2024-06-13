@@ -294,6 +294,7 @@ Var
   BReadS,
   BParamS   : string;
 Begin
+ FInConstruction:=TRUE;
  Clear;
  FPrjName:=APrjName;
  FPrjPath:=ExtractFilePath(FPrjName);

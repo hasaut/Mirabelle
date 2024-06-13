@@ -4,10 +4,10 @@
 
 module IoTimer16A #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, AResetHN, AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, AIoAddrErr,
-  input ASync1M, ASync1K, output AIrq, ASrq,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, AIoRdSize, output wire AIoAddrAck, AIoAddrErr,
+  input wire ASync1M, ASync1K, output wire AIrq, ASrq,
+  output wire [7:0] ATest
  );
 
  // Interface
@@ -84,10 +84,10 @@ endmodule
 
 module IoTimer32A #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, AIoAddrErr,
-  input ASync1M, input ASync1K, output AIrq,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, AIoRdSize, output wire AIoAddrAck, AIoAddrErr,
+  input wire ASync1M, input wire ASync1K, output wire AIrq,
+  output wire [7:0] ATest
  );
 
  // Interface

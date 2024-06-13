@@ -1,11 +1,11 @@
 module IoAddrDec2a
  (
-  input [1:0] AAddr, input [3:0] AWrSize, input [3:0] ARdSize,
-  output [3:0] AWrEnQ, output [3:0] ARdEnQ,
-  output [3:0] AWrEnD, output [3:0] ARdEnD,
-  output [3:0] AWrEnW, output [3:0] ARdEnW,
-  output [3:0] AWrEnB, output [3:0] ARdEnB,
-  input [31:0] AAddrUsed, output AAddrAck
+  input wire [1:0] AAddr, input wire [3:0] AWrSize, input wire [3:0] ARdSize,
+  output wire [3:0] AWrEnQ, output wire [3:0] ARdEnQ,
+  output wire [3:0] AWrEnD, output wire [3:0] ARdEnD,
+  output wire [3:0] AWrEnW, output wire [3:0] ARdEnW,
+  output wire [3:0] AWrEnB, output wire [3:0] ARdEnB,
+  input wire [31:0] AAddrUsed, output wire AAddrAck
  );
 
  wire [3:0] AAddrDec; MsDec2x4a UAddrDec ( AAddr, AAddrDec );
@@ -21,12 +21,12 @@ endmodule
 
 module IoIntf2a #(parameter CAddrBase=16'h0000, CAddrUsed=32'h00000000)
  (
-  input [15:0] AAddr, input [3:0] AWrSize, input [3:0] ARdSize,
-  output [3:0] AWrEnQ, output [3:0] ARdEnQ,
-  output [3:0] AWrEnD, output [3:0] ARdEnD,
-  output [3:0] AWrEnW, output [3:0] ARdEnW,
-  output [3:0] AWrEnB, output [3:0] ARdEnB,
-  output AAddrAck, output AAddrErr
+  input wire [15:0] AAddr, input wire [3:0] AWrSize, input wire [3:0] ARdSize,
+  output wire [3:0] AWrEnQ, output wire [3:0] ARdEnQ,
+  output wire [3:0] AWrEnD, output wire [3:0] ARdEnD,
+  output wire [3:0] AWrEnW, output wire [3:0] ARdEnW,
+  output wire [3:0] AWrEnB, output wire [3:0] ARdEnB,
+  output wire AAddrAck, output wire AAddrErr
  );
 
  wire BAddrCmp = (AAddr[15:2]==CAddrBase[15:2]);
@@ -47,9 +47,9 @@ endmodule
 
 module IoIntf2s #(parameter CAddrBase=16'h0000, CAddrUsed=32'h00000000)
  (
-  input [15:0] AIoAddr, input [3:0] AIoWrSize, input [3:0] AIoRdSize,
-  output [31:0] AIoAccess,
-  output AAddrAck, output AAddrErr
+  input wire [15:0] AIoAddr, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize,
+  output wire [31:0] AIoAccess,
+  output wire AAddrAck, output wire AAddrErr
  );
 
  wire BAddrCmp = (AIoAddr[15:2]==CAddrBase[15:2]);
@@ -67,83 +67,16 @@ module IoIntf2s #(parameter CAddrBase=16'h0000, CAddrUsed=32'h00000000)
  assign AAddrErr = BWrRdSizeNZ & BAddrCmp & ~AAddrAck;
 endmodule
 
-module IoSizeToMask ( input [3:0] ASize, output [7:0] AMask );
+module IoSizeToMask ( input wire [3:0] ASize, output wire [7:0] AMask );
  assign AMask = {{4{ASize[3]}}, {2{|ASize[3:2]}}, |ASize[3:1], |ASize};
 endmodule
 
-/*module IoIntf2a64d
- (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [1:0] AAddr, input [63:0] AMosi, output [63:0] AMiso, input [3:0] AWrSize, input [3:0] ARdSize,
-  output [3:0] AWrEnQ, output [3:0] ARdEnQ,
-  output [3:0] AWrEnD, output [3:0] ARdEnD,
-  output [3:0] AWrEnW, output [3:0] ARdEnW,
-  output [3:0] AWrEnB, output [3:0] ARdEnB,
-  output [255:0] ADataMosiQ, output [127:0] ADataMosiD, output [63:0] ADataMosiW, output [31:0] ADataMosiB,
-  input [255:0] ADataMisoQ, input [127:0] ADataMisoD, input [63:0] ADataMisoW, input [31:0] ADataMisoB
- );
-
- // Implementation
-
- IoAddrDec2a UIoAddrDec ( .AAddr(AAddr), .AWrSize(AWrSize), .ARdSize(ARdSize), .AWrEnQ(AWrEnQ), .ARdEnQ(ARdEnQ), .AWrEnD(AWrEnD), .ARdEnD(ARdEnD), .AWrEnW(AWrEnW), .ARdEnW(ARdEnW), .AWrEnB(AWrEnB), .ARdEnB(ARdEnB) );
-
- MsBufReg #(.CDataWidth(64)) UInputRegQ[3:0]
-  (
-   .AClkH({4{AClkH}}), .AResetHN({4{AResetHN}}), .AClkHEn({4{AClkHEn}}),
-   .AMosi({4{AMosi[63:0]}}),
-   .AWrEn(AWrEnQ),
-   .ARegData(ADataMosiQ)
-  );
-
- MsBufReg #(.CDataWidth(32)) UInputRegD[3:0]
-  (
-   .AClkH({4{AClkH}}), .AResetHN({4{AResetHN}}), .AClkHEn({4{AClkHEn}}),
-   .AMosi({4{AMosi[31:0]}}),
-   .AWrEn(AWrEnD),
-   .ARegData(ADataMosiD)
-  );
-
- MsBufReg #(.CDataWidth(16)) UInputRegW[3:0]
-  (
-   .AClkH({4{AClkH}}), .AResetHN({4{AResetHN}}), .AClkHEn({4{AClkHEn}}),
-   .AMosi({4{AMosi[15:0]}}),
-   .AWrEn(AWrEnW),
-   .ARegData(ADataMosiW)
-  );
-
- MsBufReg #(.CDataWidth(8)) UInputRegB[3:0]
-  (
-   .AClkH({4{AClkH}}), .AResetHN({4{AResetHN}}), .AClkHEn({4{AClkHEn}}),
-   .AMosi({4{AMosi[7:0]}}),
-   .AWrEn(AWrEnB),
-   .ARegData(ADataMosiB)
-  );
-
- assign AMiso =
-  ({64{ARdEnQ[3]}} & ADataMisoQ[255:192]) |
-  ({64{ARdEnQ[2]}} & ADataMisoQ[191:128]) |
-  ({64{ARdEnQ[1]}} & ADataMisoQ[127: 64]) |
-  ({64{ARdEnQ[0]}} & ADataMisoQ[ 63:  0]) |
-  {32'h0, {32{ARdEnD[3]}} & ADataMisoD[127:96]} |
-  {32'h0, {32{ARdEnD[2]}} & ADataMisoD[ 95:64]} |
-  {32'h0, {32{ARdEnD[1]}} & ADataMisoD[ 63:32]} |
-  {32'h0, {32{ARdEnD[0]}} & ADataMisoD[ 31: 0]} |
-  {48'h0, {16{ARdEnW[3]}} & ADataMisoW[63:48]} |
-  {48'h0, {16{ARdEnW[2]}} & ADataMisoW[47:32]} |
-  {48'h0, {16{ARdEnW[1]}} & ADataMisoW[31:16]} |
-  {48'h0, {16{ARdEnW[0]}} & ADataMisoW[15: 0]} |
-  {56'h0, {8{ARdEnB[3]}} & ADataMisoB[31:24]} |
-  {56'h0, {8{ARdEnB[2]}} & ADataMisoB[23:16]} |
-  {56'h0, {8{ARdEnB[1]}} & ADataMisoB[15: 8]} |
-  {56'h0, {8{ARdEnB[0]}} & ADataMisoB[ 7: 0]};
-endmodule */
-
 module PerifTimer #(parameter CDataLen=16)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CDataLen-1:0] AIoMosi, input AIoWrEn,
-  input [1:0] ASyncSel, input ASync1M, input ASync1K,
-  input ATimerReset, input ACountEn, output [CDataLen-1:0] ATimerThis, output ATimerNZ
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CDataLen-1:0] AIoMosi, input wire AIoWrEn,
+  input wire [1:0] ASyncSel, input wire ASync1M, input wire ASync1K,
+  input wire ATimerReset, input wire ACountEn, output wire [CDataLen-1:0] ATimerThis, output wire ATimerNZ
  );
 
  // Local vars (Process)
@@ -173,9 +106,9 @@ endmodule
 
 module PerifGpio
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [7:0] AIoMosi, output [7:0] AIoMiso, input [1:0] AIoWrRdEn,
-  input [3:0] AGpioI, output [3:0] AGpioO, output [3:0] AGpioE
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] AIoMosi, output wire [7:0] AIoMiso, input wire [1:0] AIoWrRdEn,
+  input wire [3:0] AGpioI, output wire [3:0] AGpioO, output wire [3:0] AGpioE
  );
 
  wire [3:0] FGpioI, BGpioI;
@@ -198,10 +131,10 @@ endmodule
 
 module MsFifoMx #(parameter CAddrLen=8, CDataLen=16)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CDataLen-1:0] ADataI, input AWrEn,
-  output [CDataLen-1:0] ADataO, input ARdEn,
-  input AClr, output AHasData, output AHasSpace, output [15:0] ADataSize
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CDataLen-1:0] ADataI, input wire AWrEn,
+  output wire [CDataLen-1:0] ADataO, input wire ARdEn,
+  input wire AClr, output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
  );
 
  localparam CAddrNil = {(CAddrLen+1){1'b0}};
@@ -241,10 +174,10 @@ endmodule
 
 module MsFifo4x #(parameter CDataLen = 8)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [(CDataLen-1):0] ADataI, input AWrEn,
-  output [(CDataLen-1):0] ADataO, input ARdEn,
-  input AClr, output AHasData, output AHasSpace, output [15:0] ADataSize
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [(CDataLen-1):0] ADataI, input wire AWrEn,
+  output wire [(CDataLen-1):0] ADataO, input wire ARdEn,
+  input wire AClr, output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
  );
 
  wire [(CDataLen*4-1):0] FData, BData;
@@ -276,10 +209,10 @@ endmodule
 
 module MsFifoDff #(parameter CAddrLen = 2, CDataLen = 8)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [(CDataLen-1):0] ADataI, input AWrEn,
-  output [(CDataLen-1):0] ADataO, input ARdEn,
-  input AClr, output AHasData, output AHasSpace, output [15:0] ADataSize
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [(CDataLen-1):0] ADataI, input wire AWrEn,
+  output wire [(CDataLen-1):0] ADataO, input wire ARdEn,
+  input wire AClr, output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
  );
 
  localparam CRegCnt = (1<<CAddrLen);
@@ -313,10 +246,10 @@ endmodule
 
 module MsFifo256b
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [7:0] ADataI, input AWrEn,
-  output [7:0] ADataO, input ARdEn,
-  output AHasData, output AHasSpace, output [15:0] ADataSize
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] ADataI, input wire AWrEn,
+  output wire [7:0] ADataO, input wire ARdEn,
+  output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
  );
 
  wire [8:0] FWrIdx, BWrIdx;
@@ -355,10 +288,10 @@ endmodule
 
 module MsFifo256x #(parameter CDataLen=16)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CDataLen-1:0] ADataI, input AWrEn,
-  output [CDataLen-1:0] ADataO, input ARdEn,
-  output AHasData, output AHasSpace, output [15:0] ADataSize
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CDataLen-1:0] ADataI, input wire AWrEn,
+  output wire [CDataLen-1:0] ADataO, input wire ARdEn,
+  output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
  );
 
  wire [8:0] FWrIdx, BWrIdx;
@@ -397,10 +330,10 @@ endmodule
 
 module MsFifo1K
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [7:0] ADataI, input AWrEn,
-  output [7:0] ADataO, input ARdEn,
-  output AHasData, output AHasSpace, output [15:0] ADataSize
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] ADataI, input wire AWrEn,
+  output wire [7:0] ADataO, input wire ARdEn,
+  output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
  );
 
  wire [10:0] FWrIdx, BWrIdx;
@@ -438,9 +371,9 @@ endmodule
 
 module PerifFifoMem #(parameter CAddrLen = 3)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [(CAddrLen-1):0] AAddrI, input [7:0] ADataI, input AWrEn,
-  input [(CAddrLen-1):0] AAddrO, output [7:0] ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [(CAddrLen-1):0] AAddrI, input wire [7:0] ADataI, input wire AWrEn,
+  input wire [(CAddrLen-1):0] AAddrO, output wire [7:0] ADataO
  );
 
  localparam CByteCnt = 1<<CAddrLen;
@@ -465,7 +398,7 @@ module PerifFifoMem #(parameter CAddrLen = 3)
 
 endmodule
 
-module PerifDataRol ( input [63:0] ADataI, input [7:0] AMaskI, input [2:0] AShCnt, output [63:0] ADataO, output [7:0] AMaskO );
+module PerifDataRol ( input wire [63:0] ADataI, input wire [7:0] AMaskI, input wire [2:0] AShCnt, output wire [63:0] ADataO, output wire [7:0] AMaskO );
 
  wire [63:0] BDataC = AShCnt[2] ? {ADataI[31:0], ADataI[63:32]} : ADataI;
  wire [63:0] BDataB = AShCnt[1] ? {BDataC[47:0], BDataC[63:48]} : BDataC;
@@ -478,7 +411,7 @@ module PerifDataRol ( input [63:0] ADataI, input [7:0] AMaskI, input [2:0] AShCn
  assign AMaskO = BMaskA;
 endmodule
 
-module PerifDataRor ( input [63:0] ADataI, input [2:0] AShCnt, output [63:0] ADataO );
+module PerifDataRor ( input wire [63:0] ADataI, input wire [2:0] AShCnt, output wire [63:0] ADataO );
  wire [63:0] BDataC = AShCnt[2] ? {ADataI[31:0], ADataI[63:32]} : ADataI;
  wire [63:0] BDataB = AShCnt[1] ? {BDataC[15:0], BDataC[63:16]} : BDataC;
  wire [63:0] BDataA = AShCnt[0] ? {BDataB[ 7:0], BDataB[63: 8]} : BDataB;
@@ -486,7 +419,7 @@ module PerifDataRor ( input [63:0] ADataI, input [2:0] AShCnt, output [63:0] ADa
 endmodule
 
 // When different lines of FIFO are accessed, the address can overlap. So it will be +1 for certain lines
-module PerifFifoAddrInc #(parameter CAddrLen=5) ( input [CAddrLen-1:0] AAddrI, input [7:0] AMask, output [8*(CAddrLen-3)-1:0] AAddrO );
+module PerifFifoAddrInc #(parameter CAddrLen=5) ( input wire [CAddrLen-1:0] AAddrI, input wire [7:0] AMask, output wire [8*(CAddrLen-3)-1:0] AAddrO );
 
  wire [11:0] BMuxC = AAddrI[2] ? {AMask, 4'h0} : {4'h0, AMask};
  wire [13:0] BMuxB = AAddrI[1] ? {BMuxC, 2'h0} : {2'h0, BMuxC};
@@ -510,11 +443,11 @@ endmodule
 
 module PerifFifoSend #(parameter CAddrLen = 5)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input AResetSN,
-  input [63:0] ADataI, input [3:0] AWrSize,
-  output [7:0] ADataO, input ARdEn,
-  output AHasData, output AHasSpace, output [15:0] AFreeSize
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire AResetSN,
+  input wire [63:0] ADataI, input wire [3:0] AWrSize,
+  output wire [7:0] ADataO, input wire ARdEn,
+  output wire AHasData, output wire AHasSpace, output wire [15:0] AFreeSize
  );
 
  // Process
@@ -560,11 +493,11 @@ endmodule
 
 module PerifFifoRecv #(parameter CAddrLen = 5)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input AResetSN,
-  input [7:0] ADataI, input AWrEn,
-  output [63:0] ADataO, input [3:0] ARdSize,
-  output AHasData, output AHasSpace, output [15:0] AFillSize
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire AResetSN,
+  input wire [7:0] ADataI, input wire AWrEn,
+  output wire [63:0] ADataO, input wire [3:0] ARdSize,
+  output wire AHasData, output wire AHasSpace, output wire [15:0] AFillSize
  );
 
  // Process
@@ -612,9 +545,9 @@ endmodule
 
 module PerifCfgBlock #(parameter CRegLen=8, CRegCnt=6)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [(CRegLen-1):0] ADataI, input AWrEn, input AAnyOtherAccess,
-  output [(CRegLen*CRegCnt-1):0] ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [(CRegLen-1):0] ADataI, input wire AWrEn, input wire AAnyOtherAccess,
+  output wire [(CRegLen*CRegCnt-1):0] ADataO
  );
 
  // Process

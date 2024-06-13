@@ -1,31 +1,31 @@
 // FTDI version of MsDebug (almost completely copy-paste of UART version)
 
-module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5, CBrkCnt=8, CProgBaudLen=3, CProgBaudDiv=3'h7, CRomBase=32'h0000, CRomSize=32'h0000, CProgBootOffs=32'h300000)
+module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5, CBrkCnt=8, CProgBaudLen=3, CProgBaudDiv=3'h7, CMemCodeBase=32'h0000, CMemCodeSize=32'h0000, CProgBootOffs=32'h300000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
   // CPU
-  output ADbgExecEn, output ADbgResetS, output ADbgClkHEn, output ADbgStep,
-  output [CCoreCnt-1:0] ADbgCoreIdx, output [CRegCnt-1:0] ADbgRegIdx, input [63:0] ADbgRegMiso,
-  input [CCoreCnt-1:0] ATEndList, ATrapList, input [CCoreCnt*32-1:0] AIpThis, input [CCoreCnt-1:0] ACmdDecReady,
+  output wire ADbgExecEn, output wire ADbgResetS, output wire ADbgClkHEn, output wire ADbgStep,
+  output wire [CCoreCnt-1:0] ADbgCoreIdx, output wire [CRegCnt-1:0] ADbgRegIdx, input wire [63:0] ADbgRegMiso,
+  input wire [CCoreCnt-1:0] ATEndList, ATrapList, input wire [CCoreCnt*32-1:0] AIpThis, input wire [CCoreCnt-1:0] ACmdDecReady,
   // ADC
-  input AAdcAttReq, output AAdcAttAck, input [15:0] AAdcDataLen,
-  input [63:0] AAdcMiso, output [63:0] AAdcMosi, output AAdcWrEn, AAdcRdEn,
+  input wire AAdcAttReq, output wire AAdcAttAck, input wire [15:0] AAdcDataLen,
+  input wire [63:0] AAdcMiso, output wire [63:0] AAdcMosi, output wire AAdcWrEn, AAdcRdEn,
   // Mem
-  output AMemAccess, output [31:3] AMemAddr, input [63:0] AMemMiso, output [63:0] AMemMosi, output [1:0] AMemWrRdEn,
+  output wire AMemAccess, output wire [31:3] AMemAddr, input wire [63:0] AMemMiso, output wire [63:0] AMemMosi, output wire [1:0] AMemWrRdEn,
   // Dbg bridge
-  input [7:0] ADbgDataI, output [7:0] ADbgDataO, output ADbgDataOE, input ADbgRF, ADbgTE, output ADbgWr, ADbgRd, ADbgSiwu, output [1:0] ADbgLed,
+  input wire [7:0] ADbgDataI, output wire [7:0] ADbgDataO, output wire ADbgDataOE, input wire ADbgRF, ADbgTE, output wire ADbgWr, ADbgRd, ADbgSiwu, output wire [1:0] ADbgLed,
   // Sync
-  input ASync1M, input ASync1K,
+  input wire ASync1M, input wire ASync1K,
   // Flash
-  input ALoadFW,
-  output AFlashMaster, input AFlashMiso, output AFlashMosi, output AFlashSck, output AFlashNCS,
+  input wire ALoadFW,
+  output wire AFlashMaster, input wire AFlashMiso, output wire AFlashMosi, output wire AFlashSck, output wire AFlashNCS,
   // RSU
-  input ARsuReady, input [31:0] ARsuBootAddr,
+  input wire ARsuReady, input wire [31:0] ARsuBootAddr,
   // Fpga reflash
-  input [3:0] AStartupI, output [3:0] AStartupO, output [3:0] AStartupE,
+  input wire [3:0] AStartupI, output wire [3:0] AStartupO, output wire [3:0] AStartupE,
   // Test
-  output [15:0] ATest
+  output wire [15:0] ATest
  );
 
  wire [11:0] BDbioAddrU, BDbioAddrF;
@@ -109,7 +109,7 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCore
   );
 
  wire [7:0] BTestLdr;
- MsTestLdr #(.CBaudLen(CProgBaudLen), .CBaudDiv(CProgBaudDiv), .CRomBase(CRomBase), .CRomSize(CRomSize)) UTestLdr
+ MsTestLdr #(.CBaudLen(CProgBaudLen), .CBaudDiv(CProgBaudDiv), .CMemCodeBase(CMemCodeBase), .CMemCodeSize(CMemCodeSize)) UTestLdr
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADbioAddr(BDbioAddr[7:0]), .ADbioMosi(BDbioMosi), .ADbioMiso(BDbioMisoL), .ADbioMosiIdx(BDbioTestLCS ? BDbioMosiIdx : 4'h0), .ADbioMisoIdx(BDbioTestLCS ? BDbioMisoIdx : 4'h0), .ADbioMosi1st(BDbioTestLCS & BDbioMosi1st), .ADbioMiso1st(BDbioTestLCS & BDbioMiso1st), .ADbioDataLen(BDbioTestLCS ? BDbioDataLen : 16'h0), .ADbioDataLenNZ(BDbioTestLCS & BDbioDataLenNZ), .ADbioIdxReset(BDbioIdxResetL),

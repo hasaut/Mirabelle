@@ -1,17 +1,17 @@
 module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIrqCnt=8)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input AExecEn, input ADbgStep,
-  input [CCoreCnt*3-1:0] ASysReq, output [CCoreCnt-1:0] ASysAck,
-  output [CCoreCnt-1:0] ASysCoreSel, input [31:3] AContPtrMiso, input AIsIsr, output AContPtrWrEn, input [CCoreCnt-1:0] ASiLock,
-  input [CIrqCnt-1:0] AIrqBusyList, output [CIrqCnt-1:0] AIrqToProcess, // Avoid re-entering
-  input [CCoreCnt-1:0] ASetIrqSwtBase,
-  input [CCoreCnt-1:0] AIrqEn, input [CIrqCnt-1:0] AIrq,
-  output [CCoreCnt-1:0] ACoreEn, // Individual Enable signal, can be zero during IRQ
-  output [63:0] ARegMosi, input [63:0] ARegMiso, output [11:0] ARegWrIdx, ARegRdIdx,
-  output [31:3] ARomAddr, input [63:0] ARomMiso, output ARomRdEn,
-  output [31:0] ARamAddr, input [63:0] ARamMiso, output [63:0] ARamMosi, output [3:0] ARamWrSize, ARamRdSize, input ARamAck,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire AExecEn,
+  input wire [CCoreCnt*3-1:0] ASysReq, output wire [CCoreCnt-1:0] ASysAck,
+  output wire [CCoreCnt-1:0] ASysCoreSel, input wire [31:3] AContPtrMiso, input wire AIsIsr, output wire AContPtrWrEn, input wire [CCoreCnt-1:0] ASiLock,
+  input wire [CIrqCnt-1:0] AIrqBusyList, output wire [CIrqCnt-1:0] AIrqToProcess, // Avoid re-entering
+  input wire [CCoreCnt-1:0] ASetIrqSwtBase,
+  input wire [CCoreCnt-1:0] AIrqEn, input wire [CIrqCnt-1:0] AIrq,
+  output wire [CCoreCnt-1:0] ACoreEn, // Individual Enable signal, can be zero during IRQ
+  output wire [63:0] ARegMosi, input wire [63:0] ARegMiso, output wire [11:0] ARegWrIdx, ARegRdIdx,
+  output wire [31:3] AMemCodeAddr, input wire [63:0] AMemCodeMiso, output wire AMemCodeRdEn,
+  output wire [31:0] AMemDataAddr, input wire [63:0] AMemDataMiso, output wire [63:0] AMemDataMosi, output wire [3:0] AMemDataWrSize, AMemDataRdSize, input wire AMemDataAck,
+  output wire [7:0] ATest
  );
 
  localparam CCoreNil = {CCoreCnt{1'b0}};
@@ -25,7 +25,7 @@ module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIr
  localparam IStInitD = 3;
  localparam IStInitC = 2;
  localparam IStInitB = 1;
- localparam IStInitA = 0; // Set RomAddr, CoreIdx
+ localparam IStInitA = 0; // Set MemCodeAddr, CoreIdx
 
  localparam CStateSysLen = 25;
  localparam CStateSysNil = {CStateSysLen{1'b0}};
@@ -62,7 +62,7 @@ module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIr
  wire [CStateSysLen-1:0] FStateSys, BStateSys;
  wire [CCoreCnt-1:0] FCoreEn, BCoreEn;
  wire [2:0] FSysReqFn, BSysReqFn;
- wire [63:0] FRomMiso, BRomMiso;
+ wire [63:0] FMemCodeMiso, BMemCodeMiso;
  wire [3:0] FCoreIdxA, BCoreIdxA;
  wire [CCoreCnt-1:0] FSysReqSrc, BSysReqSrc; // Which core initiates a SysReq (can be multiple)
  wire [CCoreCnt-1:0] FSysCoreSel, BSysCoreSel;
@@ -70,8 +70,8 @@ module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIr
             FTailIdx, BTailIdx,
             FHeadIdx, BHeadIdx;
  wire [3:0] FRegIdx, BRegIdx;
- wire [63:0] FRamMosi, BRamMosi;
- wire [63:0] FRamMiso, BRamMiso;
+ wire [63:0] FMemDataMosi, BMemDataMosi;
+ wire [63:0] FMemDataMiso, BMemDataMiso;
  wire [CCoreCnt-1:0] FSiLock, BSiLock;
 
  wire [31:2] FIrqBase, BIrqBase;
@@ -86,11 +86,11 @@ module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIr
  MsDffList #(.CRegLen(2+2+CStateMLen+CStateSysLen+CCoreCnt+3+64+4+CCoreCnt*2+3*8+4+64+64+CCoreCnt+30+30+3*CIrqCnt+CCoreCnt)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BSubcoreIdxBase, BSubcoreIdxStop, BStateM, BStateSys, BCoreEn, BSysReqFn, BRomMiso, BCoreIdxA, BSysReqSrc, BSysCoreSel, BQueMask, BTailIdx, BHeadIdx, BRegIdx, BRamMosi, BRamMiso, BSiLock, BIrqBase, BSwtBase, BIrqIn, BIrqAll, BIrqThis, BCoreCandidate}),
-   .ADataO({FSubcoreIdxBase, FSubcoreIdxStop, FStateM, FStateSys, FCoreEn, FSysReqFn, FRomMiso, FCoreIdxA, FSysReqSrc, FSysCoreSel, FQueMask, FTailIdx, FHeadIdx, FRegIdx, FRamMosi, FRamMiso, FSiLock, FIrqBase, FSwtBase, FIrqIn, FIrqAll, FIrqThis, FCoreCandidate})
+   .ADataI({BSubcoreIdxBase, BSubcoreIdxStop, BStateM, BStateSys, BCoreEn, BSysReqFn, BMemCodeMiso, BCoreIdxA, BSysReqSrc, BSysCoreSel, BQueMask, BTailIdx, BHeadIdx, BRegIdx, BMemDataMosi, BMemDataMiso, BSiLock, BIrqBase, BSwtBase, BIrqIn, BIrqAll, BIrqThis, BCoreCandidate}),
+   .ADataO({FSubcoreIdxBase, FSubcoreIdxStop, FStateM, FStateSys, FCoreEn, FSysReqFn, FMemCodeMiso, FCoreIdxA, FSysReqSrc, FSysCoreSel, FQueMask, FTailIdx, FHeadIdx, FRegIdx, FMemDataMosi, FMemDataMiso, FSiLock, FIrqBase, FSwtBase, FIrqIn, FIrqAll, FIrqThis, FCoreCandidate})
   );
 
- assign BRomMiso = FStateM[IStInitC] ? ARomMiso : FRomMiso;
+ assign BMemCodeMiso = FStateM[IStInitC] ? AMemCodeMiso : FMemCodeMiso;
 
  assign {BIrqBase, BSwtBase} = (|ASetIrqSwtBase) ? {ARegMiso[63:34], ARegMiso[31:2]} : {FIrqBase, FSwtBase};
 
@@ -109,7 +109,7 @@ module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIr
  assign BSubcoreIdxStop = {FSubcoreIdxStop[0], FStateM[IStExecB] ? BSubcoreIdxBase[0] : ~FSubcoreIdxStop[0] & BPendNZ};
 
  // FSM Main
- assign BGoM[IStInitA] = ~BStateMNZ & (AExecEn | ADbgStep);               assign BStayM[IStInitA] = 1'b0;
+ assign BGoM[IStInitA] = ~BStateMNZ & AExecEn;                            assign BStayM[IStInitA] = 1'b0;
  assign BGoM[IStInitB] =  FStateM[IStInitA] |
                          (FStateM[IStInitE] & ~FSysCoreSel[CCoreCnt-1]);  assign BStayM[IStInitB] = 1'b0;
  assign BGoM[IStInitC] =  FStateM[IStInitB];                              assign BStayM[IStInitC] = 1'b0;
@@ -191,55 +191,55 @@ module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIr
  wire LLastRegMpu = BRegIdxS[11];
 
  // SWT/END/SYS part
- assign BGoSys[IStSysReqA] = ~BStateSysNZ & BSysReqSrcNZ & ~BGoIrqProc & FStateM[IStExecB];   assign BStaySys[IStSysReqA] = 1'b0;
+ assign BGoSys[IStSysReqA] = ~BStateSysNZ & BSysReqSrcNZ & ~BGoIrqProc & FStateM[IStExecB];       assign BStaySys[IStSysReqA] = 1'b0;
  // Load Ctrl
- assign BGoSys[IStSysReqC] =  FStateSys[IStSysReqA] & (|FSysReqFn[1:0]);                      assign BStaySys[IStSysReqC] = FStateSys[IStSysReqC] & ~ARamAck;
+ assign BGoSys[IStSysReqC] =  FStateSys[IStSysReqA] & (|FSysReqFn[1:0]);                          assign BStaySys[IStSysReqC] = FStateSys[IStSysReqC] & ~AMemDataAck;
  // Save context
- assign BGoSys[IStSysSwtA] = (FStateSys[IStSysReqC] &  ARamAck & FSysReqFn[0]) |
-                             (FStateSys[IStSysSwtB] &  ARamAck & ~LLastRegGpr);               assign BStaySys[IStSysSwtA] = 1'b0;
- assign BGoSys[IStSysSwtB] =  FStateSys[IStSysSwtA];                                          assign BStaySys[IStSysSwtB] = FStateSys[IStSysSwtB] & ~ARamAck;
+ assign BGoSys[IStSysSwtA] = (FStateSys[IStSysReqC] &  AMemDataAck & FSysReqFn[0]) |
+                             (FStateSys[IStSysSwtB] &  AMemDataAck & ~LLastRegGpr);               assign BStaySys[IStSysSwtA] = 1'b0;
+ assign BGoSys[IStSysSwtB] =  FStateSys[IStSysSwtA];                                              assign BStaySys[IStSysSwtB] = FStateSys[IStSysSwtB] & ~AMemDataAck;
  // Save ContPtr (only if the thread is not IRQ)
- assign BGoSys[IStSysSwtC] =  FStateSys[IStSysSwtB] &  ARamAck &  LLastRegGpr & ~AIsIsr;      assign BStaySys[IStSysSwtC] = FStateSys[IStSysSwtC] & ~ARamAck;
+ assign BGoSys[IStSysSwtC] =  FStateSys[IStSysSwtB] &  AMemDataAck &  LLastRegGpr & ~AIsIsr;      assign BStaySys[IStSysSwtC] = FStateSys[IStSysSwtC] & ~AMemDataAck;
  // Load ContPtr
- assign BGoSys[IStSysSwtD] = (FStateSys[IStSysReqC] &  ARamAck & FSysReqFn[1]) |
-                             (FStateSys[IStSysSwtB] &  ARamAck &  LLastRegGpr &  AIsIsr) |
-                             (FStateSys[IStSysSwtC] &  ARamAck);                              assign BStaySys[IStSysSwtD] = FStateSys[IStSysSwtD] & ~ARamAck;
- assign BGoSys[IStSysSwtE] =  FStateSys[IStSysSwtD] &  ARamAck;                               assign BStaySys[IStSysSwtE] = 1'b0;
+ assign BGoSys[IStSysSwtD] = (FStateSys[IStSysReqC] &  AMemDataAck & FSysReqFn[1]) |
+                             (FStateSys[IStSysSwtB] &  AMemDataAck &  LLastRegGpr &  AIsIsr) |
+                             (FStateSys[IStSysSwtC] &  AMemDataAck);                              assign BStaySys[IStSysSwtD] = FStateSys[IStSysSwtD] & ~AMemDataAck;
+ assign BGoSys[IStSysSwtE] =  FStateSys[IStSysSwtD] &  AMemDataAck;                               assign BStaySys[IStSysSwtE] = 1'b0;
  // Load context
  assign BGoSys[IStSysSwtF] =  FStateSys[IStSysSwtE] |
-                             (FStateSys[IStSysSwtG] & ~LLastRegMpu);                          assign BStaySys[IStSysSwtF] = FStateSys[IStSysSwtF] & ~ARamAck;
- assign BGoSys[IStSysSwtG] = (FStateSys[IStSysSwtF] &  ARamAck);                              assign BStaySys[IStSysSwtG] = 1'b0;
+                             (FStateSys[IStSysSwtG] & ~LLastRegMpu);                              assign BStaySys[IStSysSwtF] = FStateSys[IStSysSwtF] & ~AMemDataAck;
+ assign BGoSys[IStSysSwtG] = (FStateSys[IStSysSwtF] &  AMemDataAck);                              assign BStaySys[IStSysSwtG] = 1'b0;
  // Save Ctrl
- assign BGoSys[IStSysSwtH] = (FStateSys[IStSysSwtG] &  LLastRegMpu);                          assign BStaySys[IStSysSwtH] = FStateSys[IStSysSwtH] & ~ARamAck;
+ assign BGoSys[IStSysSwtH] = (FStateSys[IStSysSwtG] &  LLastRegMpu);                              assign BStaySys[IStSysSwtH] = FStateSys[IStSysSwtH] & ~AMemDataAck;
  // Sys ACK
- assign BGoSys[IStSysEndA] = (FStateSys[IStSysSwtH] &  ARamAck);                              assign BStaySys[IStSysEndA] = 1'b0;
+ assign BGoSys[IStSysEndA] = (FStateSys[IStSysSwtH] &  AMemDataAck);                              assign BStaySys[IStSysEndA] = 1'b0;
  // Lock
- assign BGoSys[IStSysLock] =  FStateSys[IStSysReqA] & FSysReqFn[2];                           assign BStaySys[IStSysLock] = 1'b0;
+ assign BGoSys[IStSysLock] =  FStateSys[IStSysReqA] & FSysReqFn[2];                               assign BStaySys[IStSysLock] = 1'b0;
  // IRQ part
- assign BGoSys[IStIrqReqA] = ~BStateSysNZ & BGoIrqProc & FStateM[IStExecB];                   assign BStaySys[IStIrqReqA] = 1'b0;
+ assign BGoSys[IStIrqReqA] = ~BStateSysNZ & BGoIrqProc & FStateM[IStExecB];                       assign BStaySys[IStIrqReqA] = 1'b0;
  // Avoiding race condition, 2 clock cycles
- assign BGoSys[IStIrqReqB] =  FStateSys[IStIrqReqA] & BIrqConfirmed;                          assign BStaySys[IStIrqReqB] = 1'b0;
+ assign BGoSys[IStIrqReqB] =  FStateSys[IStIrqReqA] & BIrqConfirmed;                              assign BStaySys[IStIrqReqB] = 1'b0;
  // Load Ctrl
- assign BGoSys[IStIrqReqC] =  FStateSys[IStIrqReqB] & BIrqConfirmed;                          assign BStaySys[IStIrqReqC] = FStateSys[IStIrqReqC] & ~ARamAck;
+ assign BGoSys[IStIrqReqC] =  FStateSys[IStIrqReqB] & BIrqConfirmed;                              assign BStaySys[IStIrqReqC] = FStateSys[IStIrqReqC] & ~AMemDataAck;
  // Dec head address // At the same time as IStIrqSwtA
- assign BGoSys[IStIrqReqD] =  FStateSys[IStIrqReqC] &  ARamAck;                               assign BStaySys[IStIrqReqD] = 1'b0;
+ assign BGoSys[IStIrqReqD] =  FStateSys[IStIrqReqC] &  AMemDataAck;                               assign BStaySys[IStIrqReqD] = 1'b0;
  // Save context
- assign BGoSys[IStIrqSwtA] = (FStateSys[IStIrqReqC] &  ARamAck) |
-                             (FStateSys[IStIrqSwtB] &  ARamAck & ~LLastRegGpr);               assign BStaySys[IStIrqSwtA] = 1'b0;
- assign BGoSys[IStIrqSwtB] =  FStateSys[IStIrqSwtA];                                          assign BStaySys[IStIrqSwtB] = FStateSys[IStIrqSwtB] & ~ARamAck;
+ assign BGoSys[IStIrqSwtA] = (FStateSys[IStIrqReqC] &  AMemDataAck) |
+                             (FStateSys[IStIrqSwtB] &  AMemDataAck & ~LLastRegGpr);               assign BStaySys[IStIrqSwtA] = 1'b0;
+ assign BGoSys[IStIrqSwtB] =  FStateSys[IStIrqSwtA];                                              assign BStaySys[IStIrqSwtB] = FStateSys[IStIrqSwtB] & ~AMemDataAck;
  // Save ContPtr (but do not increment address: it is in the beginning at the list)
- assign BGoSys[IStIrqSwtC] =  FStateSys[IStIrqSwtB] &  ARamAck &  LLastRegGpr;                assign BStaySys[IStIrqSwtC] = FStateSys[IStIrqSwtC] & ~ARamAck;
+ assign BGoSys[IStIrqSwtC] =  FStateSys[IStIrqSwtB] &  AMemDataAck &  LLastRegGpr;                assign BStaySys[IStIrqSwtC] = FStateSys[IStIrqSwtC] & ~AMemDataAck;
  // Load ContPtr (from Irq table, as an index of IRQ)
- assign BGoSys[IStIrqSwtD] =  FStateSys[IStIrqSwtC] &  ARamAck;                               assign BStaySys[IStIrqSwtD] = FStateSys[IStIrqSwtD] & ~ARamAck;
- assign BGoSys[IStIrqSwtE] =  FStateSys[IStIrqSwtD] &  ARamAck;                               assign BStaySys[IStIrqSwtE] = 1'b0;
+ assign BGoSys[IStIrqSwtD] =  FStateSys[IStIrqSwtC] &  AMemDataAck;                               assign BStaySys[IStIrqSwtD] = FStateSys[IStIrqSwtD] & ~AMemDataAck;
+ assign BGoSys[IStIrqSwtE] =  FStateSys[IStIrqSwtD] &  AMemDataAck;                               assign BStaySys[IStIrqSwtE] = 1'b0;
  // Load context
  assign BGoSys[IStIrqSwtF] =  FStateSys[IStIrqSwtE] |
-                             (FStateSys[IStIrqSwtG] & ~LLastRegMpu);                          assign BStaySys[IStIrqSwtF] = FStateSys[IStIrqSwtF] & ~ARamAck;
- assign BGoSys[IStIrqSwtG] =  FStateSys[IStIrqSwtF] &  ARamAck;                               assign BStaySys[IStIrqSwtG] = 1'b0;
+                             (FStateSys[IStIrqSwtG] & ~LLastRegMpu);                              assign BStaySys[IStIrqSwtF] = FStateSys[IStIrqSwtF] & ~AMemDataAck;
+ assign BGoSys[IStIrqSwtG] =  FStateSys[IStIrqSwtF] &  AMemDataAck;                               assign BStaySys[IStIrqSwtG] = 1'b0;
  // Save Ctrl
- assign BGoSys[IStIrqSwtH] =  FStateSys[IStIrqSwtG] &  LLastRegMpu ;                          assign BStaySys[IStIrqSwtH] = FStateSys[IStIrqSwtH] & ~ARamAck;
+ assign BGoSys[IStIrqSwtH] =  FStateSys[IStIrqSwtG] &  LLastRegMpu ;                              assign BStaySys[IStIrqSwtH] = FStateSys[IStIrqSwtH] & ~AMemDataAck;
  // Irq ACK (clear flags)
- assign BGoSys[IStIrqEndA] =  FStateSys[IStIrqSwtH] &  ARamAck ;                              assign BStaySys[IStIrqEndA] = 1'b0;
+ assign BGoSys[IStIrqEndA] =  FStateSys[IStIrqSwtH] &  AMemDataAck ;                              assign BStaySys[IStIrqEndA] = 1'b0;
 
  wire BRegIdxKeep = |{
                       FStateSys[IStSysSwtB:IStSysSwtA],
@@ -248,25 +248,25 @@ module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIr
                       FStateSys[IStIrqSwtG:IStIrqSwtF]
                      };
  wire BRegIdxNext = |{
-                      FStateSys[IStSysSwtB] & ARamAck & ~LLastRegGpr,
+                      FStateSys[IStSysSwtB] & AMemDataAck & ~LLastRegGpr,
                       FStateSys[IStSysSwtG] & ~LLastRegMpu,
-                      FStateSys[IStIrqSwtB] & ARamAck & ~LLastRegGpr,
+                      FStateSys[IStIrqSwtB] & AMemDataAck & ~LLastRegGpr,
                       FStateSys[IStIrqSwtG] & ~LLastRegMpu
                      };
  wire BRegIdxZero = |{
-                      FStateSys[IStSysSwtB] & ARamAck &  LLastRegGpr,
+                      FStateSys[IStSysSwtB] & AMemDataAck &  LLastRegGpr,
                       FStateSys[IStSysSwtG] & LLastRegMpu,
-                      FStateSys[IStIrqSwtB] & ARamAck &  LLastRegGpr,
+                      FStateSys[IStIrqSwtB] & AMemDataAck &  LLastRegGpr,
                       FStateSys[IStIrqSwtG] & LLastRegMpu
                      };
  assign BRegIdx = (BRegIdxKeep & ~BRegIdxZero) ? FRegIdx+{3'h0, BRegIdxNext} : 4'h0;
 
- assign BRamMiso = ((FStateSys[IStSysSwtF] | FStateSys[IStIrqSwtF]) & ARamAck) ? ARamMiso : FRamMiso;
- assign BRamMosi =  (FStateSys[IStSysSwtA] | FStateSys[IStIrqSwtA]) ? ARegMiso : FRamMosi;
+ assign BMemDataMiso = ((FStateSys[IStSysSwtF] | FStateSys[IStIrqSwtF]) & AMemDataAck) ? AMemDataMiso : FMemDataMiso;
+ assign BMemDataMosi =  (FStateSys[IStSysSwtA] | FStateSys[IStIrqSwtA]) ? ARegMiso : FMemDataMosi;
 
- assign BQueMask = ((FStateSys[IStSysReqC] | FStateSys[IStIrqReqC]) &  ARamAck) ? ARamMiso[23:16] : FQueMask;
- assign BTailIdx = ((FStateSys[IStSysReqC] | FStateSys[IStIrqReqC]) &  ARamAck) ? ARamMiso[15: 8] : FQueMask & (FTailIdx+{7'h0, FStateSys[IStSysSwtC] &  ARamAck});
- assign BHeadIdx = ((FStateSys[IStSysReqC] | FStateSys[IStIrqReqC]) &  ARamAck) ? ARamMiso[ 7: 0] : FQueMask & (FHeadIdx+({7'h0, FStateSys[IStSysSwtD] &  ARamAck} | {8{FStateSys[IStIrqReqD]}}));
+ assign BQueMask = ((FStateSys[IStSysReqC] | FStateSys[IStIrqReqC]) &  AMemDataAck) ? AMemDataMiso[23:16] : FQueMask;
+ assign BTailIdx = ((FStateSys[IStSysReqC] | FStateSys[IStIrqReqC]) &  AMemDataAck) ? AMemDataMiso[15: 8] : FQueMask & (FTailIdx+{7'h0, FStateSys[IStSysSwtC] &  AMemDataAck});
+ assign BHeadIdx = ((FStateSys[IStSysReqC] | FStateSys[IStIrqReqC]) &  AMemDataAck) ? AMemDataMiso[ 7: 0] : FQueMask & (FHeadIdx+({7'h0, FStateSys[IStSysSwtD] &  AMemDataAck} | {8{FStateSys[IStIrqReqD]}}));
 
  assign BSiLock =   FStateSys[IStSysLock] ? FSysCoreSel : FSiLock & ASiLock;
 
@@ -279,9 +279,9 @@ module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIr
  // Outs.Regs
  wire [7:0] BCoreCnt = CCoreCnt[7:0];
  assign ARegMosi =
-  (FStateM[IStInitD] ? {CVersion, 8'h0, BCoreCnt, 4'h0, FCoreIdxA, FRomMiso[31: 0]} : 64'h0) |
-  (FStateM[IStInitE] ? {CVersion, 8'h0, BCoreCnt, 4'h0, FCoreIdxA, FRomMiso[63:32]} : 64'h0) |
-  ((FStateSys[IStSysSwtG] | FStateSys[IStIrqSwtG]) ? FRamMiso : 64'h0);
+  (FStateM[IStInitD] ? {CVersion, 8'h0, BCoreCnt, 4'h0, FCoreIdxA, FMemCodeMiso[31: 0]} : 64'h0) |
+  (FStateM[IStInitE] ? {CVersion, 8'h0, BCoreCnt, 4'h0, FCoreIdxA, FMemCodeMiso[63:32]} : 64'h0) |
+  ((FStateSys[IStSysSwtG] | FStateSys[IStIrqSwtG]) ? FMemDataMiso : 64'h0);
 
  assign ARegWrIdx =
   ((FStateM[IStInitD] | FStateM[IStInitE]) ? 12'h1 : 12'h0) |
@@ -291,32 +291,32 @@ module MsCpuCtrl #(parameter CCoreCnt=2, CStartAddr=32'h0000, CVersion=8'h8, CIr
   ((|ASetIrqSwtBase) ? 12'h2 : 12'h0) |
   ((FStateSys[IStSysSwtA] | FStateSys[IStIrqSwtA]) ? BRegIdxS[11:0] : 12'h0);
 
- // Outs.Rom
- assign ARomAddr = FStateM[IStInitB] ? {CStartAddr[31:6], FCoreIdxA[3:1]} : 29'h0;
- assign ARomRdEn = FStateM[IStInitB];
+ // Outs.MemCode
+ assign AMemCodeAddr = FStateM[IStInitB] ? {CStartAddr[31:6], FCoreIdxA[3:1]} : 29'h0;
+ assign AMemCodeRdEn = FStateM[IStInitB];
 
- // Outs.Ram
+ // Outs.MemData
  wire [31:2] BSwtAddr = FSwtBase+30'h1;
  wire [31:2] BIrqAddr = FIrqBase;
  wire [31:3] BContAddr = AContPtrMiso+{25'h0, BRegIdx};
- assign ARamAddr =
+ assign AMemDataAddr =
   ((|{BStateSys[IStSysReqC], BStateSys[IStSysSwtH], BStateSys[IStIrqReqC], BStateSys[IStIrqSwtH]}) ? {FSwtBase, 2'h0}  : 32'h0) |
   ((|{BStateSys[IStSysSwtB], BStateSys[IStSysSwtF], BStateSys[IStIrqSwtB], BStateSys[IStIrqSwtF]}) ? {BContAddr, 3'h0} : 32'h0) |
   ((|{BStateSys[IStSysSwtC]}) ? {BSwtAddr+{21'h0, FTailIdx}, 2'h0} : 32'h0) |
   ((|{BStateSys[IStSysSwtD], BStateSys[IStIrqSwtC]}) ? {BSwtAddr+{21'h0, FHeadIdx}, 2'h0} : 32'h0) |
   ((|{BStateSys[IStIrqSwtD]}) ? {BIrqAddr+{24'h0, BIrqThisIdx}, 2'h0} : 32'h0);
 
- assign ARamMosi =
-  ((BStateSys[IStSysSwtB] | BStateSys[IStIrqSwtB]) ? BRamMosi : 64'h0) |
+ assign AMemDataMosi =
+  ((BStateSys[IStSysSwtB] | BStateSys[IStIrqSwtB]) ? BMemDataMosi : 64'h0) |
   ((BStateSys[IStSysSwtC] | BStateSys[IStIrqSwtC]) ? {32'h0, AContPtrMiso, 3'h0} : 64'h0) |
   ((BStateSys[IStSysSwtH] | BStateSys[IStIrqSwtH]) ? {32'h0, 8'h0, FQueMask, FTailIdx, FHeadIdx} : 64'h0);
 
- assign ARamWrSize = {BStateSys[IStSysSwtB] | BStateSys[IStIrqSwtB], BStateSys[IStSysSwtC] | BStateSys[IStSysSwtH] | BStateSys[IStIrqSwtC] | BStateSys[IStIrqSwtH], 2'h0};
- assign ARamRdSize = {BStateSys[IStSysSwtF] | BStateSys[IStIrqSwtF], BStateSys[IStSysSwtD] | BStateSys[IStSysReqC] | BStateSys[IStIrqSwtD] | BStateSys[IStIrqReqC], 2'h0};
+ assign AMemDataWrSize = {BStateSys[IStSysSwtB] | BStateSys[IStIrqSwtB], BStateSys[IStSysSwtC] | BStateSys[IStSysSwtH] | BStateSys[IStIrqSwtC] | BStateSys[IStIrqSwtH], 2'h0};
+ assign AMemDataRdSize = {BStateSys[IStSysSwtF] | BStateSys[IStIrqSwtF], BStateSys[IStSysSwtD] | BStateSys[IStSysReqC] | BStateSys[IStIrqSwtD] | BStateSys[IStIrqReqC], 2'h0};
 
  // Outs.Ctrl/ContPtrs
  assign ASysCoreSel = FSysCoreSel | ASetIrqSwtBase;
- assign AContPtrWrEn  = (FStateSys[IStSysSwtD] | FStateSys[IStIrqSwtD]) &  ARamAck;
+ assign AContPtrWrEn  = (FStateSys[IStSysSwtD] | FStateSys[IStIrqSwtD]) &  AMemDataAck;
  assign AIrqToProcess = FStateSys[IStIrqSwtD] ? FIrqThis : {CIrqCnt{1'b0}};
 
  //assign ATest = {ASysCoreSel, AContPtrWrEn, AIrqBusyList[0], FStateSys[IStIrqEndA], FIrqThis[0], FIrqAll[0], FIrqIn[0]};
@@ -326,8 +326,8 @@ endmodule
 
 module MsUnityCtrl #(parameter CLineCnt=2)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CLineCnt-1:0] AUnityReq, output [CLineCnt-1:0] AUnityAck
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CLineCnt-1:0] AUnityReq, output wire [CLineCnt-1:0] AUnityAck
  );
 
  wire [CLineCnt-1:0] FUnityIdx, BUnityIdx;
@@ -351,36 +351,36 @@ module MsUnityCtrl #(parameter CLineCnt=2)
  assign AUnityAck = FUnityIdx;
 endmodule
 
-module MsShlMemMask ( input [2:0] AAddr, input [7:0] AMaskI, output [7:0] AMaskO );
+module MsShlMemMask ( input wire [2:0] AAddr, input wire [7:0] AMaskI, output wire [7:0] AMaskO );
  wire [7:0] BMaskC = AAddr[2] ? {AMaskI[3:0], 4'h0} : AMaskI;
  wire [7:0] BMaskB = AAddr[1] ? {BMaskC[5:4], 2'h0, BMaskC[1:0], 2'h0} : BMaskC;
  wire [7:0] BMaskA = AAddr[0] ? {BMaskB[6], 1'b0, BMaskB[4], 1'b0, BMaskB[2], 1'b0, BMaskB[0], 1'b0} : BMaskB;
  assign AMaskO = BMaskA;
 endmodule
 
-module MsShlMemData ( input [2:0] AAddr, input [63:0] ADataI, output [63:0] ADataO );
+module MsShlMemData ( input wire [2:0] AAddr, input wire [63:0] ADataI, output wire [63:0] ADataO );
  wire [63:0] BDataC = AAddr[2] ? {ADataI[31:0], 32'h0} : ADataI;
  wire [63:0] BDataB = AAddr[1] ? {BDataC[47:32], 16'h0, BDataC[15:0], 16'h0} : BDataC;
  wire [63:0] BDataA = AAddr[0] ? {BDataB[55:48], 8'h0, BDataB[39:32], 8'h0, BDataB[23:16], 8'h0, BDataB[7:0], 8'h0} : BDataB;
  assign ADataO = BDataA;
 endmodule
 
-module MsShrMemData ( input [2:0] AAddr, input [63:0] ADataI, output [63:0] ADataO );
+module MsShrMemData ( input wire [2:0] AAddr, input wire [63:0] ADataI, output wire [63:0] ADataO );
  wire [63:0] BDataC = AAddr[2] ? {32'h0, ADataI[63:32]} : ADataI;
  wire [63:0] BDataB = AAddr[1] ? {16'h0, BDataC[63:48], 16'h0, BDataC[31:16]} : BDataC;
  wire [63:0] BDataA = AAddr[0] ? {8'h0, BDataB[63:56], 8'h0, BDataB[47:40], 8'h0, BDataB[31:24], 8'h0, BDataB[15:8]} : BDataB;
  assign ADataO = BDataA;
 endmodule
 
-module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CRomBase=32'h1000, CRomSize=32'h1000)
+module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CMemCodeBase=32'h1000, CMemCodeSize=32'h1000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CCoreCnt*32-1:0] ACodeAddr, output [63:0] ACodeMiso, input [CCoreCnt-1:0] ACodeReq, output [CCoreCnt-1:0] ACodeAck,
-  input [CDataCnt*32-1:0] ADataAddr, output [63:0] ADataMiso, input [CDataCnt*64-1:0] ADataMosi, input [CDataCnt*4-1:0] ADataWrSize, ADataRdSize, output [CDataCnt-1:0] ADataAck,
-  input [CCoreCnt*16-1:0] APortAddr, output [63:0] APortMiso, input [CCoreCnt*64-1:0] APortMosi, input [CCoreCnt*4-1:0] APortWrSize, APortRdSize, output [CCoreCnt-1:0] APortAck, APortSrq,
-  output [31:3] ARomAddr, input [63:0] ARomMiso, output ARomRdEn,
-  output [31:3] ARamAddr, input [63:0] ARamMiso, output [63:0] ARamMosi, output [7:0] ARamWrEn, ARamRdEn,
-  output [15:0] AIoAddr, input [63:0] AIoMiso, output [63:0] AIoMosi, output [3:0] AIoWrSize, AIoRdSize, input AIoBusy, input AIoSrq
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CCoreCnt*32-1:0] ACodeAddr, output wire [63:0] ACodeMiso, input wire [CCoreCnt-1:0] ACodeReq, output wire [CCoreCnt-1:0] ACodeAck,
+  input wire [CDataCnt*32-1:0] ADataAddr, output wire [63:0] ADataMiso, input wire [CDataCnt*64-1:0] ADataMosi, input wire [CDataCnt*4-1:0] ADataWrSize, ADataRdSize, output wire [CDataCnt-1:0] ADataAck,
+  input wire [CCoreCnt*16-1:0] APortAddr, output wire [63:0] APortMiso, input wire [CCoreCnt*64-1:0] APortMosi, input wire [CCoreCnt*4-1:0] APortWrSize, APortRdSize, output wire [CCoreCnt-1:0] APortAck, APortSrq,
+  output wire [31:3] AMemCodeAddr, input wire [63:0] AMemCodeMiso, output wire AMemCodeRdEn,
+  output wire [31:3] AMemDataAddr, input wire [63:0] AMemDataMiso, output wire [63:0] AMemDataMosi, output wire [7:0] AMemDataWrEn, AMemDataRdEn,
+  output wire [15:0] AIoSpaceAddr, input wire [63:0] AIoSpaceMiso, output wire [63:0] AIoSpaceMosi, output wire [3:0] AIoSpaceWrSize, AIoSpaceRdSize, input wire AIoSpaceBusy, input wire AIoSpaceSrq
  );
 
  localparam CCoreNil = {CCoreCnt{1'b0}};
@@ -388,7 +388,7 @@ module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CRomBase=32'h1000, CRomSize
  // Local vars
  wire [CCoreCnt-1:0] FCodeIdx, BCodeIdx;
  wire [CDataCnt-1:0] FDataIdx, BDataIdx;
- wire FDataInRom, BDataInRom;
+ wire FDataInMemCode, BDataInMemCode;
  wire [2:0] FDataScaleAddr, BDataScaleAddr;
  wire [7:0] FDataRdMask, BDataRdMask;
  wire [CCoreCnt-1:0] FPortIdx, BPortIdx;
@@ -403,8 +403,8 @@ module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CRomBase=32'h1000, CRomSize
  MsDffList #(.CRegLen(CCoreCnt+CDataCnt+1+3+8+CCoreCnt+CCoreCnt+16+64+4+4+1+64)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BCodeIdx, BDataIdx, BDataInRom, BDataScaleAddr, BDataRdMask, BPortIdx, BPortAck, BIoAddr, BIoMosi, BIoWrSize, BIoRdSize, BIoBusy, BPortMiso}),
-   .ADataO({FCodeIdx, FDataIdx, FDataInRom, FDataScaleAddr, FDataRdMask, FPortIdx, FPortAck, FIoAddr, FIoMosi, FIoWrSize, FIoRdSize, FIoBusy, FPortMiso})
+   .ADataI({BCodeIdx, BDataIdx, BDataInMemCode, BDataScaleAddr, BDataRdMask, BPortIdx, BPortAck, BIoAddr, BIoMosi, BIoWrSize, BIoRdSize, BIoBusy, BPortMiso}),
+   .ADataO({FCodeIdx, FDataIdx, FDataInMemCode, FDataScaleAddr, FDataRdMask, FPortIdx, FPortAck, FIoAddr, FIoMosi, FIoWrSize, FIoRdSize, FIoBusy, FPortMiso})
   );
 
  // Code
@@ -430,28 +430,28 @@ module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CRomBase=32'h1000, CRomSize
  wire [3:0] BDataRdSize; MsSelectRow #(.CRowCnt(CDataCnt), .CColCnt(4)) UDataRdSize ( .ADataI(ADataRdSize), .AMask(BDataIdx), .ADataO(BDataRdSize) );
 
  // Code/Data
- assign BDataInRom = (|BDataIdx) & (BDataAddr>=CRomBase) & (BDataAddr<(CRomBase+CRomSize));
+ assign BDataInMemCode = (|BDataIdx) & (BDataAddr>=CMemCodeBase) & (BDataAddr<(CMemCodeBase+CMemCodeSize));
  assign BDataScaleAddr = BDataAddr[2:0];
  wire [7:0] BDataWrMask = {{4{BDataWrSize[3]}}, {2{|BDataWrSize[3:2]}}, |BDataWrSize[3:1], |BDataWrSize};
  assign     BDataRdMask = {{4{BDataRdSize[3]}}, {2{|BDataRdSize[3:2]}}, |BDataRdSize[3:1], |BDataRdSize};
- wire [63:0] BDataWrMaskA; MsSpreadVect #(.CVectLen(8), .CSpreadLen(8)) UDataWrMaskA ( .ADataI(BDataInRom ? 8'h0 : BDataWrMask), .ADataO(BDataWrMaskA) );
+ wire [63:0] BDataWrMaskA; MsSpreadVect #(.CVectLen(8), .CSpreadLen(8)) UDataWrMaskA ( .ADataI(BDataInMemCode ? 8'h0 : BDataWrMask), .ADataO(BDataWrMaskA) );
  wire [63:0] BDataMiso;
  wire [63:0] BDataRdMaskA; MsSpreadVect #(.CVectLen(8), .CSpreadLen(8)) UDataRdMaskA ( .ADataI(FDataRdMask), .ADataO(BDataRdMaskA) );
  assign ADataMiso = BDataMiso & BDataRdMaskA;
- assign ACodeMiso = (|ACodeAck) ? ARomMiso : 64'h0;
+ assign ACodeMiso = (|ACodeAck) ? AMemCodeMiso : 64'h0;
 
- // Ram
- assign ARamAddr = BDataInRom ? 29'h0 : BDataAddr[31:3];
- MsShlMemData URamMosi ( .AAddr(BDataScaleAddr), .ADataI(BDataMosi & BDataWrMaskA), .ADataO(ARamMosi) );
- MsShlMemMask URamWrEn ( .AAddr(BDataScaleAddr), .AMaskI(BDataInRom ? 8'h0 : BDataWrMask), .AMaskO(ARamWrEn) );
- MsShlMemMask URamRdEn ( .AAddr(BDataScaleAddr), .AMaskI(BDataInRom ? 8'h0 : BDataRdMask), .AMaskO(ARamRdEn) );
- MsShrMemData URamMiso ( .AAddr(FDataScaleAddr), .ADataI(FDataInRom ? ARomMiso : ARamMiso), .ADataO(BDataMiso) );
+ // MemData
+ assign AMemDataAddr = BDataInMemCode ? 29'h0 : BDataAddr[31:3];
+ MsShlMemData UMemDataMosi ( .AAddr(BDataScaleAddr), .ADataI(BDataMosi & BDataWrMaskA), .ADataO(AMemDataMosi) );
+ MsShlMemMask UMemDataWrEn ( .AAddr(BDataScaleAddr), .AMaskI(BDataInMemCode ? 8'h0 : BDataWrMask), .AMaskO(AMemDataWrEn) );
+ MsShlMemMask UMemDataRdEn ( .AAddr(BDataScaleAddr), .AMaskI(BDataInMemCode ? 8'h0 : BDataRdMask), .AMaskO(AMemDataRdEn) );
+ MsShrMemData UMemDataMiso ( .AAddr(FDataScaleAddr), .ADataI(FDataInMemCode ? AMemCodeMiso : AMemDataMiso), .ADataO(BDataMiso) );
  assign ADataAck = FDataIdx;
 
- // Rom
- assign ARomAddr = BDataInRom ? BDataAddr[31:3] : BCodeAddr[31:3];
- assign ARomRdEn = BDataInRom ? (|BDataRdSize) : (|BCodeIdx);
- assign ACodeAck = FDataInRom ? CCoreNil : FCodeIdx;
+ // MemCode
+ assign AMemCodeAddr = BDataInMemCode ? BDataAddr[31:3] : BCodeAddr[31:3];
+ assign AMemCodeRdEn = BDataInMemCode ? (|BDataRdSize) : (|BCodeIdx);
+ assign ACodeAck = FDataInMemCode ? CCoreNil : FCodeIdx;
 
  // Port
  wire [CCoreCnt-1:0] BPortWrReq; MsMatrOrRow #(.CRowCnt(CCoreCnt), .CColCnt(4)) UPortWrReq ( .ADataI(APortWrSize), .ADataO(BPortWrReq) );
@@ -464,7 +464,7 @@ module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CRomBase=32'h1000, CRomSize
    .ADataI(BPortReq), .ADataO(BPortIdxA)
   );
 
- assign BIoBusy = AIoBusy;
+ assign BIoBusy = AIoSpaceBusy;
 
  wire [15:0] BIoAddrA;  MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(16)) UIoAddr ( .ADataI(APortAddr), .AMask(BPortIdxA), .ADataO(BIoAddrA) );
  wire [63:0] BIoMosiA;  MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(64)) UIoMosi ( .ADataI(APortMosi), .AMask(BPortIdxA), .ADataO(BIoMosiA) );
@@ -472,37 +472,37 @@ module MsMemCtrl #(parameter CCoreCnt=2, CDataCnt=3, CRomBase=32'h1000, CRomSize
  wire [3:0] BIoRdSizeA; MsSelectRow #(.CRowCnt(CCoreCnt), .CColCnt(4)) UIoRdSize ( .ADataI(APortRdSize), .AMask(BPortIdxA), .ADataO(BIoRdSizeA) );
 
  // BPortIdxA is changing all the time
- // So we cannot just lock it when AIoBusy is set. AIoBusy may be kept active for a while, but BPortIdxA will change
+ // So we cannot just lock it when AIoSpaceBusy is set. AIoSpaceBusy may be kept active for a while, but BPortIdxA will change
  // That's why we need this complicated construction below
- wire BBusKeep = FIoBusy & AIoBusy;
+ wire BBusKeep = FIoBusy & AIoSpaceBusy;
  assign BPortIdx = BBusKeep ? FPortIdx : BPortIdxA;
  assign {BIoAddr, BIoMosi, BIoWrSize, BIoRdSize} = BBusKeep ? {FIoAddr, FIoMosi, FIoWrSize, FIoRdSize} : {BIoAddrA, BIoMosiA, BIoWrSizeA, BIoRdSizeA};
  wire [CCoreCnt-1:0] BPortIdxB = FIoBusy ? FPortIdx : BPortIdxA;
 
- assign BPortAck = AIoBusy ? {CCoreCnt{1'b0}} : BPortIdxB;
- wire BIoRdSizeNZ = |AIoRdSize;
- assign BPortMiso = (AIoBusy | ~BIoRdSizeNZ) ? 64'h0 : AIoMiso;
+ assign BPortAck = AIoSpaceBusy ? {CCoreCnt{1'b0}} : BPortIdxB;
+ wire BIoRdSizeNZ = |AIoSpaceRdSize;
+ assign BPortMiso = (AIoSpaceBusy | ~BIoRdSizeNZ) ? 64'h0 : AIoSpaceMiso;
 
  // Out
  assign APortAck = FPortAck;
- assign APortSrq = {CCoreCnt{~AIoBusy & AIoSrq}} & BPortIdxB;
+ assign APortSrq = {CCoreCnt{~AIoSpaceBusy & AIoSpaceSrq}} & BPortIdxB;
  assign APortMiso = FPortMiso;
 
- // There is a combinatorial loop by AIoBusy. That's why FIoBusy is introduced.
- // Some signals are coming from DFF, and {BIoAddrA, BIoMosiA, BIoWrSizeA, BIoRdSizeA} are independent from AIoBusy
- assign AIoAddr = FIoBusy ? FIoAddr : BIoAddrA;
- assign AIoMosi = FIoBusy ? FIoMosi : BIoMosiA;
- assign AIoWrSize = FIoBusy ? FIoWrSize : BIoWrSizeA;
- assign AIoRdSize = FIoBusy ? FIoRdSize : BIoRdSizeA;
+ // There is a combinatorial loop by AIoSpaceBusy. That's why FIoBusy is introduced.
+ // Some signals are coming from DFF, and {BIoAddrA, BIoMosiA, BIoWrSizeA, BIoRdSizeA} are independent from AIoSpaceBusy
+ assign AIoSpaceAddr = FIoBusy ? FIoAddr : BIoAddrA;
+ assign AIoSpaceMosi = FIoBusy ? FIoMosi : BIoMosiA;
+ assign AIoSpaceWrSize = FIoBusy ? FIoWrSize : BIoWrSizeA;
+ assign AIoSpaceRdSize = FIoBusy ? FIoRdSize : BIoRdSizeA;
 
 endmodule
 
 module MsRegX #(parameter CDataLen = 8)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CDataLen-1:0] ARegWrBusA, input ARegWrEnA,
-  input [CDataLen-1:0] ARegWrBusB, input ARegWrEnB,
-  output [CDataLen-1:0] ADataThis
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CDataLen-1:0] ARegWrBusA, input wire ARegWrEnA,
+  input wire [CDataLen-1:0] ARegWrBusB, input wire ARegWrEnB,
+  output wire [CDataLen-1:0] ADataThis
  );
 
  wire [CDataLen-1:0] BWrData =
@@ -527,10 +527,10 @@ endmodule
 
 module MsCmdQue
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  output [23:1] AQueLda, output [127:0] AQueTop,
-  input [63:0] ACodeMiso, input ACodeAck,
-  input AEipUpdate, input [23:1] AEipWrBus
+  input wire AClkH, AResetHN, AClkHEn,
+  output wire [23:1] AQueLda, output wire [127:0] AQueTop,
+  input wire [63:0] ACodeMiso, input wire ACodeAck,
+  input wire AEipUpdate, input wire [23:1] AEipWrBus
  );
 
  wire [23:1] FQueLda, BQueLda;
@@ -559,12 +559,12 @@ endmodule
 
 module MsMioCtrl #(parameter CAddrLen=32)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  output [CAddrLen-1:0] AExtAddr, output [63:0] AExtMosi, input [63:0] AExtMiso, output [3:0] AExtWrSize, AExtRdSize, input AExtReady,
-  input [1:0] AWrRdEn, input [11:0] ARegIdx, input [1:0] AArgSize, input [2:0] ASignExt,
-  input [CAddrLen-1:0] AAddr, input [63:0] AData,
-  output [63:0] ABusBData, output [11:0] ABusBLoad, output [11:0] ABusBPend,
-  output APendAny
+  input wire AClkH, AResetHN, AClkHEn,
+  output wire [CAddrLen-1:0] AExtAddr, output wire [63:0] AExtMosi, input wire [63:0] AExtMiso, output wire [3:0] AExtWrSize, AExtRdSize, input wire AExtReady,
+  input wire [1:0] AWrRdEn, input wire [11:0] ARegIdx, input wire [1:0] AArgSize, input wire [2:0] ASignExt,
+  input wire [CAddrLen-1:0] AAddr, input wire [63:0] AData,
+  output wire [63:0] ABusBData, output wire [11:0] ABusBLoad, output wire [11:0] ABusBPend,
+  output wire APendAny
  );
 
  wire [CAddrLen-1:0] FAddr, BAddr;
@@ -617,12 +617,12 @@ endmodule
 
 module MsBusBCtrl_20210426 #(parameter CDataLen=32)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [1:0] AWrRdEn, input [11:0] ARegIdx,
-  input [CDataLen-1:0] AExtMiso, input AExtAck,
-  output [1:0] AWrRdActive,
-  output [CDataLen-1:0] ABusBData, output [11:0] ABusBLoad, ABusBPend,
-  output APendAny
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [1:0] AWrRdEn, input wire [11:0] ARegIdx,
+  input wire [CDataLen-1:0] AExtMiso, input wire AExtAck,
+  output wire [1:0] AWrRdActive,
+  output wire [CDataLen-1:0] ABusBData, output wire [11:0] ABusBLoad, ABusBPend,
+  output wire APendAny
  );
 
  localparam CRegIdxNil = 12'h0;
@@ -669,12 +669,12 @@ endmodule
 
 module MsBusBCtrl #(parameter CDataLen=32)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [1:0] AWrRdEn, input [11:0] ARegIdx,
-  input [CDataLen-1:0] AExtMiso, input AExtAck,
-  output [1:0] AWrRdActive,
-  output [CDataLen-1:0] ABusBData, output [11:0] ABusBLoad, ABusBPend,
-  output APendAny
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [1:0] AWrRdEn, input wire [11:0] ARegIdx,
+  input wire [CDataLen-1:0] AExtMiso, input wire AExtAck,
+  output wire [1:0] AWrRdActive,
+  output wire [CDataLen-1:0] ABusBData, output wire [11:0] ABusBLoad, ABusBPend,
+  output wire APendAny
  );
 
  localparam CRegIdxNil = 12'h0;
@@ -714,7 +714,7 @@ module MsBusBCtrl #(parameter CDataLen=32)
  assign APendAny  = BPendAny;
 endmodule
 
-module MsSignExt ( input [31:0] AData, input [1:0] AWw, input ASignExt, output [31:0] AResult );
+module MsSignExt ( input wire [31:0] AData, input wire [1:0] AWw, input wire ASignExt, output wire [31:0] AResult );
  wire [31:0] BMaskOr =
    ((AWw==2'h1) ? {{16{ASignExt & AData[15]}}, 16'h0} : 32'h0) |
    ((AWw==2'h0) ? {{24{ASignExt & AData[ 7]}},  8'h0} : 32'h0);
@@ -757,10 +757,10 @@ endmodule
 
 module MsMulDiv
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [31:0] ADataS, input [31:0] ADataD, input [2:0] ASizeI, input ASizeF, input [1:0] AStart,
-  input [2:0] ANegData,
-  output [31:0] ADataH, ADataR, output ABusy, output ABusBWrEn // ADataH = Hi part for Mul, Resid for div
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [31:0] ADataS, input wire [31:0] ADataD, input wire [2:0] ASizeI, input wire ASizeF, input wire [1:0] AStart,
+  input wire [2:0] ANegData,
+  output wire [31:0] ADataH, ADataR, output wire ABusy, output wire ABusBWrEn // ADataH = Hi part for Mul, Resid for div
  );
 
  wire [31:0] FDataC, BDataC;

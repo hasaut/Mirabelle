@@ -8,7 +8,7 @@ uses
   Classes, SysUtils;
 
 Const
-  CVersion = $01020104;
+  CVersion = $01020105;
 
   CChangeLog =
     '[2020.06.17] Version numeration started'+#13+
@@ -25,10 +25,22 @@ Const
     '[2021.08.16] ISS trap hit / StepOver bugfix'+#13+
     '[2022.05.04] Format settings are localized to unify decimal separator parse'+#13+
     '[2024.03.25] Support of Zfinx GCC V13: FSgn, FCvt'+#13+
-    '[2024.05.08] Core index input for debug variables bug is fixed'+#13;
+    '[2024.05.08] Core index input for debug variables bug is fixed'+#13+
+    '[2024.06.13] ELF file support (released)'+#13;
 
+
+Function VerboseVersion : string;
 
 implementation
+
+Function VerboseVersion : string;
+Begin
+ Result:=IntToStr((CVersion shr 24) and $F)+'.'+
+         IntToStr((CVersion shr 16) and $F)+'.'+
+         IntToStr((CVersion shr  8) and $F)+'.'+
+         IntToStr((CVersion shr  0) and $F);
+End;
+
 
 end.
 

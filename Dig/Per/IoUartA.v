@@ -1,10 +1,10 @@
 module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  input ASync1M, input ASync1K, output AIrq,
-  input ARxPin, output ATxPin, output ASendBusy, input ASyncStart,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
+  input wire ASync1M, input wire ASync1K, output wire AIrq,
+  input wire ARxPin, output wire ATxPin, output wire ASendBusy, input wire ASyncStart,
+  output wire [7:0] ATest
  );
 
  // Interface
@@ -130,11 +130,11 @@ endmodule
 
 module IoUartAB_F256b #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  input ASync1M, input ASync1K, output AIrq,
-  input ARxPin, output ATxPin, output ATxFlush,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
+  input wire ASync1M, input wire ASync1K, output wire AIrq,
+  input wire ARxPin, output wire ATxPin, output wire ATxFlush,
+  output wire [7:0] ATest
  );
 
  // Interface
@@ -265,11 +265,11 @@ endmodule
 
 module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  input ASync1M, input ASync1K, output AIrq,
-  input ARxPin, output ATxPin, output ATxFlush,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
+  input wire ASync1M, input wire ASync1K, output wire AIrq,
+  input wire ARxPin, output wire ATxPin, output wire ATxFlush,
+  output wire [7:0] ATest
  );
 
  // Interface
@@ -420,13 +420,13 @@ endmodule
 
 module UartACodec
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input ACfg2Stop, input ACfgTxEn, input ACfgRxEn,
-  input [15:0] ABaudI, output [15:0] ABaudO, output ABaudUpdate, input ASyncStart,
-  input [7:0] AFifoSendData, input AFifoSendReady, output AFifoSendRd, output ASendBusy,
-  output [7:0] AFifoRecvData, output AFifoRecvWr,
-  input ARx, output ATx,
-  output [15:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ACfg2Stop, input wire ACfgTxEn, input wire ACfgRxEn,
+  input wire [15:0] ABaudI, output wire [15:0] ABaudO, output wire ABaudUpdate, input wire ASyncStart,
+  input wire [7:0] AFifoSendData, input wire AFifoSendReady, output wire AFifoSendRd, output wire ASendBusy,
+  output wire [7:0] AFifoRecvData, output wire AFifoRecvWr,
+  input wire ARx, output wire ATx,
+  output wire [15:0] ATest
  );
 
  // Local variables
@@ -526,10 +526,10 @@ endmodule
 
 module UartAutobaud55A
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [1:0] ARx,
-  output ABaudUpdate, output [15:0] ABaudResult,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [1:0] ARx,
+  output wire ABaudUpdate, output wire [15:0] ABaudResult,
+  output wire [7:0] ATest
  );
 
  // Local vars
@@ -589,10 +589,10 @@ endmodule
 
 module UartFlush
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input ASync1M,
-  input ABusy, output AFlush,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ASync1M,
+  input wire ABusy, output wire AFlush,
+  output wire [7:0] ATest
  );
 
  // Local variables

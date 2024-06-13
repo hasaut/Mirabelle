@@ -215,7 +215,7 @@ Uses
 Constructor TSdMainForm.Create ( AOwner : TComponent );
 Begin
  Inherited;
- FWndName:='Mirabelle IDE';
+ FWndName:='Mirabelle IDE V'+VerboseVersion;
  InitCriticalSection(FViewLock);
  FParams:=TStringList.Create;
  FPrjParams:=TStringList.Create;

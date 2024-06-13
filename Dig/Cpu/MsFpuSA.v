@@ -1,14 +1,4 @@
-/*module MsFpuAlignL ( input [31:0] ADataI, output [23:0] ADataO, output [4:0] AIdx );
- wire [31:0] BDataF = ADataI;
- assign AIdx[4] = |BDataF[31:16]; wire [31:0] BDataE = AIdx[4] ? BDataF[31: 0] : {BDataF[15: 0], 16'h0};
- assign AIdx[3] = |BDataE[31:24]; wire [31:0] BDataD = AIdx[3] ? BDataE[31: 0] : {BDataE[23: 0],  8'h0};
- assign AIdx[2] = |BDataD[31:28]; wire [31:0] BDataC = AIdx[2] ? BDataD[31: 0] : {BDataD[27: 0],  4'h0};
- assign AIdx[1] = |BDataC[31:30]; wire [31:0] BDataB = AIdx[1] ? BDataC[31: 0] : {BDataC[29: 0],  2'h0};
- assign AIdx[0] =  BDataB[31];    wire [31:0] BDataA = AIdx[0] ? BDataB[31: 0] : {BDataB[30: 0],  1'h0};
- assign ADataO = BDataA[31:8];
-endmodule*/
-
-module MsFpuAlignL ( input [31:0] ADataI, output [31:0] ADataO, output [4:0] AIdx );
+module MsFpuAlignL ( input wire [31:0] ADataI, output wire [31:0] ADataO, output wire [4:0] AIdx );
  wire [31:0] BDataF = ADataI;
  assign AIdx[4] = |BDataF[31:16]; wire [31:0] BDataE = AIdx[4] ? BDataF[31: 0] : {BDataF[15: 0], 16'h0};
  assign AIdx[3] = |BDataE[31:24]; wire [31:0] BDataD = AIdx[3] ? BDataE[31: 0] : {BDataE[23: 0],  8'h0};
@@ -20,14 +10,14 @@ endmodule
 
 module MsFpuSA
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [31:0] AMuxS, input [31:0] AMuxU,
-  input [12:0] AAluSel, // feq flt fle fsgnjx fsgnjn fsgnj round trunc itf div mul sub add
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [31:0] AMuxS, input wire [31:0] AMuxU,
+  input wire [12:0] AAluSel, // feq flt fle fsgnjx fsgnjn fsgnj round trunc itf div mul sub add
   // Common MulDiv
-  output [31:0] AMulDivDataS, output [31:0] AMulDivDataD, output [1:0] AMulDivStart,
-  input [31:0] AMulDivDataH, AMulDivDataR, input AMulDivWrEn, // DataH = Resid
+  output wire [31:0] AMulDivDataS, output wire [31:0] AMulDivDataD, output wire [1:0] AMulDivStart,
+  input wire [31:0] AMulDivDataH, AMulDivDataR, input wire AMulDivWrEn, // DataH = Resid
   // Output
-  output [31:0] AFpuRes, output AFpuAck
+  output wire [31:0] AFpuRes, output wire AFpuAck
  );
 
  localparam IOperFeq = 12;
@@ -183,21 +173,6 @@ module MsFpuSA
  wire BExpOvf = BExp[9] | FZeroDiv;
  wire BExpUdf = (BExp[9:8]==2'h0) | (BExp==10'h100);
 
- /*
- wire [8:0] BExpA = {1'b0, FDataS[30:23]} - 9'h80;
- wire [8:0] BExpB = {4'h0, BShlIdx} + 9'h1E2;  // i.e. ShlIdx-30
- wire [8:0] BExpC =
-  (
-   (BOperIsAddSub ? {1'b0, BDataB[30:23]} : 9'h0) |
-   (FMulDivReady  ? {1'b0, FDataD[30:23]} : 9'h0) |
-   (FOper[IOperItf] ? {1'b0, 8'h9D} : 9'h0)          // To compensate -30
-  ) +
-  (
-   ((FMulDivReady & FOper[IOperMul]) ?  BExpA+9'h1 : 9'h0) |
-   ((FMulDivReady & FOper[IOperDiv]) ? ~BExpA      : 9'h0)
-  );
- wire [8:0] BExp = FZeroDiv ? 9'h1FF : BExpB + BExpC;*/
-
  wire BOrigSignE = FDataD[31]==FDataS[31];
  wire BSign =
   (FOper[IOperAdd] ? ((BCmpModE & ~BOrigSignE) ? 1'b0 : BDataB[31]) : 1'b0) |
@@ -206,9 +181,7 @@ module MsFpuSA
   (BOperIsItf      ? FDataD[31] : 1'b0);
 
  wire BMantXNZ = |BMantX;
- //wire [31:0] BDataRF = {BSign, {31{BMantXNZ}} & (BExp[8] ? {8'hFF, 23'h0} : {BExp[7:0], BMantX[22:0]})};
  wire [31:0] BDataRF = {BSign, {31{BMantXNZ & ~BExpUdf}} & (BExpOvf ? {8'hFF, 23'h0} : {BExp[7:0], BMantX[22:0]})};
- //wire [31:0] BDataRI = {FDataD[31], FDataD[31] ? ~BDataRTruRndA+31'h1 : BDataRTruRndA};
 
  // Shr (continue)
  assign BShrDataI =
@@ -246,7 +219,7 @@ module MsFpuSA
  assign AFpuAck = BBusBWrEn;
 endmodule
 
-module MsShrFpu ( input [31:0] ADataI, input [5:0] AIdx, output [63:0] ADataO );
+module MsShrFpu ( input wire [31:0] ADataI, input wire [5:0] AIdx, output wire [63:0] ADataO );
  wire [63:0] BDataF = AIdx[5] ? {32'h0, ADataI} : {ADataI, 32'h0};
  wire [63:0] BDataE = AIdx[4] ? {16'h0, BDataF[63:16]} : BDataF;
  wire [63:0] BDataD = AIdx[3] ? { 8'h0, BDataE[63: 8]} : BDataE;

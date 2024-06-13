@@ -25,23 +25,23 @@
 
 module MssdCmdDec
  (
-  input [47:0] AQueTop, input [23:1] AIpThis, input AUseThisCpu,
+  input wire [47:0] AQueTop, input wire [23:1] AIpThis, input wire AUseThisCpu,
   // CmdLen
   output  [1:0] ACmdLen,
   // VLIW
-  output [3:0] ACond, output ALoadEipImm, // load IP by a special BusP (usually constant directly)
-  output [1:0] ATrap,
-  output [4:0] ASysReq, // conf unlock lock end swt
-  output [5:0] ARegIdxS, output [5:0] ARegIdxU,
-  output [1:0] AWwConst, output [31:0] AConst, output [4:0] AMlsc, output [2:0] ALoopD,
-  output [7:0] AMuxSrc, output [2:1] ASelIp,
-  output [5:0] ARegIdxR, output ADstFlagWr,
-  output AAluSignExt, output [3:0] AAluSelA, output [7:0] AAluSelU, output [3:0] AAluSelS, output [3:0] AAluSelT, output [12:0] AAluSelF,
-  output [1:0] AMioWrRdEn, output [1:0] AMioSize, output [2:0] AMioSignExt,
-  input ACmdLenValid, input [9:0] AStepThis, output [9:0] AStepNext,
-  input [15:0] APplListThis, output [15:0] APplListNext,
-  output AUnityReq, input AUnityAck,
-  input AMemPend
+  output wire [3:0] ACond, output wire ALoadEipImm, // load IP by a special BusP (usually constant directly)
+  output wire [1:0] ATrap,
+  output wire [4:0] ASysReq, // conf unlock lock end swt
+  output wire [5:0] ARegIdxS, output wire [5:0] ARegIdxU,
+  output wire [1:0] AWwConst, output wire [31:0] AConst, output wire [4:0] AMlsc, output wire [2:0] ALoopD,
+  output wire [7:0] AMuxSrc, output wire [2:1] ASelIp,
+  output wire [5:0] ARegIdxR, output wire ADstFlagWr,
+  output wire AAluSignExt, output wire [3:0] AAluSelA, output wire [7:0] AAluSelU, output wire [3:0] AAluSelS, output wire [3:0] AAluSelT, output wire [12:0] AAluSelF,
+  output wire [1:0] AMioWrRdEn, output wire [1:0] AMioSize, output wire [2:0] AMioSignExt,
+  input wire ACmdLenValid, input wire [9:0] AStepThis, output wire [9:0] AStepNext,
+  input wire [15:0] APplListThis, output wire [15:0] APplListNext,
+  output wire AUnityReq, input wire AUnityAck,
+  input wire AMemPend
  );
 
  localparam IStBtMemLock =  0;
@@ -123,21 +123,24 @@ module MssdCmdDec
  assign MCmdIs[IIsPEX ] = (AQueTop[15:11]==5'b10111) & (AQueTop[7:4]==4'b1000);
  assign MCmdIs[IIsAF  ] = (AQueTop[15:11]==5'b10111) & (AQueTop[7:4]==4'b1001);
  assign MCmdIs[IIsREM ] = (AQueTop[15:11]==5'b10111) & (AQueTop[7:4]==4'b1010);
+
  assign MCmdIs[IIsPRCS] = (AQueTop[15:11]==5'b10111) & (AQueTop[7:0]==8'b10110000);
  assign MCmdIs[IIsSys ] = (AQueTop[15:11]==5'b10111) & (AQueTop[7:0]==8'b10110001);
  assign MCmdIs[IIsNTRE] = (AQueTop[15:11]==5'b10111) & (AQueTop[7:0]==8'b10110010);
  assign MCmdIs[IIsPPL ] = (AQueTop[15:11]==5'b10111) & (AQueTop[7:0]==8'b10110011);
+
  assign MCmdIs[IIsRFU ] = 1'b0;
  assign MCmdIs[IIsONS ] = (AQueTop[15:13]==3'b110);
  assign MCmdIs[IIsFRUC] = (AQueTop[15:11]==5'b11100);
  assign MCmdIs[IIsFRRS] = (AQueTop[15:11]==5'b11101);
+
  assign MCmdIs[IIsBTR ] = (AQueTop[15:11]==5'b11110);
  assign MCmdIs[IIsBTM ] = (AQueTop[15:10]==6'b111110);
  assign MCmdIs[IIsARUI] = (AQueTop[15: 9]==7'b1111110);
  assign MCmdIs[IIsARUS] = (AQueTop[15: 9]==7'b1111111);
 
  assign ACmdLen =
-   ((|(BCmdIs & 24'h7CF6D8)) ? 2'h1 : 2'h0) |
+   ((|(BCmdIs & 24'h7CE6D8)) ? 2'h1 : 2'h0) |
    ((|(BCmdIs & 24'h830900)) ? {1'b1, LConstLenX} : 2'h0) |
    ((|(BCmdIs & 24'h000004)) ? {1'b1, LConstLenY} : 2'h0) |
    ((|(BCmdIs & 24'h001000)) ? {1'b1, AQueTop[9]} : 2'h0) | // REM C
@@ -216,7 +219,6 @@ module MssdCmdDec
                       (BCmdIs[IIsARUS] ? {LWwS, LRegSS} : 6'h0) |
                       ((|{BCmdIs[IIsONL]}) ? (LCmd2ADec[2] ? CRegIp : {2'h2, LRegAU}) : 6'h0) |
                       ((|BPplWrRdEn) ? {2'h2, BPplRegIdx} : 6'h0);
-                      //((|BBTxWrRdEn) ? 12'h100 : 12'h0);
 
  assign ARegIdxU    = (BCmdIs[IIsARUC] ? {LWw, LRegAU} : 6'h0) |
                       ((|{BCmdIs[IIsBC], BCmdIs[IIsBA]}) ? {2'h0, LRegRR} : 6'h0) |
@@ -245,7 +247,6 @@ module MssdCmdDec
                       (BCmdIs[IIsREM] ? {AQueTop[9] ? AQueTop[47:32] : {16{AQueTop[31]}}, AQueTop[31:16]} : 32'h0) |
                       (BCmdIs[IIsFRUC] ? AQueTop[47:16] : 32'h0) |
                       ((|{BCmdIs[IIsONL], BCmdIs[IIsONS]}) ? {8'h0, BIpNew, 1'b0} : 32'h0) |
-                      //((|{BCmdIs[IIsBTM]}) ? {LConstLenY ? AQueTop[47:32] : 16'h0, AQueTop[31:16]} : 32'h0) |
                       ((|{BCmdIs[IIsARUI]}) ? {{24{AQueTop[8] & AQueTop[23]}}, AQueTop[23:16]} : 32'h0) |
                       ((|{BCmdIs[IIsBTR]}) ? {27'h0, AQueTop[10], AQueTop[7:4]} : 32'h0) |
                       (AStepNext[IStBtAlu] ? {29'h0, AQueTop[ 2: 0]} : 32'h0) |
@@ -358,7 +359,6 @@ module MssdCmdDec
                       ((|{BCmdIs[IIsNTRE] & LCmd3CDec[7]}) ? 6'h08 : 6'h0) |
                       (BCmdIsStream ? {2'h2, LRegAU} : 6'h0) |
                       ((|{BCmdIs[IIsPEX], BCmdIsPushC, BPplWrRdEn, AStepNext[IStLeaveA]}) ? CRegSp : 6'h0);
-                      //(AStepNext[IStBtAlu] ? 12'h100 : 12'h0);
 
  assign ADstFlagWr  = (BCmdIs[IIsARUC] & (|LCmd3ADec[4:0])) |
                       BCmdIs[IIsBA] | BCmdIs[IIsBC] |
@@ -442,7 +442,7 @@ module MssdCmdDec
  assign APplListNext = BPplList & ~BPplClr;
 endmodule
 
-module MsCodeToRow ( input [3:0] ADataI, output [7:0] ADataO ); // Excludes Z register
+module MsCodeToRow ( input wire [3:0] ADataI, output wire [7:0] ADataO ); // Excludes Z register
  wire [7:0] BRowA; MsDec3x8a URowA ( .ADataI(ADataI[2:0]), .ADataO(BRowA) );
  assign ADataO = {BRowA[7:1], BRowA[0] & ADataI[3]};
 endmodule

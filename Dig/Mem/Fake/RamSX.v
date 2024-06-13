@@ -1,7 +1,7 @@
 module RamSX #(parameter CAddrLen=13, CDataLen=128)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CAddrLen-1:0] AAddr, input [CDataLen-1:0] AMosi, output [CDataLen-1:0] AMiso, input AWrEn, input ARdEn
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CAddrLen-1:0] AAddr, input wire [CDataLen-1:0] AMosi, output wire [CDataLen-1:0] AMiso, input wire AWrEn, input wire ARdEn
  );
 
  wire [CDataLen-1:0] FSReg, BSReg;
@@ -23,8 +23,8 @@ endmodule
 
 module RamSDP #(parameter CAddrLen=13, CDataLen=128)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CAddrLen-1:0] AAddrWr, AAddrRd, input [CDataLen-1:0] AMosi, output [CDataLen-1:0] AMiso, input AWrEn
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CAddrLen-1:0] AAddrWr, AAddrRd, input wire [CDataLen-1:0] AMosi, output wire [CDataLen-1:0] AMiso, input wire AWrEn
  );
 
  localparam ZData = {CDataLen{1'b0}};

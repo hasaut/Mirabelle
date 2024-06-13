@@ -1,8 +1,8 @@
 module IoTestMux #(parameter CAddrBase=16'h0000, CAddrLen=12)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  input [511:0] ATestIn, output [15:0] ATest16p
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
+  input wire [511:0] ATestIn, output wire [15:0] ATest16p
  );
 
  // Interface
@@ -61,10 +61,10 @@ endmodule
 
 module TestMux
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [5:0] ASelIdx, input ASelWrEn,
-  input [511:0] ADataIn, output [7:0] ADataOut,
-  output [7:0] AMuxIdx // Saved value; needed to report MUX state to the PC to make nice plot
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [5:0] ASelIdx, input wire ASelWrEn,
+  input wire [511:0] ADataIn, output wire [7:0] ADataOut,
+  output wire [7:0] AMuxIdx // Saved value; needed to report MUX state to the PC to make nice plot
  );
 
  // Implementation

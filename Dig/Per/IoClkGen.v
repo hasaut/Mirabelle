@@ -76,10 +76,10 @@ endmodule
 
 module TimerClockSync #(parameter CDividerWidth=8, CDividerValue=8'hFF)
  (
-  input AClkX, input AResetXN, input AClkXEn,
-  input AClkH, input AResetHN, input AClkHEn,
-  input ACascadeIn, output ACascadeOut,
-  output ASync
+  input wire AClkX, input wire AResetXN, input wire AClkXEn,
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ACascadeIn, output wire ACascadeOut,
+  output wire ASync
  );
 
  reg [CDividerWidth-1:0] FDivider; wire [CDividerWidth-1:0] BDivider;
@@ -116,8 +116,8 @@ endmodule
 
 module ClkDiv2a
  (
-  input AClkD, input AResetDN,
-  output AClkE, output AResetEN
+  input wire AClkD, input wire AResetDN,
+  output wire AClkE, output wire AResetEN
  );
 
  reg [1:0] FClkE; wire BClkE;
@@ -152,8 +152,8 @@ endmodule
 
 module ClkDivX #(parameter CDivLen=2)
  (
-  input AClkD, input AResetDN,
-  output AClkE, output AResetEN
+  input wire AClkD, input wire AResetDN,
+  output wire AClkE, output wire AResetEN
  );
 
  reg [(CDivLen-1):0] FClkDiv; wire [(CDivLen-1):0] BClkDiv;
@@ -193,9 +193,9 @@ endmodule
 
 module ClkDivM #(parameter CBitCnt=4, CHalfME=4'h9) // HalfME = Half-1
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input ACascadeI, output ACascadeO,
-  output AClkOut
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ACascadeI, output wire ACascadeO,
+  output wire AClkOut
  );
 
  wire [CBitCnt-1:0] FDivider, BDivider;
@@ -218,10 +218,10 @@ endmodule
 
 module ClkDivMX
  (
-  input AClkH, input AResetHN, input AClkHEn, 
-  input [11:0] AClkDiv,
-  output ACascadeO,
-  output AClkOut
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [11:0] AClkDiv,
+  output wire ACascadeO,
+  output wire AClkOut
  );
 
  /*

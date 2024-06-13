@@ -5,10 +5,10 @@ module Ram8a8d2
  );
 
 // Interface
-input AClkH, AResetB, AClkHEn;
-input [7:0] AAddrWr, AAddrRd;
-input [7:0] AMosi; output [7:0] AMiso;
-input AWrEn;
+input wire AClkH, AResetB, AClkHEn;
+input wire [7:0] AAddrWr, AAddrRd;
+input wire [7:0] AMosi; output wire [7:0] AMiso;
+input wire AWrEn;
 
 // Local variables
 reg [7:0] FAddrWr, FAddrRd;
@@ -68,10 +68,10 @@ module Ram8a9d2
  );
 
  // Interface
- input AClkH, AResetB, AClkHEn;
- input [7:0] AAddrWr, AAddrRd;
- input [8:0] AMosi; output [8:0] AMiso;
- input AWrEn;
+ input wire AClkH, AResetB, AClkHEn;
+ input wire [7:0] AAddrWr, AAddrRd;
+ input wire [8:0] AMosi; output wire [8:0] AMiso;
+ input wire AWrEn;
 
  // Local variables
  reg [7:0] FAddrWr, FAddrRd;
@@ -131,10 +131,10 @@ module Ram10a8d2
  );
 
 // Interface
-input AClkH, AResetB, AClkHEn;
-input [9:0] AAddrWr, AAddrRd;
-input [7:0] AMosi; output [7:0] AMiso;
-input AWrEn;
+input wire AClkH, AResetB, AClkHEn;
+input wire [9:0] AAddrWr, AAddrRd;
+input wire [7:0] AMosi; output wire [7:0] AMiso;
+input wire AWrEn;
 
 // Local variables
 reg [9:0] FAddrWr, FAddrRd;
@@ -195,10 +195,10 @@ module Ram12a8d2
  );
 
 // Interface
-input AClkH, AResetB, AClkHEn;
-input [11:0] AAddrWr, AAddrRd;
-input [7:0] AMosi; output [7:0] AMiso;
-input AWrEn;
+input wire AClkH, AResetB, AClkHEn;
+input wire [11:0] AAddrWr, AAddrRd;
+input wire [7:0] AMosi; output wire [7:0] AMiso;
+input wire AWrEn;
 
 // Local variables
 reg [11:0] FAddrWr, FAddrRd;
@@ -259,10 +259,10 @@ module Ram10a9d2
  );
 
  // Interface
- input AClkH, AResetB, AClkHEn;
- input [9:0] AAddrWr, AAddrRd;
- input [8:0] AMosi; output [8:0] AMiso;
- input AWrEn;
+ input wire AClkH, AResetB, AClkHEn;
+ input wire [9:0] AAddrWr, AAddrRd;
+ input wire [8:0] AMosi; output wire [8:0] AMiso;
+ input wire AWrEn;
 
  // Local variables
  reg [9:0] FAddrWr, FAddrRd;
@@ -323,10 +323,10 @@ module Ram8a25d2
  );
 
  // Interface
- input AClkH, AResetB, AClkHEn;
- input [7:0] AAddrWr, AAddrRd;
- input [24:0] AMosi; output [24:0] AMiso;
- input AWrEn;
+ input wire AClkH, AResetB, AClkHEn;
+ input wire [7:0] AAddrWr, AAddrRd;
+ input wire [24:0] AMosi; output wire [24:0] AMiso;
+ input wire AWrEn;
 
  // Local variables
  reg [7:0] FAddrWr, FAddrRd;
@@ -386,10 +386,10 @@ module Ram8a64d2
  );
 
 // Interface
-input AClkH, AResetB, AClkHEn;
-input [7:0] AAddrWr, AAddrRd;
-input [63:0] AMosi; output [63:0] AMiso;
-input AWrEn;
+input wire AClkH, AResetB, AClkHEn;
+input wire [7:0] AAddrWr, AAddrRd;
+input wire [63:0] AMosi; output wire [63:0] AMiso;
+input wire AWrEn;
 
 // Local variables
 reg [7:0] FAddrWr, FAddrRd;
@@ -449,10 +449,10 @@ module Ram8a105d2
  );
 
 // Interface
-input AClkH, AResetB, AClkHEn;
-input [7:0] AAddrWr, AAddrRd;
-input [104:0] AMosi; output [104:0] AMiso;
-input AWrEn;
+input wire AClkH, AResetB, AClkHEn;
+input wire [7:0] AAddrWr, AAddrRd;
+input wire [104:0] AMosi; output wire [104:0] AMiso;
+input wire AWrEn;
 
 // Local variables
 reg [7:0] FAddrWr, FAddrRd;
@@ -507,10 +507,10 @@ endmodule
 
 module Ram16a8d2
  (
-  input AClkH, input AResetB, input AClkHEn,
-  input [15:0] AAddrWr, input [15:0] AAddrRd,
-  input [7:0] AMosi, output [7:0] AMiso,
-  input AWrEn
+  input wire AClkH, input wire AResetB, input wire AClkHEn,
+  input wire [15:0] AAddrWr, input wire [15:0] AAddrRd,
+  input wire [7:0] AMosi, output wire [7:0] AMiso,
+  input wire AWrEn
  );
 
  reg [7:0] FAddrWr, FAddrRd;
@@ -561,10 +561,10 @@ endmodule
 
 module RamScope12a128d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [11:0] AAddrAWr, input [127:0] AMosiA, input AWrEn,
-  input [11:0] AAddrBRd, output [127:0] AMisoB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [11:0] AAddrAWr, input wire [127:0] AMosiA, input wire AWrEn,
+  input wire [11:0] AAddrBRd, output wire [127:0] AMisoB
  );
 
  wire [11:0] FAddrBRd;
@@ -596,10 +596,10 @@ endmodule
 
 module RamScope13a128d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [12:0] AAddrAWr, input [127:0] AMosiA, input AWrEn,
-  input [12:0] AAddrBRd, output [127:0] AMisoB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [12:0] AAddrAWr, input wire [127:0] AMosiA, input wire AWrEn,
+  input wire [12:0] AAddrBRd, output wire [127:0] AMisoB
  );
 
  wire [12:0] FAddrBRd;
@@ -631,10 +631,10 @@ endmodule
 
 module RamScope128d #(parameter CAddrLen=12)
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [CAddrLen-1:0] AAddrAWr, input [127:0] AMosiA, input AWrEn,
-  input [CAddrLen-1:0] AAddrBRd, output [127:0] AMisoB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [CAddrLen-1:0] AAddrAWr, input wire [127:0] AMosiA, input wire AWrEn,
+  input wire [CAddrLen-1:0] AAddrBRd, output wire [127:0] AMisoB
  );
 
  localparam CNumWords = (1<<CAddrLen);
@@ -668,10 +668,10 @@ endmodule
 
 module Ram8aXd2 #(parameter CDataLen=16)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [7:0] AAddrWr, input [7:0] AAddrRd,
-  input [CDataLen-1:0] AMosi, output [CDataLen-1:0] AMiso,
-  input AWrEn
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] AAddrWr, input wire [7:0] AAddrRd,
+  input wire [CDataLen-1:0] AMosi, output wire [CDataLen-1:0] AMiso,
+  input wire AWrEn
  );
 
  // Local variables
@@ -726,10 +726,10 @@ endmodule
 
 module RamXaXd2 #(parameter CAddrLen=8, CDataLen=16)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CAddrLen-1:0] AAddrWr, input [CAddrLen-1:0] AAddrRd,
-  input [CDataLen-1:0] AMosi, output [CDataLen-1:0] AMiso,
-  input AWrEn
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CAddrLen-1:0] AAddrWr, input wire [CAddrLen-1:0] AAddrRd,
+  input wire [CDataLen-1:0] AMosi, output wire [CDataLen-1:0] AMiso,
+  input wire AWrEn
  );
 
  localparam CRamSize = (1<<CAddrLen);

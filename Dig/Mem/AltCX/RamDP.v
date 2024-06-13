@@ -5,8 +5,8 @@ module Ram8a16d_1g
  );
 
  // Interface
- input AClkH, AResetN, AClkHEn;
- input [7:0] AAddr; input [15:0] AMosi; output [15:0] AMiso; input [15:0] AWrEn, ARdEn;
+ input wire AClkH, AResetN, AClkHEn;
+ input wire [7:0] AAddr; input wire [15:0] AMosi; output wire [15:0] AMiso; input wire [15:0] AWrEn, ARdEn;
 
  // Implementation
  wire [15:0] BMiso;
@@ -77,8 +77,8 @@ module Ram8a1d
  );
 
  // Interface
- input AClkH, AResetN, AClkHEn;
- input [7:0] AAddr; input AMosi; output AMiso; input AWrEn, ARdEn;
+ input wire AClkH, AResetN, AClkHEn;
+ input wire [7:0] AAddr; input wire AMosi; output wire AMiso; input wire AWrEn, ARdEn;
 
  // Implementation
  wire BMiso;
@@ -144,10 +144,10 @@ endmodule
 
 module RamDX_Alt #(parameter CAddrLen=11, CDataLen=8)
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [CAddrLen-1:0] AAddrA, input [CDataLen-1:0] AMosiA, output [CDataLen-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [CAddrLen-1:0] AAddrB, input [CDataLen-1:0] AMosiB, output [CDataLen-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [CAddrLen-1:0] AAddrA, input wire [CDataLen-1:0] AMosiA, output wire [CDataLen-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [CAddrLen-1:0] AAddrB, input wire [CDataLen-1:0] AMosiB, output wire [CDataLen-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam CDataZ = {CDataLen{1'b0}};

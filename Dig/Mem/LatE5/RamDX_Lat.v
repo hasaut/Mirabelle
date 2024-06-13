@@ -1,9 +1,9 @@
 module RamDX_6a4d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [6-1:0] AAddrA, input [4-1:0] AMosiA, output [4-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [6-1:0] AAddrB, input [4-1:0] AMosiB, output [4-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [6-1:0] AAddrA, input wire [4-1:0] AMosiA, output wire [4-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [6-1:0] AAddrB, input wire [4-1:0] AMosiB, output wire [4-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {4{1'b0}};
@@ -44,10 +44,10 @@ endmodule
 
 module RamDX_5a8d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [5-1:0] AAddrA, input [8-1:0] AMosiA, output [8-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [5-1:0] AAddrB, input [8-1:0] AMosiB, output [8-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [5-1:0] AAddrA, input wire [8-1:0] AMosiA, output wire [8-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [5-1:0] AAddrB, input wire [8-1:0] AMosiB, output wire [8-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {8{1'b0}};
@@ -88,10 +88,10 @@ endmodule
 
 module RamDX_6a8d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [6-1:0] AAddrA, input [8-1:0] AMosiA, output [8-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [6-1:0] AAddrB, input [8-1:0] AMosiB, output [8-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [6-1:0] AAddrA, input wire [8-1:0] AMosiA, output wire [8-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [6-1:0] AAddrB, input wire [8-1:0] AMosiB, output wire [8-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {8{1'b0}};
@@ -132,10 +132,10 @@ endmodule
 
 module RamDX_7a8d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [7-1:0] AAddrA, input [8-1:0] AMosiA, output [8-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [7-1:0] AAddrB, input [8-1:0] AMosiB, output [8-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [7-1:0] AAddrA, input wire [8-1:0] AMosiA, output wire [8-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [7-1:0] AAddrB, input wire [8-1:0] AMosiB, output wire [8-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {8{1'b0}};
@@ -193,10 +193,10 @@ endmodule
 
 module RamDX_8a8d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [8-1:0] AAddrA, input [8-1:0] AMosiA, output [8-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [8-1:0] AAddrB, input [8-1:0] AMosiB, output [8-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [8-1:0] AAddrA, input wire [8-1:0] AMosiA, output wire [8-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [8-1:0] AAddrB, input wire [8-1:0] AMosiB, output wire [8-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {8{1'b0}};
@@ -237,10 +237,10 @@ endmodule
 
 module RamDX_9a8d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [9-1:0] AAddrA, input [8-1:0] AMosiA, output [8-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [9-1:0] AAddrB, input [8-1:0] AMosiB, output [8-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [9-1:0] AAddrA, input wire [8-1:0] AMosiA, output wire [8-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [9-1:0] AAddrB, input wire [8-1:0] AMosiB, output wire [8-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {8{1'b0}};
@@ -281,10 +281,10 @@ endmodule
 
 module RamDX_10a8d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [10-1:0] AAddrA, input [8-1:0] AMosiA, output [8-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [10-1:0] AAddrB, input [8-1:0] AMosiB, output [8-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [10-1:0] AAddrA, input wire [8-1:0] AMosiA, output wire [8-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [10-1:0] AAddrB, input wire [8-1:0] AMosiB, output wire [8-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {8{1'b0}};
@@ -325,10 +325,10 @@ endmodule
 
 module RamDX_11a8d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [11-1:0] AAddrA, input [8-1:0] AMosiA, output [8-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [11-1:0] AAddrB, input [8-1:0] AMosiB, output [8-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [11-1:0] AAddrA, input wire [8-1:0] AMosiA, output wire [8-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [11-1:0] AAddrB, input wire [8-1:0] AMosiB, output wire [8-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {8{1'b0}};
@@ -369,10 +369,10 @@ endmodule
 
 module RamDX_12a8d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [12-1:0] AAddrA, input [8-1:0] AMosiA, output [8-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [12-1:0] AAddrB, input [8-1:0] AMosiB, output [8-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [12-1:0] AAddrA, input wire [8-1:0] AMosiA, output wire [8-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [12-1:0] AAddrB, input wire [8-1:0] AMosiB, output wire [8-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {8{1'b0}};
@@ -414,10 +414,10 @@ endmodule
 
 module RamDX_5a64d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [5-1:0] AAddrA, input [64-1:0] AMosiA, output [64-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [5-1:0] AAddrB, input [64-1:0] AMosiB, output [64-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [5-1:0] AAddrA, input wire [64-1:0] AMosiA, output wire [64-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [5-1:0] AAddrB, input wire [64-1:0] AMosiB, output wire [64-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {64{1'b0}};
@@ -458,10 +458,10 @@ endmodule
 
 module RamDX_7a64d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [7-1:0] AAddrA, input [64-1:0] AMosiA, output [64-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [7-1:0] AAddrB, input [64-1:0] AMosiB, output [64-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [7-1:0] AAddrA, input wire [64-1:0] AMosiA, output wire [64-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [7-1:0] AAddrB, input wire [64-1:0] AMosiB, output wire [64-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {64{1'b0}};
@@ -502,10 +502,10 @@ endmodule
 
 module RamDX_12a64d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [12-1:0] AAddrA, input [64-1:0] AMosiA, output [64-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [12-1:0] AAddrB, input [64-1:0] AMosiB, output [64-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [12-1:0] AAddrA, input wire [64-1:0] AMosiA, output wire [64-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [12-1:0] AAddrB, input wire [64-1:0] AMosiB, output wire [64-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {64{1'b0}};
@@ -546,10 +546,10 @@ endmodule
 
 module RamDX_13a64d
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [13-1:0] AAddrA, input [64-1:0] AMosiA, output [64-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [13-1:0] AAddrB, input [64-1:0] AMosiB, output [64-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [13-1:0] AAddrA, input wire [64-1:0] AMosiA, output wire [64-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [13-1:0] AAddrB, input wire [64-1:0] AMosiB, output wire [64-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam ZData = {64{1'b0}};

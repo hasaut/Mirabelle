@@ -1,8 +1,8 @@
 module FtdiIoDec
  (
-  input AClkS, input AClkL, input AResetN,
-  input ADataI,
-  output [7:0] ADataO
+  input wire AClkS, input wire AClkL, input wire AResetN,
+  input wire ADataI,
+  output wire [7:0] ADataO
  );
 
  wire [7:0] FSReg, BSReg;

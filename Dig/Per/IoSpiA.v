@@ -1,11 +1,11 @@
 module IoSpi #(parameter CAddrBase=16'h0000, CFifoAddrLen=5)
  (
-  input AClkH, input AResetHN, input AClkHEn, input AScanI, output AScanO, input AScanE,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  input ASync1M, input ASync1K, output AIrq,
-  output ACodecEn, output AIsMaster, output AHwNcs, output AReadyS, input ASckI, output ASckO, input ANcsI, output ANcsO, input AMiso, output AMosi,
-  input [3:0] AGpioI, output [3:0] AGpioO, output [3:0] AGpioE,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn, input wire AScanI, output wire AScanO, input wire AScanE,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
+  input wire ASync1M, input wire ASync1K, output wire AIrq,
+  output wire ACodecEn, output wire AIsMaster, output wire AHwNcs, output wire AReadyS, input wire ASckI, output wire ASckO, input wire ANcsI, output wire ANcsO, input wire AMiso, output wire AMosi,
+  input wire [3:0] AGpioI, output wire [3:0] AGpioO, output wire [3:0] AGpioE,
+  output wire [7:0] ATest
  );
 
  // Interface
@@ -155,12 +155,12 @@ endmodule
 
 module SpiAsyncCodec
  (
-  input AClkH, input AResetHN, input AClkHEn, input AScanI, output AScanO, input AScanE,
-  input ANcsPol, input [1:0] ASpiMode, input ACodecEn, input AIsMaster, input [15:0] ABaud,
-  input ASckI, input ANcsI, output ASckO, output ANcsO, input AMiso, output AMosi,
-  input [63:0] ASdds, input [2:0] ASdrl,
-  input [7:0] ASendData, input ASendHasData, output ASendPick, output ASendBusy,
-  output [7:0] ARecvData, output ARecvNow
+  input wire AClkH, AResetHN, AClkHEn, input wire AScanI, output wire AScanO, input wire AScanE,
+  input wire ANcsPol, input wire [1:0] ASpiMode, input wire ACodecEn, input wire AIsMaster, input wire [15:0] ABaud,
+  input wire ASckI, input wire ANcsI, output wire ASckO, output wire ANcsO, input wire AMiso, output wire AMosi,
+  input wire [63:0] ASdds, input wire [2:0] ASdrl,
+  input wire [7:0] ASendData, input wire ASendHasData, output wire ASendPick, output wire ASendBusy,
+  output wire [7:0] ARecvData, output wire ARecvNow
  );
 
  // Scan

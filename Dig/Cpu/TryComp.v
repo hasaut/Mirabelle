@@ -1,7 +1,7 @@
 module TryComp
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input ADataI, output ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ADataI, output wire ADataO
  );
 
  localparam CCoreCnt = 2;
@@ -46,16 +46,16 @@ endmodule
 /*
 module MsProcTop #(parameter CCoreCnt=2, CRomBase=32'h0000, CRomSize=32'h0000, CIrqCnt=8)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input AExecEn, input ADbgStep,
-  output [31:3] ARomAddr, input [63:0] ARomMiso, output ARomRdEn,
-  output [31:3] ARamAddr, input [63:0] ARamMiso, output [63:0] ARamMosi, output [7:0] ARamWrEn, ARamRdEn,
-  output [15:0] AIoAddr, input [63:0] AIoMiso, output [63:0] AIoMosi, output [3:0] AIoWrSize, AIoRdSize, input AIoBusy,
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire AExecEn, input wire ADbgStep,
+  output wire [31:3] ARomAddr, input wire [63:0] ARomMiso, output wire ARomRdEn,
+  output wire [31:3] ARamAddr, input wire [63:0] ARamMiso, output wire [63:0] ARamMosi, output wire [7:0] ARamWrEn, ARamRdEn,
+  output wire [15:0] AIoAddr, input wire [63:0] AIoMiso, output wire [63:0] AIoMosi, output wire [3:0] AIoWrSize, AIoRdSize, input wire AIoBusy,
 
-  input [CCoreCnt-1:0] ADbgCoreIdx, input [7:0] ADbgRegRdIdx, output [63:0] ARegMiso,
-  output [CCoreCnt-1:0] ATEnd, ATrap, output [CCoreCnt*32-1:0] AIpThis, output [CCoreCnt-1:0] ACmdDecReady,
-  input [CIrqCnt-1:0] AIrq,
-  output [7:0] ATest
+  input wire [CCoreCnt-1:0] ADbgCoreIdx, input wire [7:0] ADbgRegRdIdx, output wire [63:0] ARegMiso,
+  output wire [CCoreCnt-1:0] ATEnd, ATrap, output wire [CCoreCnt*32-1:0] AIpThis, output wire [CCoreCnt-1:0] ACmdDecReady,
+  input wire [CIrqCnt-1:0] AIrq,
+  output wire [7:0] ATest
  );
 
 

@@ -1,8 +1,8 @@
 module IoSysUpdateL #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, output AIoAddrErr, output AIoBusy,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr, output wire AIoBusy,
+  output wire [7:0] ATest
  );
 
  // IobCtrl = +0; // WR: 7xRFU Reconfig

@@ -1,12 +1,12 @@
 module IoSpiM #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, AResetHN, AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  input ASync1M, ASync1K, output AIrq,
-  output ASpiSck, input ASpiMiso, output ASpiMosi, output ASpiNCS,
-  input [3:0] ASpiGpioI, output [3:0] ASpiGpioO, output [3:0] ASpiGpioE,
-  input AClkDutStopped,
-  output [15:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
+  input wire ASync1M, ASync1K, output wire AIrq,
+  output wire ASpiSck, input wire ASpiMiso, output wire ASpiMosi, output wire ASpiNCS,
+  input wire [3:0] ASpiGpioI, output wire [3:0] ASpiGpioO, output wire [3:0] ASpiGpioE,
+  input wire AClkDutStopped,
+  output wire [15:0] ATest
  );
 
  // IobCtrl = +0; // WR: SpiCS MSB/LSB 2xTimerSrc Mode[1:0] 2xRFU
@@ -151,14 +151,14 @@ module IoSpi3w
  parameter CAwTOut = 2'h3; // Read to reset
 
  // Interface
- input AClkH, AResetB, AClkHEn;
- input [1:0] AAddr; output [15:0] AMiso; input [15:0] AMosi;
- input [1:0] AWrEn, ARdEn;
- output AIrq;
- output ASpiSck; input ASpiMiso; output ASpiMosi;
- input ASpiGpioI; output [1:0] ASpiGpioO;
- output [3:0] ASpiOutEn;
- output [7:0] ATest;
+ input wire AClkH, AResetB, AClkHEn;
+ input wire [1:0] AAddr; output wire [15:0] AMiso; input wire [15:0] AMosi;
+ input wire [1:0] AWrEn, ARdEn;
+ output wire AIrq;
+ output wire ASpiSck; input wire ASpiMiso; output wire ASpiMosi;
+ input wire ASpiGpioI; output wire [1:0] ASpiGpioO;
+ output wire [3:0] ASpiOutEn;
+ output wire [7:0] ATest;
 
  // Local variables
  reg [1:0] FMode; wire [1:0] BMode;
@@ -293,14 +293,15 @@ module IoSpi3w
 
 endmodule
 
+// *** I2C Master ***
 module IoI2cM #(parameter CAddrBase=16'h0000)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, input [3:0] AIoRdSize, output AIoAddrAck, output AIoAddrErr,
-  input ASync1M, input ASync1K, output AIrq,
-  input ASdaI, output ASdaO, output AScl, output AOutEn,
-  input [3:0] AGpioI, output [3:0] AGpioO, output [3:0] AGpioE,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
+  input wire ASync1M, input wire ASync1K, output wire AIrq,
+  input wire ASdaI, output wire ASdaO, output wire AScl, output wire AOutEn,
+  input wire [3:0] AGpioI, output wire [3:0] AGpioO, output wire [3:0] AGpioE,
+  output wire [7:0] ATest
  );
 
  // IobCtrl +0; // WR: W/#R RFU 2xTimerSrc OutEn RFU  Stop Start
@@ -401,12 +402,12 @@ endmodule
 
 module IoI2cM_Fsm
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [7:0] ABaud, input AOutEn,
-  input AWrRd, input ASendS, input ASendP, input ASendD, input [8:0] ADataSend, output [8:0] ADataRecv,
-  input ASdaI, output ASdaO, output AScl,
-  output ABusy,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] ABaud, input wire AOutEn,
+  input wire AWrRd, input wire ASendS, input wire ASendP, input wire ASendD, input wire [8:0] ADataSend, output wire [8:0] ADataRecv,
+  input wire ASdaI, output wire ASdaO, output wire AScl,
+  output wire ABusy,
+  output wire [7:0] ATest
  );
 
  localparam CStLen = 12;
@@ -493,9 +494,9 @@ endmodule
 
 module SpiFsmMS #(parameter CBaudLen=3, CBaudRate=3'h7)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [7:0] AFsmMosi, output [7:0] AFsmMiso, input AFsmSend, output AFsmBusy, output AFsmRecv,
-  input ASpiMiso, output ASpiMosi, output ASpiSck
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] AFsmMosi, output wire [7:0] AFsmMiso, input wire AFsmSend, output wire AFsmBusy, output wire AFsmRecv,
+  input wire ASpiMiso, output wire ASpiMosi, output wire ASpiSck
  );
 
  wire [7:0] FDataS, BDataS;
@@ -555,14 +556,14 @@ module IoMupetM_20200831
  parameter CAbData1a = 3'h7;
 
  // Interface
- input AClkH, AResetB, AClkHEn;
- input [2:0] AAddr; output [15:0] AMiso; input [15:0] AMosi;
- input [1:0] AWrEn, ARdEn;
- output AIrq;
- output AMupetSck; input AMupetMiso; output AMupetMosi;
- input AMupetGpioI; output [1:0] AMupetGpioO;
- output [3:0] AMupetOutEn;
- output [7:0] ATest;
+ input wire AClkH, AResetB, AClkHEn;
+ input wire [2:0] AAddr; output wire [15:0] AMiso; input wire [15:0] AMosi;
+ input wire [1:0] AWrEn, ARdEn;
+ output wire AIrq;
+ output wire AMupetSck; input wire AMupetMiso; output wire AMupetMosi;
+ input wire AMupetGpioI; output wire [1:0] AMupetGpioO;
+ output wire [3:0] AMupetOutEn;
+ output wire [7:0] ATest;
 
  // Local variables
  reg FBusy; wire BBusy;

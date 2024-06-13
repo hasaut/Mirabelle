@@ -1,22 +1,22 @@
 module MsCmdDec
  (
-  input [47:0] AQueTop, input [23:1] AIpThis, input [1:0] ACpuType,
+  input wire [47:0] AQueTop, input wire [23:1] AIpThis, input wire [1:0] ACpuType,
   // CmdLen
   output  [1:0] ACmdLen,
   // VLIW
-  output [3:0] ACond, output ALoadEipImm, // load IP by a special BusP (usually constant directly)
-  output [1:0] ATrap,
-  output [4:0] ASysReq, // conf unlock lock end swt
-  output [5:0] ARegIdxS, ARegIdxU,
-  output [1:0] AWwConst, output [31:0] AConst, output [4:0] AMlsc, output [2:0] ALoopD,
-  output [7:0] AMuxSrc, output [2:1] ASelIp,
-  output [5:0] ARegIdxR, output ADstFlagWr,
-  output AAluSignExt, output [3:0] AAluSelA, output [7:0] AAluSelU, output [3:0] AAluSelS, output [3:0] AAluSelT, output [12:0] AAluSelF,
-  output [1:0] AMioWrRdEn, output [1:0] AMioSize, output [2:0] AMioSignExt,
-  input ACmdLenValid, input [9:0] AStepThis, output [9:0] AStepNext,
-  input [15:0] APplListThis, output [15:0] APplListNext,
-  output AUnityReq, input AUnityAck,
-  input AMemPend
+  output wire [3:0] ACond, output wire ALoadEipImm, // load IP by a special BusP (usually constant directly)
+  output wire [1:0] ATrap,
+  output wire [4:0] ASysReq, // conf unlock lock end swt
+  output wire [5:0] ARegIdxS, ARegIdxU,
+  output wire [1:0] AWwConst, output wire [31:0] AConst, output wire [4:0] AMlsc, output wire [2:0] ALoopD,
+  output wire [7:0] AMuxSrc, output wire [2:1] ASelIp,
+  output wire [5:0] ARegIdxR, output wire ADstFlagWr,
+  output wire AAluSignExt, output wire [3:0] AAluSelA, output wire [7:0] AAluSelU, output wire [3:0] AAluSelS, output wire [3:0] AAluSelT, output wire [12:0] AAluSelF,
+  output wire [1:0] AMioWrRdEn, output wire [1:0] AMioSize, output wire [2:0] AMioSignExt,
+  input wire ACmdLenValid, input wire [9:0] AStepThis, output wire [9:0] AStepNext,
+  input wire [15:0] APplListThis, output wire [15:0] APplListNext,
+  output wire AUnityReq, input wire AUnityAck,
+  input wire AMemPend
  );
 
  

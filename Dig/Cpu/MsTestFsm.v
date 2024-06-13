@@ -1,11 +1,11 @@
 module MsTestFsm
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input ARsuReady,
-  input ALoadFW, input ALdrActive,
-  output [11:0] ADbioAddr, output [63:0] ADbioMosi, output [3:0] ADbioMosiIdx, ADbioMisoIdx, output ADbioMosi1st, output ADbioMiso1st,
-  output AReady,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ARsuReady,
+  input wire ALoadFW, input wire ALdrActive,
+  output wire [11:0] ADbioAddr, output wire [63:0] ADbioMosi, output wire [3:0] ADbioMosiIdx, ADbioMisoIdx, output wire ADbioMosi1st, output wire ADbioMiso1st,
+  output wire AReady,
+  output wire [7:0] ATest
  );
 
  // Params

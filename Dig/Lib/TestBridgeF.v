@@ -1,12 +1,12 @@
 module TestBridgeFtdi
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [7:0] ADbgDataI, output [7:0] ADbgDataO, output ADbgDataOE, input ADbgRF, ADbgTE, output ADbgWr, ADbgRd, ADbgSiwu, output [1:0] ADbgLed,
-  input ASync1M, ASync1K, input [39:0] ALogTimer,
-  output [11:0] ADbioAddr, output [63:0] ADbioMosi, input [63:0] ADbioMiso, output [3:0] ADbioMosiIdx, ADbioMisoIdx, output ADbioMosi1st, output ADbioMiso1st, output [15:0] ADbioDataLen, output ADbioDataLenNZ, input ADbioIdxReset,
-  input [7:0] ADbioSbData, input ADbioSbNow, input ADbioSbActive, // Data to be sent back immediately
-  input ADbgAttReq, AAdcAttReq, output AAdcAttAck, input [15:0] AAdcDataLen,
-  output [15:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] ADbgDataI, output wire [7:0] ADbgDataO, output wire ADbgDataOE, input wire ADbgRF, ADbgTE, output wire ADbgWr, ADbgRd, ADbgSiwu, output wire [1:0] ADbgLed,
+  input wire ASync1M, ASync1K, input wire [39:0] ALogTimer,
+  output wire [11:0] ADbioAddr, output wire [63:0] ADbioMosi, input wire [63:0] ADbioMiso, output wire [3:0] ADbioMosiIdx, ADbioMisoIdx, output wire ADbioMosi1st, output wire ADbioMiso1st, output wire [15:0] ADbioDataLen, output wire ADbioDataLenNZ, input wire ADbioIdxReset,
+  input wire [7:0] ADbioSbData, input wire ADbioSbNow, input wire ADbioSbActive, // Data to be sent back immediately
+  input wire ADbgAttReq, AAdcAttReq, output wire AAdcAttAck, input wire [15:0] AAdcDataLen,
+  output wire [15:0] ATest
  );
 
  // Params
@@ -266,9 +266,9 @@ endmodule
 
 module FtdiFlush
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input ABusy, output AFlush,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ABusy, output wire AFlush,
+  output wire [7:0] ATest
  );
 
  // Local variables

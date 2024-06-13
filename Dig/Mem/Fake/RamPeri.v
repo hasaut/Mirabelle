@@ -1,9 +1,9 @@
 module Ram8a8d2
  (
-  input AClkH, AResetB, AClkHEn,
-  input [7:0] AAddrWr, AAddrRd,
-  input [7:0] AMosi, output [7:0] AMiso,
-  input AWrEn
+  input wire AClkH, AResetB, AClkHEn,
+  input wire [7:0] AAddrWr, AAddrRd,
+  input wire [7:0] AMosi, output wire [7:0] AMiso,
+  input wire AWrEn
  );
 
  wire [8-1:0] FSReg, BSReg;

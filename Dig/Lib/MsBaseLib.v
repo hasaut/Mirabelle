@@ -1,8 +1,8 @@
 module MsDffList #(parameter CRegLen=16)
  (
-  input AClkH, input AResetHN, input AClkHEn, 
-  input [CRegLen-1:0] ADataI,
-  output [CRegLen-1:0] ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CRegLen-1:0] ADataI,
+  output wire [CRegLen-1:0] ADataO
  );
 
  reg [CRegLen-1:0] FData; wire [CRegLen-1:0] BData;
@@ -34,7 +34,7 @@ module MsLatch ( input wire ALatchEn, AResetN, input wire ADataI, output wire AD
  assign ADataO = FLatch;
 endmodule
 
-module MsDRS ( input AClkH, AResetHN, ASet, input ADataI, output ADataO );
+module MsDRS ( input wire AClkH, AResetHN, ASet, input wire ADataI, output wire ADataO );
  reg FData; wire BData;
  always @(posedge AClkH or negedge AResetHN or posedge ASet)
  if (AResetHN==1'b0)
@@ -53,43 +53,43 @@ module MsDRS ( input AClkH, AResetHN, ASet, input ADataI, output ADataO );
  assign ADataO = FData;
 endmodule
 
-module MsMux1b ( input ADataA, input ADataB, output ADataO, input AAddr );
+module MsMux1b ( input wire ADataA, input wire ADataB, output wire ADataO, input wire AAddr );
  assign ADataO = AAddr ? ADataB : ADataA;
 endmodule
 
-module MsVectMux1a #( parameter CVectLen=32 ) ( input [CVectLen-1:0] ADataA, input [CVectLen-1:0] ADataB, output [CVectLen-1:0] ADataO, input AAddr );
+module MsVectMux1a #( parameter CVectLen=32 ) ( input wire [CVectLen-1:0] ADataA, input wire [CVectLen-1:0] ADataB, output wire [CVectLen-1:0] ADataO, input wire AAddr );
  assign ADataO = AAddr ? ADataB : ADataA;
 endmodule
 
-module MsDec2x4a ( input [1:0] ADataI, output [3:0] ADataO );
+module MsDec2x4a ( input wire [1:0] ADataI, output wire [3:0] ADataO );
  assign ADataO = {ADataI==2'h3, ADataI==2'h2, ADataI==2'h1, ADataI==2'h0};
 endmodule
 
-module MsDec3x8a ( input [2:0] ADataI, output [7:0] ADataO );
+module MsDec3x8a ( input wire [2:0] ADataI, output wire [7:0] ADataO );
  //assign ADataO = {ADataI==3'h7, ADataI==3'h6, ADataI==3'h5, ADataI==3'h4, ADataI==3'h3, ADataI==3'h2, ADataI==3'h1, ADataI==3'h0};
  wire [ 3:0] BMaskA = {{ 2{ADataI[1]}}, { 2{~ADataI[1]}}} & {2{ADataI[0], ~ADataI[0]}};
  wire [ 7:0] BMaskB = {{ 4{ADataI[2]}}, { 4{~ADataI[2]}}} & {2{BMaskA}};
  assign ADataO = BMaskB;
 endmodule
 
-module MsDec3x8e ( input [2:0] ADataI, input AEn, output [7:0] ADataO );
+module MsDec3x8e ( input wire [2:0] ADataI, input wire AEn, output wire [7:0] ADataO );
  wire [7:0] BDataO; MsDec3x8a UDataO ( .ADataI(ADataI), .ADataO(BDataO) );
  assign ADataO = {8{AEn}} & BDataO;
 endmodule
 
-module MsDec4x16a ( input [3:0] ADataI, output [15:0] ADataO );
+module MsDec4x16a ( input wire [3:0] ADataI, output wire [15:0] ADataO );
  wire [ 3:0] BMaskA = {{ 2{ADataI[1]}}, { 2{~ADataI[1]}}} & {2{ADataI[0], ~ADataI[0]}};
  wire [ 7:0] BMaskB = {{ 4{ADataI[2]}}, { 4{~ADataI[2]}}} & {2{BMaskA}};
  wire [15:0] BMaskC = {{ 8{ADataI[3]}}, { 8{~ADataI[3]}}} & {2{BMaskB}};
  assign ADataO = BMaskC;
 endmodule
 
-module MsDec4x16e ( input [3:0] ADataI, input AEn, output [15:0] ADataO );
+module MsDec4x16e ( input wire [3:0] ADataI, input wire AEn, output wire [15:0] ADataO );
  wire [15:0] BDataO; MsDec4x16a UDataO ( .ADataI(ADataI), .ADataO(BDataO) );
  assign ADataO = {16{AEn}} & BDataO;
 endmodule
 
-module MsDec5x32a ( input [4:0] ADataI, output [31:0] ADataO );
+module MsDec5x32a ( input wire [4:0] ADataI, output wire [31:0] ADataO );
  wire [ 3:0] BMaskA = {{ 2{ADataI[1]}}, { 2{~ADataI[1]}}} & {2{ADataI[0], ~ADataI[0]}};
  wire [ 7:0] BMaskB = {{ 4{ADataI[2]}}, { 4{~ADataI[2]}}} & {2{BMaskA}};
  wire [15:0] BMaskC = {{ 8{ADataI[3]}}, { 8{~ADataI[3]}}} & {2{BMaskB}};
@@ -97,7 +97,7 @@ module MsDec5x32a ( input [4:0] ADataI, output [31:0] ADataO );
  assign ADataO = BMaskD;
 endmodule
 
-module MsEnc4x2a ( input [3:0] ADataI, output [1:0] ADataO );
+module MsEnc4x2a ( input wire [3:0] ADataI, output wire [1:0] ADataO );
  assign ADataO =
   {
    |ADataI[3:2],
@@ -105,7 +105,7 @@ module MsEnc4x2a ( input [3:0] ADataI, output [1:0] ADataO );
   };
 endmodule
 
-module MsEnc8x3a ( input [7:0] ADataI, output [2:0] ADataO );
+module MsEnc8x3a ( input wire [7:0] ADataI, output wire [2:0] ADataO );
  assign ADataO =
   {
    |ADataI[7:4],
@@ -114,7 +114,7 @@ module MsEnc8x3a ( input [7:0] ADataI, output [2:0] ADataO );
   };
 endmodule
 
-module MsEnc16x4a ( input [15:0] ADataI, output [3:0] ADataO );
+module MsEnc16x4a ( input wire [15:0] ADataI, output wire [3:0] ADataO );
  assign ADataO =
   {
    |{ADataI[15:8]},
@@ -124,7 +124,7 @@ module MsEnc16x4a ( input [15:0] ADataI, output [3:0] ADataO );
   };
 endmodule
 
-module MsShr32a ( input [31:0] ADataI, input [5:0] AIdx, output [31:0] ADataO );
+module MsShr32a ( input wire [31:0] ADataI, input wire [5:0] AIdx, output wire [31:0] ADataO );
  wire [31:0] BDataF = AIdx[5] ?  32'h0                 : ADataI;
  wire [31:0] BDataE = AIdx[4] ? {16'h0, BDataF[31:16]} : BDataF;
  wire [31:0] BDataD = AIdx[3] ? { 8'h0, BDataE[31: 8]} : BDataE;
@@ -134,7 +134,7 @@ module MsShr32a ( input [31:0] ADataI, input [5:0] AIdx, output [31:0] ADataO );
  assign ADataO = BDataA;
 endmodule
 
-module MsBuildRorMatr #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, output [CVectLen*CVectLen-1:0] ADataO );
+module MsBuildRorMatr #(parameter CVectLen=3) ( input wire [CVectLen-1:0] ADataI, output wire [CVectLen*CVectLen-1:0] ADataO );
  integer BRowIdx, BColIdx;
  wire [2*CVectLen-1:0] BRotVect = {ADataI[CVectLen-1:0], ADataI[CVectLen-1:0]};
  reg [CVectLen*CVectLen-1:0] BDataO;
@@ -154,7 +154,7 @@ module MsBuildRorMatr #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, out
 
 endmodule
 
-module MsBuildRolMatr #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, output [CVectLen*CVectLen-1:0] ADataO );
+module MsBuildRolMatr #(parameter CVectLen=3) ( input wire [CVectLen-1:0] ADataI, output wire [CVectLen*CVectLen-1:0] ADataO );
  integer BRowIdx, BColIdx;
  wire [2*CVectLen-1:0] BRotVect = {ADataI[CVectLen-1:0], ADataI[CVectLen-1:0]};
  reg [CVectLen*CVectLen-1:0] BDataO;
@@ -174,7 +174,7 @@ module MsBuildRolMatr #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, out
 
 endmodule
 
-module MsSpreadVect #(parameter CVectLen=3, CSpreadLen=0) ( input [CVectLen-1:0] ADataI, output [CVectLen*CSpreadLen-1:0] ADataO );
+module MsSpreadVect #(parameter CVectLen=3, CSpreadLen=0) ( input wire [CVectLen-1:0] ADataI, output wire [CVectLen*CSpreadLen-1:0] ADataO );
  integer BRowIdx, BColIdx;
  reg [CVectLen*CSpreadLen-1:0] BDataO;
 
@@ -192,7 +192,7 @@ module MsSpreadVect #(parameter CVectLen=3, CSpreadLen=0) ( input [CVectLen-1:0]
  assign ADataO = BDataO;
 endmodule
 
-module MsDeliverVect #(parameter CRowCnt=2, CColCnt=3) ( input [CColCnt-1:0] ADataI, input [CRowCnt-1:0] AMask, output [CRowCnt*CColCnt-1:0] ADataO );
+module MsDeliverVect #(parameter CRowCnt=2, CColCnt=3) ( input wire [CColCnt-1:0] ADataI, input wire [CRowCnt-1:0] AMask, output wire [CRowCnt*CColCnt-1:0] ADataO );
  integer BRowIdx, BColIdx;
  reg [CRowCnt*CColCnt-1:0] BDataO;
 
@@ -211,7 +211,7 @@ module MsDeliverVect #(parameter CRowCnt=2, CColCnt=3) ( input [CColCnt-1:0] ADa
 
 endmodule
 
-module MsPriorityMaskL #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, output [CVectLen-1:0] ADataO );
+module MsPriorityMaskL #(parameter CVectLen=3) ( input wire [CVectLen-1:0] ADataI, output wire [CVectLen-1:0] ADataO );
  integer BIndex;
  reg [CVectLen-1:0] BDataO;
 
@@ -228,7 +228,7 @@ module MsPriorityMaskL #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, ou
  assign ADataO = ADataI & BDataAnd[CVectLen-1:0];
 endmodule
 
-module MsPriorityMaskH #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, output [CVectLen-1:0] ADataO );
+module MsPriorityMaskH #(parameter CVectLen=3) ( input wire [CVectLen-1:0] ADataI, output wire [CVectLen-1:0] ADataO );
  integer BIndex;
  reg [CVectLen-1:0] BDataO;
 
@@ -245,7 +245,7 @@ module MsPriorityMaskH #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, ou
  assign ADataO = ADataI & BDataAnd[CVectLen:1];
 endmodule
 
-module MsSelectRow #(parameter CRowCnt=17, CColCnt=8) ( input [CRowCnt*CColCnt-1:0] ADataI, input [CRowCnt-1:0] AMask, output [CColCnt-1:0] ADataO );
+module MsSelectRow #(parameter CRowCnt=17, CColCnt=8) ( input wire [CRowCnt*CColCnt-1:0] ADataI, input wire [CRowCnt-1:0] AMask, output wire [CColCnt-1:0] ADataO );
  integer BRowIdx, BColIdx;
  reg [CColCnt-1:0] BDataO;
 
@@ -264,12 +264,12 @@ module MsSelectRow #(parameter CRowCnt=17, CColCnt=8) ( input [CRowCnt*CColCnt-1
  assign ADataO = BDataO;
 endmodule
 
-module MsRor #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, input [CVectLen-1:0] ASel, output [CVectLen-1:0] ADataO );
+module MsRor #(parameter CVectLen=3) ( input wire [CVectLen-1:0] ADataI, input wire [CVectLen-1:0] ASel, output wire [CVectLen-1:0] ADataO );
  wire [CVectLen*CVectLen-1:0] BRotMatr; MsBuildRorMatr #(.CVectLen(CVectLen)) URotMatr ( .ADataI(ADataI), .ADataO(BRotMatr) );
  MsSelectRow #(.CRowCnt(CVectLen), .CColCnt(CVectLen)) UDataO ( .ADataI(BRotMatr), .AMask(ASel), .ADataO(ADataO) );
 endmodule
 
-module MsRol #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, input [CVectLen-1:0] ASel, output [CVectLen-1:0] ADataO );
+module MsRol #(parameter CVectLen=3) ( input wire [CVectLen-1:0] ADataI, input wire [CVectLen-1:0] ASel, output wire [CVectLen-1:0] ADataO );
  wire [CVectLen*CVectLen-1:0] BRotMatr; MsBuildRolMatr #(.CVectLen(CVectLen)) URotMatr ( .ADataI(ADataI), .ADataO(BRotMatr) );
  MsSelectRow #(.CRowCnt(CVectLen), .CColCnt(CVectLen)) UDataO ( .ADataI(BRotMatr), .AMask(ASel), .ADataO(ADataO) );
 endmodule
@@ -277,8 +277,8 @@ endmodule
 // When DataO is granted, then device
 module MsPrioritize #(parameter CLineCnt=0)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CLineCnt-1:0] ADataI, output [CLineCnt-1:0] ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CLineCnt-1:0] ADataI, output wire [CLineCnt-1:0] ADataO
  );
 
  wire [CLineCnt-1:0] FPrioIdx, BPrioIdx;
@@ -305,12 +305,12 @@ module MsPrioritize #(parameter CLineCnt=0)
  assign ADataO = BDataO;
 endmodule
 
-module MsItemCmp #(parameter CItemLen=4) ( input [CItemLen-1:0] AItem, input [CItemLen-1:0] ACmp, output AResult );
+module MsItemCmp #(parameter CItemLen=4) ( input wire [CItemLen-1:0] AItem, input wire [CItemLen-1:0] ACmp, output wire AResult );
   assign AResult = (AItem==ACmp);
 endmodule
 
 // OR by rows
-module MsMatrOrRow #(parameter CRowCnt=2, CColCnt=4) ( input [CRowCnt*CColCnt-1:0] ADataI, output [CRowCnt-1:0] ADataO );
+module MsMatrOrRow #(parameter CRowCnt=2, CColCnt=4) ( input wire [CRowCnt*CColCnt-1:0] ADataI, output wire [CRowCnt-1:0] ADataO );
  integer BRowIdx, BColIdx;
  reg [CRowCnt-1:0] BDataO;
 
@@ -331,7 +331,7 @@ module MsMatrOrRow #(parameter CRowCnt=2, CColCnt=4) ( input [CRowCnt*CColCnt-1:
 endmodule
 
 // OR by columns
-module MsMatrOrCol #(parameter CRowCnt=4, CColCnt=4) ( input [CRowCnt*CColCnt-1:0] ADataI, output [CColCnt-1:0] ADataO );
+module MsMatrOrCol #(parameter CRowCnt=4, CColCnt=4) ( input wire [CRowCnt*CColCnt-1:0] ADataI, output wire [CColCnt-1:0] ADataO );
  integer BRowIdx, BColIdx;
  reg [CColCnt-1:0] BDataO;
 
@@ -351,7 +351,7 @@ module MsMatrOrCol #(parameter CRowCnt=4, CColCnt=4) ( input [CRowCnt*CColCnt-1:
 endmodule
 
 // Transpose Matr
-module MsMatrTrans #(parameter CRowCnt=4, CColCnt=4) ( input [(CRowCnt*CColCnt)-1:0] ADataI, output [(CColCnt*CRowCnt)-1:0] ADataO );
+module MsMatrTrans #(parameter CRowCnt=4, CColCnt=4) ( input wire [(CRowCnt*CColCnt)-1:0] ADataI, output wire [(CColCnt*CRowCnt)-1:0] ADataO );
  integer BRowIdx, BColIdx;
  reg [CColCnt*CRowCnt-1:0] BDataO;
 
@@ -371,8 +371,8 @@ endmodule
 
 module MsTmpCompA #(parameter CLenI=10, CLenO=20)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CLenI-1:0] ADataI, output [CLenO-1:0] ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CLenI-1:0] ADataI, output wire [CLenO-1:0] ADataO
  );
 
  wire [CLenO-1:0] FDataS, BDataS;
@@ -389,8 +389,8 @@ endmodule
 
 module MsTmpCompB #(parameter CLenI=25, CLenO=10)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CLenI-1:0] ADataI, output [CLenO-1:0] ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CLenI-1:0] ADataI, output wire [CLenO-1:0] ADataO
  );
 
  wire [CLenI-1:0] FDataS, BDataS;
@@ -405,7 +405,7 @@ module MsTmpCompB #(parameter CLenI=25, CLenO=10)
  assign ADataO = FDataS[CLenI-1:CLenI-CLenO];
 endmodule
 
-module MsVectCmpAE #(parameter CItemCnt=8, CItemLen=4) ( input [CItemCnt*CItemLen-1:0] AItemList, input [CItemLen-1:0] ACmp, output [CItemCnt-1:0] AResult );
+module MsVectCmpAE #(parameter CItemCnt=8, CItemLen=4) ( input wire [CItemCnt*CItemLen-1:0] AItemList, input wire [CItemLen-1:0] ACmp, output wire [CItemCnt-1:0] AResult );
   //OzhItemCmp #(.CItemLen(CItemLen)) UResult[CItemCnt-1:0] ( .AItem(AItemList), .ACmp({CItemCnt{ACmp}}), .AResult(AResult) );
  integer BRowIdx, BColIdx;
  reg [CItemCnt-1:0] BResult;
@@ -427,10 +427,10 @@ endmodule
 
 module MsCrossSync
  (
-  input AClkA, AResetAN, AClkAEn,
-  input AReqA,
-  input AClkB, AResetBN, AClkBEn,
-  output AAckB
+  input wire AClkA, AResetAN, AClkAEn,
+  input wire AReqA,
+  input wire AClkB, AResetBN, AClkBEn,
+  output wire AAckB
  );
 
  reg FSyncA; wire BSyncA;
@@ -477,9 +477,9 @@ endmodule
 
 module MsMuxAny #(parameter CLenFinal = 8, CAddrLen = 3)
  (
-  input [CLenFinal*(1<<CAddrLen)-1:0] ADataI,
-  input [CAddrLen-1:0] AAddr,
-  output [CLenFinal-1:0] ADataO
+  input wire [CLenFinal*(1<<CAddrLen)-1:0] ADataI,
+  input wire [CAddrLen-1:0] AAddr,
+  output wire [CLenFinal-1:0] ADataO
  );
 
  localparam CLenHalf = CLenFinal * (1<<(CAddrLen-1));
@@ -500,8 +500,8 @@ endmodule
 
 module MsDecAny #(parameter CAddrLen = 3)
  (
-  input [CAddrLen-1:0] AAddr,
-  output [(1<<CAddrLen)-1:0] ADataO
+  input wire [CAddrLen-1:0] AAddr,
+  output wire [(1<<CAddrLen)-1:0] ADataO
  );
 
  localparam CLenHalf = 1<<(CAddrLen-1);
@@ -522,7 +522,7 @@ module MsDecAny #(parameter CAddrLen = 3)
 
 endmodule
 
-module MsOrVectL #(parameter CVectLen=3) ( input [CVectLen-1:0] ADataI, output [CVectLen-1:0] ADataO );
+module MsOrVectL #(parameter CVectLen=3) ( input wire [CVectLen-1:0] ADataI, output wire [CVectLen-1:0] ADataO );
  integer BIndex;
  reg [CVectLen-1:0] BDataO;
 
@@ -541,8 +541,8 @@ endmodule
 
 module MsBufReg #(parameter CDataWidth=32)
  (
-  input AClkH, input AResetHN, input AClkHEn, 
-  input [(CDataWidth-1):0] AMosi, input AWrEn, output [(CDataWidth-1):0] ARegData
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [(CDataWidth-1):0] AMosi, input wire AWrEn, output wire [(CDataWidth-1):0] ARegData
  );
 
  wire [(CDataWidth-1):0] FRegData, BRegData;
@@ -560,8 +560,8 @@ endmodule
 
 module MsCrossData #(parameter CRegLen=16)
  (
-  input AClkH, input AResetHN, input AClkHEn, 
-  input [CRegLen-1:0] ADataI, output [CRegLen-1:0] ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CRegLen-1:0] ADataI, output wire [CRegLen-1:0] ADataO
  );
 
 
@@ -575,9 +575,9 @@ endmodule
 
 module MdCrossSync
  (
-  input AClkH, input AResetHN, input AClkHEn, 
-  input AClkS, input AResetSN,
-  input AReqS, output AAckH
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire AClkS, input wire AResetSN,
+  input wire AReqS, output wire AAckH
  );
 
  wire FReqS, BReqS;
@@ -610,10 +610,10 @@ endmodule
 
 module MsCrossDS #(parameter CRegLen=16)
  (
-  input AClkH, input AResetHN, input AClkHEn, 
-  input AClkS, input AResetSN,
-  input [CRegLen-1:0] ADataI, output [CRegLen-1:0] ADataO,
-  input AReqS, output AAckH
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire AClkS, input wire AResetSN,
+  input wire [CRegLen-1:0] ADataI, output wire [CRegLen-1:0] ADataO,
+  input wire AReqS, output wire AAckH
  );
 
  wire [CRegLen-1:0] FDataS, BDataS;
@@ -649,9 +649,9 @@ module DpCrossData
   ADataA, ADataB
  );
 
- input AClkB, AResetBN, AClkBEn;
- input ADataA;
- output ADataB;
+ input wire AClkB, AResetBN, AClkBEn;
+ input wire ADataA;
+ output wire ADataB;
 
  reg FData;
 
@@ -677,9 +677,9 @@ module DpCrossDataX
 
  parameter CDataWidth = 32;
 
- input AClkB, AResetBN, AClkBEn;
- input [CDataWidth-1:0] ADataA;
- output [CDataWidth-1:0] ADataB;
+ input wire AClkB, AResetBN, AClkBEn;
+ input wire [CDataWidth-1:0] ADataA;
+ output wire [CDataWidth-1:0] ADataB;
 
  DpCrossData UCross [CDataWidth-1:0] (.AClkB({CDataWidth{AClkB}}), .AResetBN({CDataWidth{AResetBN}}), .AClkBEn({CDataWidth{AClkBEn}}), .ADataA(ADataA), .ADataB(ADataB) );
 
@@ -687,8 +687,8 @@ endmodule
 
 module MdClkEn
  (
-  input AClkH, input AResetHN, input AClkHEn, 
-  input AClkEn, output AClkO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire AClkEn, output wire AClkO
  );
 
  wire FClkA, BClkA;
@@ -722,10 +722,10 @@ module DpCrossSync
   AAckB
  );
 
- input AClkA, AResetAN, AClkAEn;
- input AReqA;
- input AClkB, AResetBN, AClkBEn;
- output AAckB;
+ input wire AClkA, AResetAN, AClkAEn;
+ input wire AReqA;
+ input wire AClkB, AResetBN, AClkBEn;
+ output wire AAckB;
 
  reg FSyncA; wire BSyncA;
  reg FSyncB;
@@ -779,10 +779,10 @@ module DpCrossDataAndSync
 
  parameter CDataWidth = 8;
 
- input AClkA, AResetAN, AClkAEn;
- input AReqA; input [(CDataWidth-1):0] ADataA;
- input AClkB, AResetBN, AClkBEn;
- output AAckB; output [(CDataWidth-1):0] ADataB;
+ input wire AClkA, AResetAN, AClkAEn;
+ input wire AReqA; input wire [(CDataWidth-1):0] ADataA;
+ input wire AClkB, AResetBN, AClkBEn;
+ output wire AAckB; output wire [(CDataWidth-1):0] ADataB;
 
  reg [(CDataWidth-1):0] FDataA; wire [(CDataWidth-1):0] BDataA;
 
@@ -803,7 +803,7 @@ module DpCrossDataAndSync
 
 endmodule
 
-module MsIdxOf32a ( input [31:0] ADataI, output [4:0] ADataO );
+module MsIdxOf32a ( input wire [31:0] ADataI, output wire [4:0] ADataO );
  assign ADataO = (ADataI[31] ? 5'h1F : 5'h0) | (ADataI[30] ? 5'h1E : 5'h0) |
                  (ADataI[29] ? 5'h1D : 5'h0) | (ADataI[28] ? 5'h1C : 5'h0) | (ADataI[27] ? 5'h1B : 5'h0) | (ADataI[26] ? 5'h1A : 5'h0) | (ADataI[25] ? 5'h19 : 5'h0) |
                  (ADataI[24] ? 5'h18 : 5'h0) | (ADataI[23] ? 5'h17 : 5'h0) | (ADataI[22] ? 5'h16 : 5'h0) | (ADataI[21] ? 5'h15 : 5'h0) | (ADataI[20] ? 5'h14 : 5'h0) |
@@ -816,11 +816,11 @@ endmodule
 // Cross data and sync. Executed asynchronously by rising edge
 module MsCrossDS_Async #(parameter CRegLen=32)
  (
-  input AClkH, AResetHN, AClkHEn,
-  input AEventRE, // By RisingEdge
-  input AEventEn,
-  output AEventAck,
-  input [CRegLen-1:0] ADataI, output [CRegLen-1:0] ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire AEventRE, // By RisingEdge
+  input wire AEventEn,
+  output wire AEventAck,
+  input wire [CRegLen-1:0] ADataI, output wire [CRegLen-1:0] ADataO
  );
 
  wire [2:0] FEventB, BEventB;
@@ -854,8 +854,8 @@ endmodule
 
 module MsAntiGlitch #(parameter CRegLen=32)
  (
-  input AClkH, AResetHN, AClkHEn,
-  input ADataI, output ADataO
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ADataI, output wire ADataO
  );
 
  wire [CRegLen-1:0] FDataS, BDataS;

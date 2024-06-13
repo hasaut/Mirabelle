@@ -1,7 +1,7 @@
 module RamSX #(parameter CAddrLen=13, CDataLen=128)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [CAddrLen-1:0] AAddr, input [CDataLen-1:0] AMosi, output [CDataLen-1:0] AMiso, input AWrEn, ARdEn
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CAddrLen-1:0] AAddr, input wire [CDataLen-1:0] AMosi, output wire [CDataLen-1:0] AMiso, input wire AWrEn, ARdEn
  );
 
  localparam CNumWords = (1<<CAddrLen);

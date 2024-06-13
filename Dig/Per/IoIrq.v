@@ -1,9 +1,9 @@
 module IoIrq16A #(parameter CAddrBase=16'h0000, CIrqCnt=16)
  (
-  input AClkH, input AResetHN, input AClkHEn,
-  input [15:0] AIoAddr, output [63:0] AIoMiso, input [63:0] AIoMosi, input [3:0] AIoWrSize, AIoRdSize, output AIoAddrAck, AIoAddrErr,
-  input [CIrqCnt-1:0] AIrqI, output [CIrqCnt-1:0] AIrqO,
-  output [7:0] ATest
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, AIoRdSize, output wire AIoAddrAck, AIoAddrErr,
+  input wire [CIrqCnt-1:0] AIrqI, output wire [CIrqCnt-1:0] AIrqO,
+  output wire [7:0] ATest
  );
 
  // Interface

@@ -1,9 +1,9 @@
 module RamDX_Fpga #(parameter CAddrLen=11, CDataLen=8)
  (
-  input AClkA, input AResetAN, input AClkAEn,
-  input [CAddrLen-1:0] AAddrA, input [CDataLen-1:0] AMosiA, output [CDataLen-1:0] AMisoA, input AWrEnA, input ARdEnA,
-  input AClkB, input AResetBN, input AClkBEn,
-  input [CAddrLen-1:0] AAddrB, input [CDataLen-1:0] AMosiB, output [CDataLen-1:0] AMisoB, input AWrEnB, input ARdEnB
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [CAddrLen-1:0] AAddrA, input wire [CDataLen-1:0] AMosiA, output wire [CDataLen-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [CAddrLen-1:0] AAddrB, input wire [CDataLen-1:0] AMosiB, output wire [CDataLen-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
  );
 
  localparam CDataZ = {CDataLen{1'b0}};
