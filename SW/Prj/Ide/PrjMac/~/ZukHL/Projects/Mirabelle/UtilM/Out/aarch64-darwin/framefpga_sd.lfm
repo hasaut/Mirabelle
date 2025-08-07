@@ -1,0 +1,178 @@
+object WndFpgaSd: TWndFpgaSd
+  Left = 0
+  Height = 214
+  Top = 0
+  Width = 671
+  ClientHeight = 214
+  ClientWidth = 671
+  ParentFont = False
+  TabOrder = 0
+  DesignLeft = 493
+  DesignTop = 285
+  object Splitter1: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 2
+    Top = 166
+    Width = 671
+    Align = alTop
+    ResizeAnchor = akTop
+  end
+  object Panel1: TPanel
+    Left = 0
+    Height = 166
+    Top = 0
+    Width = 671
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 166
+    ClientWidth = 671
+    ParentFont = False
+    TabOrder = 1
+    object PnlBtn: TPanel
+      Left = 0
+      Height = 166
+      Top = 0
+      Width = 35
+      Align = alLeft
+      BevelOuter = bvLowered
+      ClientHeight = 166
+      ClientWidth = 35
+      ParentFont = False
+      TabOrder = 0
+      object BtReflash: TSpeedButton
+        Left = 6
+        Height = 22
+        Hint = 'Reflash selected'
+        Top = 6
+        Width = 22
+        Images = ImageList2
+        ImageIndex = 0
+        OnClick = BtReflashClick
+        ShowHint = True
+        ParentFont = False
+        ParentShowHint = False
+      end
+      object BtRead: TSpeedButton
+        Left = 6
+        Height = 22
+        Hint = 'Read sections'
+        Top = 32
+        Width = 22
+        Images = ImageList2
+        ImageIndex = 2
+        OnClick = BtReadClick
+        ShowHint = True
+        ParentFont = False
+        ParentShowHint = False
+      end
+      object BtReset: TSpeedButton
+        Left = 6
+        Height = 22
+        Hint = 'Reset device'
+        Top = 58
+        Width = 22
+        Images = ImageList2
+        ImageIndex = 3
+        OnClick = BtResetClick
+        ShowHint = True
+        ParentFont = False
+        ParentShowHint = False
+      end
+      object BtDel: TSpeedButton
+        Left = 6
+        Height = 22
+        Hint = 'Delete selected'
+        Top = 84
+        Width = 22
+        Images = ImageList2
+        ImageIndex = 1
+        OnClick = BtDelClick
+        ShowHint = True
+        ParentFont = False
+        ParentShowHint = False
+      end
+      object BtLog: TSpeedButton
+        Left = 6
+        Height = 22
+        Hint = 'View log'
+        Top = 110
+        Width = 22
+        Caption = 'L'
+        OnClick = BtLogClick
+      end
+    end
+    object SgSectList: TStringGrid
+      Left = 51
+      Height = 88
+      Top = 19
+      Width = 264
+      ColCount = 4
+      Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goEditing, goSmoothScroll]
+      ParentFont = False
+      RowCount = 2
+      TabOrder = 1
+      OnDblClick = SgSectListDblClick
+      OnEditingDone = SgSectListEditingDone
+      OnMouseDown = SgSectListMouseDown
+      OnResize = SgSectListResize
+      OnSetEditText = SgSectListSetEditText
+      Cells = (
+        3
+        1
+        0
+        'Address'
+        2
+        0
+        'Size'
+        3
+        0
+        'File'
+      )
+    end
+  end
+  object ImageList1: TImageList
+    Left = 322
+    Top = 27
+    Bitmap = {
+      4C7A030000001000000010000000130200000000000078DAAD94BF4BC34014C7
+      DFE0E0D8D1C1A18383FE070E0E1985AAF8A33A1707C129D904072F830E6DA1DA
+      A1881574D0415C7470718A5A2C52D04105418422A2A083BFA8AD0EF57C975E34
+      5EF3AB490E3E70B9BCEF7DDFBDFB01106E7B5BEB89201222238423F3B1888B36
+      8A288886BC2094F3C2C7D8BFA8835645CA269D4899C7442D725644ADD12CE650
+      CC6BE16BD3443F1B3DE5B192492F0BEB7583C5CA263DB1F3B6F1671042ECF52E
+      F9EB7A8D38E7EFA017F30F5ABFA6FD139BD3FE053D3F619CDF30EE8FD8D8FE1A
+      7B64D7B034BE71D3432C2921FDBEE68E25DB603C7B0D23997BD66F593F949E02
+      65F30366B62B30989A6DD13B02A39977387DA270FE4CF57E2CD9E1593F91CD43
+      7AFF131EF183913BA8C1D8E29647EF6E882F55A15CA3D86F70FB4571CE0AF67B
+      3D789760EBACE16BE8597FE792620E172EDEC33099AFC043BD59CF985E677548
+      D868DB31EF4728DCFDC58BFA930756CB6756DF267D7C691EE6766ABFB1762CEC
+      55711D8B827727CE5B85ABF7FFB1A23FE3E683EAB1B16497A966BBB07A5C77F5
+      36D828D5318743EEDDA77BE40E28AC14BCB17C446120F5CDEE061247549F2482
+      DEDF62B1182AF822E01B45F16DA6F8BE53C291F958C4458B6F2355108DBD2C02
+      1AFF1775D0AA163A11559C83E7AC88B1F4B581C51C8A792D7C6D5A0B7A162B99
+      F4B255AE0E7A866CD2131F7A12A25EF65077A7FC83D62FD0FE053D3F619CDF30
+      EE8F1F7E00451D53AC
+    }
+  end
+  object ImageList2: TImageList
+    Left = 466
+    Top = 39
+    Bitmap = {
+      4C7A0400000010000000100000009C0100000000000078DADD963B52C4300C86
+      DD2D0DED0E3D05D7D8237085EDE838427289140C650E001D074847050505051D
+      15CDCE7001113F94C88A15BF768701CDFCE3ACAD4F92E5752600A0A0429BCD99
+      D1EDEB65370A0252923006B2DCDC5C302FE327661806238FBF1EDDACBABEEF3D
+      DED5EEB19437FE330F9CA7F925DEC5E86A78ACE33778EC1D1DA5FEF3F3A3B927
+      05F24B8AD58FFF3FAA972B35AD537E8AC3F25376344815BF077A346BF6213A4A
+      F5637D31B97CC64AEFEF7F36EC5335BFFF23FC763CD014311BEF551EBF7D00CE
+      A3CC5A8A041E6BD123DF3F5D2BE5B91F8F5BCA87F29BE7BD0AD69FCAC7E66AED
+      EBFDAE5A39EF4C91FF76EFC6C8788C7A4F2138BF58D4D6340DC444791A43AF69
+      C33164311EA5EDF1F3E0698D37CFCCB27917837312EF714439FC224E667E8F17
+      F69DC2D3F3ABE5D72CC6A708A055A7D2FDD307E82F13FBA953C669E9DFA96C29
+      C7D91CA694E59CC4EE760AA8526AB685CD7CDB5A51DEBE9397F9F5BCF6C51821
+      1E7D96FB997D3106E7A94FB8277E8C35C97D8DB3B447A13E735F1E939F056728
+      FBFC7663C4631C9B0FD5BE56FF0FE0FDB5C9
+    }
+  end
+end

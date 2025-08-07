@@ -30,6 +30,39 @@ module RamSX #(parameter CAddrLen=13, CDataLen=128)
 
 endmodule
 
+// NoChange behavior
+module RamSX_NC #(parameter CAddrLen=13, CDataLen=128)
+ (
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [CAddrLen-1:0] AAddr, input wire [CDataLen-1:0] AMosi, output wire [CDataLen-1:0] AMiso, input wire AWrEn, input wire ARdEn
+ );
+
+ localparam ZData = {CDataLen{1'b0}};
+
+ reg [CDataLen-1:0] BMiso;
+ wire FRdEn, BRdEn;
+
+ MsDffList #(.CRegLen(1)) ULocalVars
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI({BRdEn}),
+   .ADataO({FRdEn})
+  );
+
+ assign BRdEn = ARdEn;
+
+ reg [CDataLen-1:0] FMem[2**CAddrLen-1:0];
+
+ always @ (posedge AClkH)
+  begin
+  if (AWrEn) FMem[AAddr]<=AMosi;
+  else BMiso<=FMem[AAddr];
+  end
+
+ assign AMiso = {CDataLen{FRdEn}} & BMiso;
+
+endmodule
+
 // ****************************************************************
 // *** Partial memory (i.e. not the full address space is used) ***
 // ****************************************************************

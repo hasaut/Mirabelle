@@ -215,7 +215,7 @@ Uses
 Constructor TSdMainForm.Create ( AOwner : TComponent );
 Begin
  Inherited;
- FWndName:='Mirabelle IDE';
+ FWndName:='Mirabelle IDE V'+VerboseVersion;
  InitCriticalSection(FViewLock);
  FParams:=TStringList.Create;
  FPrjParams:=TStringList.Create;
@@ -298,7 +298,7 @@ Begin
  FWndFpga:=TWndFpgaSd.Create(Self); FWndFpga.Init(TsFpga,@ProcAny,@GetFlashLog);
 
  // Thread
- FMsProcess:=TMsProcess.Create(TRUE);
+ FMsProcess:=TMsProcess.Create(TRUE,CVersion);
  FMsProcess.OnViewAny:=@ViewAny;
  FMsProcess.Start;
 
@@ -434,7 +434,9 @@ Begin
    'G': FWndInfo.AppendAny(BCmdS);
    'M': begin
         Delete(BCmdS,1,1);
-        FWndInfo.AppendAny(BCmdS);
+        if BCmdS='' then break;
+        if BCmdS[1]='H' then begin Delete(BCmdS,1,1); DelFirstSpace(BCmdS); FMsProcess.MsModel.ExecView(BCmdS); end
+        else FWndInfo.AppendAny(BCmdS);
         end;
    't': FWndTerm.AppendAny(BCmdS);
    'l': FWndLtoR.AppendAny(BCmdS);

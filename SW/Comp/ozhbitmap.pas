@@ -10,7 +10,9 @@ uses
 
 Type
   TObColor = Cardinal;
-  TObColors = array of array of TObColor;
+  TObColors = array of TObColor;
+
+  POzhBitmap = ^TOzhBitmap;
 
   TOzhBitmap = class(TObject)
   private
@@ -44,6 +46,7 @@ Type
 
     Procedure ExportBmp ( ABmp : TBitmap );
     Procedure ExportBmp ( AX, AY : Integer; ABmp : TBitmap );
+    Procedure DrawInto ( ABmp : TBitmap; APosX, APosY : Integer );
 
     property Colors : TObColors read FColors write FColors;
     property Width : Integer read FWidth;
@@ -69,7 +72,7 @@ Begin
  if (FWidth=AWidth) and (FHeight=AHeight) then break;
  FWidth:=AWidth; FHeight:=AHeight;
  if FWidth<0 then FWidth:=0; if FHeight<0 then FHeight:=0;
- SetLength(FColors,FHeight,FWidth);
+ SetLength(FColors,FHeight*FWidth);
  until TRUE;
 End;
 
@@ -88,7 +91,7 @@ Begin
  if BXE>FWidth then BXE:=FWidth;
  while BIndex<BXE do
   begin
-  FColors[AY,BIndex]:=AColor;
+  FColors[AY*FWidth+BIndex]:=AColor;
   inc(BIndex);
   end;
  until TRUE;
@@ -109,7 +112,7 @@ Begin
  if BYE>FHeight then BYE:=FHeight;
  while BIndex<BYE do
   begin
-  FColors[BIndex,AX]:=AColor;
+  FColors[BIndex*FWidth+AX]:=AColor;
   inc(BIndex);
   end;
  until TRUE;
@@ -155,16 +158,16 @@ Begin
      (BIdxH>0) and (BIdxH<FHeight) and
      (BIndex>0) and (BIndex<FWidth) then
    begin
-   BColorH:=FColors[BIdxH,BIndex];
-   BColorL:=FColors[BIdxL,BIndex];
+   BColorH:=FColors[BIdxH*FWidth+BIndex];
+   BColorL:=FColors[BIdxL*FWidth+BIndex];
    BColorHI[0]:=Round(BColorHI[0]*BMulL + BColorI[0]*BMulH);
    BColorHI[1]:=Round(BColorHI[1]*BMulL + BColorI[1]*BMulH);
    BColorHI[2]:=Round(BColorHI[2]*BMulL + BColorI[2]*BMulH);
    BColorLI[0]:=Round(BColorLI[0]*BMulH + BColorI[0]*BMulL);
    BColorLI[1]:=Round(BColorLI[1]*BMulH + BColorI[1]*BMulL);
    BColorLI[2]:=Round(BColorLI[2]*BMulH + BColorI[2]*BMulL);
-   FColors[BIdxH,BIndex]:=BColorH;
-   FColors[BIdxL,BIndex]:=BColorL;
+   FColors[BIdxH*FWidth+BIndex]:=BColorH;
+   FColors[BIdxL*FWidth+BIndex]:=BColorL;
    end;
   BIndex:=BIndex+BInc;
   end;
@@ -211,16 +214,16 @@ Begin
      (BIdxR>0) and (BIdxR<FWidth) and
      (BIndex>0) and (BIndex<FHeight) then
    begin
-   BColorR:=FColors[BIndex,BIdxR];
-   BColorL:=FColors[BIndex,BIdxL];
+   BColorR:=FColors[BIndex*FWidth+BIdxR];
+   BColorL:=FColors[BIndex*FWidth+BIdxL];
    BColorRI[0]:=Round(BColorRI[0]*BMulL + BColorI[0]*BMulR);
    BColorRI[1]:=Round(BColorRI[1]*BMulL + BColorI[1]*BMulR);
    BColorRI[2]:=Round(BColorRI[2]*BMulL + BColorI[2]*BMulR);
    BColorLI[0]:=Round(BColorLI[0]*BMulR + BColorI[0]*BMulL);
    BColorLI[1]:=Round(BColorLI[1]*BMulR + BColorI[1]*BMulL);
    BColorLI[2]:=Round(BColorLI[2]*BMulR + BColorI[2]*BMulL);
-   FColors[BIndex,BIdxR]:=BColorR;
-   FColors[BIndex,BIdxL]:=BColorL;
+   FColors[BIndex*FWidth+BIdxR]:=BColorR;
+   FColors[BIndex*FWidth+BIdxL]:=BColorL;
    end;
   BIndex:=BIndex+BInc;
   end;
@@ -231,7 +234,7 @@ Procedure TOzhBitmap.Line ( AXA, AYA, AXB, AYB : Integer; AColor : TObColor );
 Begin
  if AXA=AXB then LineV(AXA,AYA,AYB,AColor)
  else if AYA=AYB then LineH(AXA,AXB,AYA,AColor)
- else LineF(AXA,AXB,AYA,AYB,AColor);
+ else LineF(AXA,AYA,AXB,AYB,AColor);
 End;
 
 Procedure TOzhBitmap.LineF ( AXA, AYA, AXB, AYB : Single; AColor : TObColor );
@@ -266,7 +269,7 @@ Begin
   BIndexX:=BXS;
   while BIndexX<BXE do
    begin
-   FColors[BIndexY,BIndexX]:=AColor;
+   FColors[BIndexY*FWidth+BIndexX]:=AColor;
    inc(BIndexX);
    end;
   inc(BIndexY);
@@ -322,7 +325,7 @@ Begin
   for BColIdx:=0 to FWidth-1 do
    begin
    //BImage.Colors[BColIdx,BRowIdx]:=TColorToFPColor(FColors[FHeight-1-BRowIdx,BColIdx]);
-   BImage.Colors[BColIdx,BRowIdx]:=TColorToFPColor(FColors[BRowIdx,BColIdx]);
+   BImage.Colors[BColIdx,BRowIdx]:=TColorToFPColor(FColors[BRowIdx*FWidth+BColIdx]);
    end;
   end;
  ABmp.LoadFromIntfImage(BImage);
@@ -346,7 +349,7 @@ Begin
    for BXDst:=0 to BImage.Width-1 do
     begin
     BXSrc:=AX+BXDst;
-    if (BXSrc>=0) and (BXSrc<FWidth) then BImage.Colors[BXDst,BYDst]:=TColorToFPColor(FColors[BYSrc,BXSrc])
+    if (BXSrc>=0) and (BXSrc<FWidth) then BImage.Colors[BXDst,BYDst]:=TColorToFPColor(FColors[BYSrc*FWidth+BXSrc])
     else BImage.Colors[BXDst,BYDst]:=TColorToFPColor(0);
     end;
    end
@@ -357,6 +360,35 @@ Begin
     BImage.Colors[BXDst,BYDst]:=TColorToFPColor(0);
     end;
    end;
+  end;
+ ABmp.LoadFromIntfImage(BImage);
+ BImage.Free;
+End;
+
+Procedure TOzhBitmap.DrawInto ( ABmp : TBitmap; APosX, APosY : Integer );
+Var
+  BImage        : TLazIntfImage;
+  BXSrc,
+  BYSrc         : Integer;
+  BXDst,
+  BYDst         : Integer;
+Begin
+ BImage:=ABmp.CreateIntfImage;
+ BYSrc:=0;
+ while BYSrc<FHeight do
+  begin
+  BYDst:=APosY+BYSrc;
+  if (BYDst>=0) and (BYDst<ABmp.Height) then
+   begin
+   BXSrc:=0;
+   while BXSrc<FWidth do
+    begin
+    BXDst:=APosX+BXSrc;
+    if (BXDst>=0) and (BXDst<ABmp.Width) then BImage.Colors[BXDst,BYDst]:=TColorToFPColor(FColors[BYSrc*FWidth+BXSrc]);
+    inc(BXSrc);
+    end;
+   end;
+  inc(BYSrc);
   end;
  ABmp.LoadFromIntfImage(BImage);
  BImage.Free;
@@ -378,7 +410,7 @@ Begin
     begin
     BXDst:=AX+BXSrc;
     if BXDst>=FWidth then break;
-    if BXDst>=0 then FColors[BYDst,BXDst]:=ASrc.Colors[BYSrc,BXSrc];
+    if BXDst>=0 then FColors[BYDst*FWidth+BXDst]:=ASrc.Colors[BYSrc*FWidth+BXSrc];
     end;
    end;
   end;

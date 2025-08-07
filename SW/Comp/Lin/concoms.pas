@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, ConComL;
 
 Type
-  TOsIs    = (oiWin, oiLin);
+  TOsIs    = (oiWin, oiLin, ioMac);
 
 Function AbsFilename ( Const ABasePath, ARelName : string ) : string;
 Function RelFilename ( Const ABasePath, AAbsName : string ) : string;
@@ -16,7 +16,6 @@ Function AssembleFullName ( Const APath, AName, AExt : string ) : string;
 Procedure ForceCheckFileExtA ( Var AFullName : string; Const AExt : string );
 Function ReplacePathSlash ( Const APath : string ) : string;
 Procedure ReplacePathSlashVar ( Var APath : string );
-//Function AddSearchAgain ( ASearchOptions : TSynSearchOptions ) : TSynSearchOptions;
 Procedure ReplaceListSlash ( AList : TStringList; Const AMask : string ); Overload;
 //Procedure ReplaceListSlash ( AList : TStringList; Const AMask : string; AStartIndex : Integer ); Overload;
 Procedure AppendLastSlash ( Var S : string );

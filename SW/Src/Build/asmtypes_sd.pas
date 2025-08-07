@@ -31,6 +31,8 @@ Type
   TOnProcAny = Procedure ( Const ACmd : string ) of Object;
   TOnLocalizeError = Procedure ( Const AFilename : string; ATextL, ATextP : Integer; Const AComment : string ) of object;
 
+  TOnViewAnyExt = Procedure ( AMessage : PChar ) of object;
+
   TParsRetCode = (prcError, prcNotRecog, prcOk);
   TDefType = (dtNone, dtConst, dtMacro);
 

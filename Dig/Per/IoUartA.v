@@ -75,7 +75,7 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
 
  // Fifo (Send)
  wire BSendReq, BSendAck; wire [7:0] BSendData;
- MsFifo4x #(.CDataLen(8)) UFifoSend
+ MsFifoDff #(.CAddrLen(3), .CDataLen(8)) UFifoSend
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI(AIoMosi[7:0]), .AWrEn(BIoAccess[IoSizeB+IoOperW+2]),
@@ -85,7 +85,7 @@ module IoUartAB_F4b #(parameter CAddrBase=16'h0000)
 
  // Fifo (Recv)
  wire [7:0] BRecvData; wire BRecvNow;
- MsFifo4x #(.CDataLen(8)) UFifoRecv
+ MsFifoDff #(.CAddrLen(3), .CDataLen(8)) UFifoRecv
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI(BRecvData), .AWrEn(BRecvNow),
@@ -263,12 +263,12 @@ module IoUartAB_F256b #(parameter CAddrBase=16'h0000)
  assign ATest = {ARxPin, ATxPin, 2'h0, BRecvNow, BIoAccess[IoSizeB+IoOperR+2], FFlags[1:0]};
 endmodule
 
-module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
+module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8, CLedTailLen=4)
  (
   input wire AClkH, AResetHN, AClkHEn,
   input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
   input wire ASync1M, input wire ASync1K, output wire AIrq,
-  input wire ARxPin, output wire ATxPin, output wire ATxFlush,
+  input wire ARxPin, output wire ATxPin, output wire ATxFlush, output wire ATxLed, ARxLed,
   output wire [7:0] ATest
  );
 
@@ -322,7 +322,7 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
 
  // Interface
  // +0 IobCtrl  = 2'h0; // WR: TxEn RxEn 2xTimerSrc 2Stop RFU 2xIrqEn
- //                     // RD: TxEn RxEn RFU TimerNZ SendBusy BaudUpdate CanWrite CanRead
+ //                     // RD: TxEn RxEn TxLow TimerNZ SendBusy BaudUpdate CanWrite CanRead
  // +1 IowBaud  = 2'h1; // WR/RD: Baud rate
  // +2 IobData  = 2'h2; // WR/RD: Data
  // +3 IowTOut  = 2'h3; // WR/RD: TOut (Starts from this value and decrementing until zero. Starts at reception, transmission and writing to this port)
@@ -331,14 +331,14 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
 
  wire [7:0] BRecvFifo;
  wire BSendBusy;
- wire [15:0] BTimerThis; wire BTimerNZ;
+ wire [15:0] BTimerThis; wire BTimerNZ; wire BTxLow;
 
  assign AIoMiso =
   (BIoAccess[IoSizeW+IoOperR+3] ? {48'h0, BTimerThis} : 64'h0) |
   (BIoAccess[IoSizeB+IoOperR+2] ? {56'h0, BRecvFifo} : 64'h0) |
   (BIoAccess[IoSizeW+IoOperR+2] ? {48'h0, FSendSpace} : 64'h0) |
   (BIoAccess[IoSizeW+IoOperR+1] ? {48'h0, FBaudResult} : 64'h0) |
-  (BIoAccess[IoSizeB+IoOperR+0] ? {56'h0, FCtrl[7:5], BTimerNZ, BSendBusy, FBaudUpdate, FFlags} : 64'h0);
+  (BIoAccess[IoSizeB+IoOperR+0] ? {56'h0, FCtrl[7:6], BTxLow, BTimerNZ, BSendBusy, FBaudUpdate, FFlags} : 64'h0);
 
 
  // Fifo (Send)
@@ -391,7 +391,6 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
   );
 
  // TxLow
- wire BTxLow;
  PerifTimer UTxLow
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
@@ -409,11 +408,20 @@ module IoUartAB_FMx #(parameter CAddrBase=16'h0000, CFifoAddrLen=8)
    .ATest()
   );
 
+ // Leds
+ UartLed #(.CTailLen(CLedTailLen)) UUartLed [1:0]
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ASync1K(ASync1K),
+   .AReq({BSendAck, BRecvNow}),
+   .ALed({ATxLed, ARxLed})
+  );
+
  // Common part
  assign AIrq = |(FFlags & LIrqEn);
  assign ATxPin = ~BTxLow & BTxPin;
 
- assign ATest = {ARxPin, ATxPin, FBaudUpdate, BIoAccess[IoSizeW+IoOperR+1], BRecvNow, BIoAccess[IoSizeB+IoOperR+2], FFlags[1:0]};
+ assign ATest = {ARxPin, ATxPin, ATxFlush, FBaudUpdate, BRecvNow, BIoAccess[IoSizeB+IoOperR+2], FFlags[1:0]};
 endmodule
 
 // *** Codec part
@@ -619,6 +627,35 @@ module UartFlush
  assign AFlush = FFlush;
 
  assign ATest = {AClkH, ASync1M, FFlush, FTimerNZ, FBusy, FTimer};
+endmodule
+
+module UartLed  #(parameter CTailLen = 4)
+ (
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire ASync1K,
+  input wire AReq, output wire ALed
+ );
+
+ localparam CTailE = {CTailLen{1'b1}};
+
+ // Local variables
+ wire FLed, BLed;
+ wire [CTailLen-1:0] FTail, BTail;
+
+ MsDffList #(.CRegLen(1+CTailLen)) ULocalVars
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI({BLed, BTail}),
+   .ADataO({FLed, FTail})
+  );
+
+ // Process
+ wire BTailNZ = |FTail;
+ assign BTail = AReq ? CTailE : FTail - {{(CTailLen-1){1'b0}}, ASync1K & BTailNZ};
+ assign BLed = BTailNZ;
+
+ // Output
+ assign ALed = FLed;
 endmodule
 
 

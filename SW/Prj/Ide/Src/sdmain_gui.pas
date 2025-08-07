@@ -106,6 +106,7 @@ Type
     FWndName        : string;
     FPath           : string;
     FParamsFilename : string;
+    FRecentFolder   : string;
     FCloseAnyway    : boolean;
     FIsClosed       : boolean;
     FRcynDoubleEnter    : Integer;
@@ -144,7 +145,6 @@ Type
     FWndCDbg        : TWndCDbgSd;
     FWndMemV        : TWndMemVSd;
     FWndFpga        : TWndFpgaSd;
-    FRecentFolder   : string;
 
     FStartupPrjName : string; // Used when called from another shell
     FOnCloseA       : TOnCloseA;
@@ -253,6 +253,10 @@ Begin
  FHandle:=Handle;
 
  FPath:=IncludeTrailingPathDelimiter(GetCurrentDir);
+ if FPath='/' then
+  begin
+  FPath:=IncludeTrailingPathDelimiter(ExtractFilePath(Application.ExeName));
+  end;
 
  FRecentFolder:=FPath;
 
@@ -298,7 +302,7 @@ Begin
  FWndFpga:=TWndFpgaSd.Create(Self); FWndFpga.Init(TsFpga,@ProcAny,@GetFlashLog);
 
  // Thread
- FMsProcess:=TMsProcess.Create(TRUE);
+ FMsProcess:=TMsProcess.Create(TRUE,CVersion);
  FMsProcess.OnViewAny:=@ViewAny;
  FMsProcess.Start;
 
@@ -434,7 +438,9 @@ Begin
    'G': FWndInfo.AppendAny(BCmdS);
    'M': begin
         Delete(BCmdS,1,1);
-        FWndInfo.AppendAny(BCmdS);
+        if BCmdS='' then break;
+        if BCmdS[1]='H' then begin Delete(BCmdS,1,1); DelFirstSpace(BCmdS); FMsProcess.MsModel.ExecView(BCmdS); end
+        else FWndInfo.AppendAny(BCmdS);
         end;
    't': FWndTerm.AppendAny(BCmdS);
    'l': FWndLtoR.AppendAny(BCmdS);

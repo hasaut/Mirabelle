@@ -845,7 +845,7 @@ Const
   CBraListA = 'bra bbe bc bnc bz bnz ba bany bg bge bs bse bn bv bnn bnv';
   CBraListB = 'bra bbe bb bae be bne ba bany bg bge bs bse bn bv bnn bnv';
   CSwtListA = 'swt swt_be swt_c swt_nc swt_z swt_nz swt_a swt_any swt_g swt_ge swt_s swt_se swt_n swt_v swt_nn swt_nv';
-  CSwtListB = 'swt swt_be swt_c swt_ae swt_e swt_ne swt_a swt_any swt_g swt_ge swt_s swt_se swt_n swt_v swt_nn swt_nv';
+  CSwtListB = 'swt swt_be swt_b swt_ae swt_e swt_ne swt_a swt_any swt_g swt_ge swt_s swt_se swt_n swt_v swt_nn swt_nv';
 
 // ONL    |10110   ||     4cc|uuuuffff|#2/4             | bra 3xRFU
 Function TAsmMcuMs.CodeGenONL ( ALine : TAsmFlowLine ) : TCmdCompError;

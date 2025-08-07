@@ -412,6 +412,141 @@ module RamDX_12a8d
 endmodule
 
 
+module RamDX_4a39d
+ (
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [4-1:0] AAddrA, input wire [39-1:0] AMosiA, output wire [39-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [4-1:0] AAddrB, input wire [39-1:0] AMosiB, output wire [39-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
+ );
+
+ localparam ZData = {39{1'b0}};
+
+ wire [39-1:0] BMisoA, BMisoB;
+ wire FRdEnA, BRdEnA;
+ wire FRdEnB, BRdEnB;
+
+ MsDffList #(.CRegLen(1)) ULocalVarsA
+  (
+   .AClkH(AClkA), .AResetHN(AResetAN), .AClkHEn(AClkAEn),
+   .ADataI({BRdEnA}),
+   .ADataO({FRdEnA})
+  );
+
+ MsDffList #(.CRegLen(1)) ULocalVarsB
+  (
+   .AClkH(AClkB), .AResetHN(AResetBN), .AClkHEn(AClkBEn),
+   .ADataI({BRdEnB}),
+   .ADataO({FRdEnB})
+  );
+
+ assign BRdEnA = ARdEnA;
+ assign BRdEnB = ARdEnB;
+
+ RamDX_12a39d_Lat UMem
+  (
+   .ClockA(AClkA), .ResetA(~AResetAN), .ClockEnA(AClkAEn),
+   .AddressA(AAddrA), .DataInA(AMosiA), .QA(BMisoA), .WrA(AWrEnA),
+   .ClockB(AClkB), .ResetB(~AResetBN), .ClockEnB(AClkBEn),
+   .AddressB(AAddrB), .DataInB(AMosiB), .QB(BMisoB), .WrB(AWrEnB)
+  );
+
+ assign AMisoA = {39{ARdEnA}} & BMisoA;
+ assign AMisoB = {39{FRdEnB}} & BMisoB;
+
+endmodule
+
+
+module RamDX_8a39d
+ (
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [8-1:0] AAddrA, input wire [39-1:0] AMosiA, output wire [39-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [8-1:0] AAddrB, input wire [39-1:0] AMosiB, output wire [39-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
+ );
+
+ localparam ZData = {39{1'b0}};
+
+ wire [39-1:0] BMisoA, BMisoB;
+ wire FRdEnA, BRdEnA;
+ wire FRdEnB, BRdEnB;
+
+ MsDffList #(.CRegLen(1)) ULocalVarsA
+  (
+   .AClkH(AClkA), .AResetHN(AResetAN), .AClkHEn(AClkAEn),
+   .ADataI({BRdEnA}),
+   .ADataO({FRdEnA})
+  );
+
+ MsDffList #(.CRegLen(1)) ULocalVarsB
+  (
+   .AClkH(AClkB), .AResetHN(AResetBN), .AClkHEn(AClkBEn),
+   .ADataI({BRdEnB}),
+   .ADataO({FRdEnB})
+  );
+
+ assign BRdEnA = ARdEnA;
+ assign BRdEnB = ARdEnB;
+
+ RamDX_12a39d_Lat UMem
+  (
+   .ClockA(AClkA), .ResetA(~AResetAN), .ClockEnA(AClkAEn),
+   .AddressA(AAddrA), .DataInA(AMosiA), .QA(BMisoA), .WrA(AWrEnA),
+   .ClockB(AClkB), .ResetB(~AResetBN), .ClockEnB(AClkBEn),
+   .AddressB(AAddrB), .DataInB(AMosiB), .QB(BMisoB), .WrB(AWrEnB)
+  );
+
+ assign AMisoA = {39{ARdEnA}} & BMisoA;
+ assign AMisoB = {39{FRdEnB}} & BMisoB;
+
+endmodule
+
+
+module RamDX_12a39d
+ (
+  input wire AClkA, input wire AResetAN, input wire AClkAEn,
+  input wire [12-1:0] AAddrA, input wire [39-1:0] AMosiA, output wire [39-1:0] AMisoA, input wire AWrEnA, input wire ARdEnA,
+  input wire AClkB, input wire AResetBN, input wire AClkBEn,
+  input wire [12-1:0] AAddrB, input wire [39-1:0] AMosiB, output wire [39-1:0] AMisoB, input wire AWrEnB, input wire ARdEnB
+ );
+
+ localparam ZData = {39{1'b0}};
+
+ wire [39-1:0] BMisoA, BMisoB;
+ wire FRdEnA, BRdEnA;
+ wire FRdEnB, BRdEnB;
+
+ MsDffList #(.CRegLen(1)) ULocalVarsA
+  (
+   .AClkH(AClkA), .AResetHN(AResetAN), .AClkHEn(AClkAEn),
+   .ADataI({BRdEnA}),
+   .ADataO({FRdEnA})
+  );
+
+ MsDffList #(.CRegLen(1)) ULocalVarsB
+  (
+   .AClkH(AClkB), .AResetHN(AResetBN), .AClkHEn(AClkBEn),
+   .ADataI({BRdEnB}),
+   .ADataO({FRdEnB})
+  );
+
+ assign BRdEnA = ARdEnA;
+ assign BRdEnB = ARdEnB;
+
+ RamDX_12a39d_Lat UMem
+  (
+   .ClockA(AClkA), .ResetA(~AResetAN), .ClockEnA(AClkAEn),
+   .AddressA(AAddrA), .DataInA(AMosiA), .QA(BMisoA), .WrA(AWrEnA),
+   .ClockB(AClkB), .ResetB(~AResetBN), .ClockEnB(AClkBEn),
+   .AddressB(AAddrB), .DataInB(AMosiB), .QB(BMisoB), .WrB(AWrEnB)
+  );
+
+ assign AMisoA = {39{ARdEnA}} & BMisoA;
+ assign AMisoB = {39{FRdEnB}} & BMisoB;
+
+endmodule
+
+
 module RamDX_5a64d
  (
   input wire AClkA, input wire AResetAN, input wire AClkAEn,

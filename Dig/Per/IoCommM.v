@@ -3,7 +3,7 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
   input wire AClkH, AResetHN, AClkHEn,
   input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
   input wire ASync1M, ASync1K, output wire AIrq,
-  output wire ASpiSck, input wire ASpiMiso, output wire ASpiMosi, output wire ASpiNCS,
+  output wire ASpiActive, output wire ASpiSck, input wire ASpiMiso, output wire ASpiMosi, output wire ASpiNCS,
   input wire [3:0] ASpiGpioI, output wire [3:0] ASpiGpioO, output wire [3:0] ASpiGpioE,
   input wire AClkDutStopped,
   output wire [15:0] ATest
@@ -26,16 +26,18 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
  wire [7:0] FSpiBaud, BSpiBaud;
  wire FSpiSck, BSpiSck;
  wire FSpiMiso, BSpiMiso;
+ wire FSpiCS, BSpiCS;
+ wire FSpiActive, BSpiActive;
  wire [7:0] FSpiDataO, BSpiDataO;
  wire [7:0] FSpiDataI, BSpiDataI;
  wire [3:0] FBitCount, BBitCount;
  wire [7:0] FBaudDiv, BBaudDiv;
 
- MsDffList #(.CRegLen(1+1+2+2+1+8+1+1+8+8+4+8)) ULocalVars
+ MsDffList #(.CRegLen(1+1+2+2+1+8+1+1+1+1+8+8+4+8)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BOutEn, BMsbLsb, BTimerSrc, BMode, BBusy, BSpiBaud, BSpiSck, BSpiMiso, BSpiDataO, BSpiDataI, BBitCount, BBaudDiv}),
-   .ADataO({FOutEn, FMsbLsb, FTimerSrc, FMode, FBusy, FSpiBaud, FSpiSck, FSpiMiso, FSpiDataO, FSpiDataI, FBitCount, FBaudDiv})
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI({BOutEn, BMsbLsb, BTimerSrc, BMode, BBusy, BSpiBaud, BSpiSck, BSpiMiso, BSpiCS, BSpiActive, BSpiDataO, BSpiDataI, BBitCount, BBaudDiv}),
+   .ADataO({FOutEn, FMsbLsb, FTimerSrc, FMode, FBusy, FSpiBaud, FSpiSck, FSpiMiso, FSpiCS, FSpiActive, FSpiDataO, FSpiDataI, FBitCount, FBaudDiv})
   );
 
  // Interface
@@ -82,6 +84,9 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
  assign BBitCount = BWrData ? 4'hF : FBitCount-{3'h0, ~BBaudDivNZ & BBitCountNZ};
  assign BBusy = BBitCountNZ | BBaudDivNZ;
 
+ assign BSpiActive = BOutEn | FOutEn;
+ assign BSpiCS = FSpiActive & BOutEn;
+
  wire [7:0] AIoMosiI = {AIoMosi[0], AIoMosi[1], AIoMosi[2], AIoMosi[3], AIoMosi[4], AIoMosi[5], AIoMosi[6], AIoMosi[7]};
  assign BSpiDataO = BWrData ? (FMsbLsb ? AIoMosi[7:0] : AIoMosiI[7:0]) : (BBitEnd ? {FSpiDataO[6:0], 1'b0} : FSpiDataO);
 
@@ -117,7 +122,8 @@ module IoSpiM #(parameter CAddrBase=16'h0000)
  assign AIrq = 1'b0;
  assign ASpiSck = FSpiSck;
  assign ASpiMosi = FSpiDataO[7];
- assign ASpiNCS = ~FOutEn;
+ assign ASpiNCS = ~FSpiCS;
+ assign ASpiActive = FSpiActive;
  assign ATest =
   {
    AClkH, BWrData, 6'h0,
@@ -321,7 +327,7 @@ module IoI2cM #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(1+2+1+8)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI({BWrRd, BTimerSrc, BOutEn, BBaud}),
    .ADataO({FWrRd, FTimerSrc, FOutEn, FBaud})
   );
@@ -439,7 +445,7 @@ module IoI2cM_Fsm
 
  MsDffList #(.CRegLen(CStLen+1+1+1+1+4+8+9+9+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI({BState, BSda, BScl, BSdaIA, BSdaIB, BBitCount, BBaudDiv, BDataO, BDataI, BBusy}),
    .ADataO({FState, FSda, FScl, FSdaIA, FSdaIB, FBitCount, FBaudDiv, FDataO, FDataI, FBusy})
   );
@@ -507,7 +513,7 @@ module SpiFsmMS #(parameter CBaudLen=3, CBaudRate=3'h7)
 
  MsDffList #(.CRegLen(8+4+1+1+CBaudLen)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI({BDataS, BHalfBitIdx, BActive, BFsmRecv, BBaudDiv}),
    .ADataO({FDataS, FHalfBitIdx, FActive, FFsmRecv, FBaudDiv})
   );
@@ -758,7 +764,7 @@ module IoMupetM #(parameter CAddrBase=16'h0000)
 
  MsDffList #(.CRegLen(16+2+1+1+4+1+1+1+4+16)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI({BMupetBaud, BTimerSrc, BUseTimer, BBusy, BTckState, BMupetSck, BMupetMosi, BMupetMiso, BCrc, BBaudDiv}),
    .ADataO({FMupetBaud, FTimerSrc, FUseTimer, FBusy, FTckState, FMupetSck, FMupetMosi, FMupetMiso, FCrc, FBaudDiv})
   );

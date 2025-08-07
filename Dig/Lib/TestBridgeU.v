@@ -1,7 +1,7 @@
-module TestBridgeUartA
+module TestBridgeUartA #(parameter CUartTailLen=4)
  (
   input wire AClkH, AResetHN, AClkHEn,
-  input wire ADbgRx, output wire ADbgTx, output wire ADbgTxFlush,
+  input wire ADbgRx, output wire ADbgTx, output wire ADbgTxFlush, output wire ADbgTxLed, ADbgRxLed,
   input wire ASync1M, ASync1K, input wire [39:0] ALogTimer,
   output wire [11:0] ADbioAddr, output wire [63:0] ADbioMosi, input wire [63:0] ADbioMiso, output wire [3:0] ADbioMosiIdx, ADbioMisoIdx, output wire ADbioMosi1st, output wire ADbioMiso1st, output wire [15:0] ADbioDataLen, output wire ADbioDataLenNZ, input wire ADbioIdxReset,
   input wire [7:0] ADbioSbData, input wire ADbioSbNow, input wire ADbioSbActive, // Data to be sent back immediately
@@ -10,7 +10,7 @@ module TestBridgeUartA
  );
 
  // Params
- localparam CStLen = 27;
+ localparam CStLen = 29;
  localparam CStNil = {CStLen{1'b0}};
 
  localparam IStSyncA =  0;
@@ -36,10 +36,12 @@ module TestBridgeUartA
  localparam IStAdcA  = 20;
  localparam IStAdcB  = 21;
  localparam IStAdcC  = 22;
- localparam IStLogTC = 23;
- localparam IStLogTD = 24;
- localparam IStLogTE = 25;
- localparam IStLogTF = 26;
+ localparam IStAdcD  = 23;
+ localparam IStAdcE  = 24;
+ localparam IStLogTC = 25;
+ localparam IStLogTD = 26;
+ localparam IStLogTE = 27;
+ localparam IStLogTF = 28;
 
  // Local vars
  // FSM
@@ -61,12 +63,15 @@ module TestBridgeUartA
  wire FDbioMosi1st, BDbioMosi1st;
  // AttReq
  wire [6:0] FAttTimer, BAttTimer;
+ // Sync during ADC
+ wire [15:0] FBaudResult, BBaudResult;
+ wire FBaudUpdate, BBaudUpdate;
 
- MsDffList #(.CRegLen(CStLen+16+16+16+16+10+12+64+64+4+4+1+7)) ULocalVars
+ MsDffList #(.CRegLen(CStLen+16+16+16+16+10+12+64+64+4+4+1+7+16+1)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BState, BRecvCtrl, BBaud, BDataLen, BDbioDataLen, BTimeOut, BDbioAddr, BDbioMosi, BDbioMiso, BDbioMosiIdx, BDbioMisoIdx, BDbioMosi1st, BAttTimer}),
-   .ADataO({FState, FRecvCtrl, FBaud, FDataLen, FDbioDataLen, FTimeOut, FDbioAddr, FDbioMosi, FDbioMiso, FDbioMosiIdx, FDbioMisoIdx, FDbioMosi1st, FAttTimer})
+   .ADataI({BState, BRecvCtrl, BBaud, BDataLen, BDbioDataLen, BTimeOut, BDbioAddr, BDbioMosi, BDbioMiso, BDbioMosiIdx, BDbioMisoIdx, BDbioMosi1st, BAttTimer, BBaudResult, BBaudUpdate}),
+   .ADataO({FState, FRecvCtrl, FBaud, FDataLen, FDbioDataLen, FTimeOut, FDbioAddr, FDbioMosi, FDbioMiso, FDbioMosiIdx, FDbioMisoIdx, FDbioMosi1st, FAttTimer, FBaudResult, FBaudUpdate})
   );
 
  // Common
@@ -78,7 +83,7 @@ module TestBridgeUartA
  wire [7:0] BCommSendData; wire BCommSendNow;
  wire BSendReqA, BSendAckA; wire [7:0] BSendDataA;
  wire BSendHasSpace;
- MsFifo4x #(.CDataLen(8)) UFifoSend
+ MsFifoDff #(.CAddrLen(2), .CDataLen(8)) UFifoSend
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI(BCommSendData), .AWrEn(BCommSendNow),
@@ -88,19 +93,23 @@ module TestBridgeUartA
 
  // UART
  wire [7:0] BCommRecvData; wire LCommRecvNow;
- wire [15:0] BBaudResult; wire BBaudUpdate;
+ wire [15:0] BBaudResultA; wire BBaudUpdateA;
  wire BSendBusy;
 
  UartACodec UUart
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ACfg2Stop(1'b0), .ACfgTxEn(1'b1), .ACfgRxEn(BStateNZ | ~BBaudUpdate), .ASyncStart(1'b1),
-   .ABaudI(FBaud), .ABaudO(BBaudResult), .ABaudUpdate(BBaudUpdate),
+   .ACfg2Stop(1'b0), .ACfgTxEn(1'b1), .ACfgRxEn(BStateNZ | ~BBaudUpdateA), .ASyncStart(1'b1),
+   .ABaudI(FBaud), .ABaudO(BBaudResultA), .ABaudUpdate(BBaudUpdateA),
    .AFifoSendData(BSendDataA), .AFifoSendReady(BSendReqA), .AFifoSendRd(BSendAckA), .ASendBusy(BSendBusy),
    .AFifoRecvData(BCommRecvData), .AFifoRecvWr(LCommRecvNow),
    .ARx(ADbgRx), .ATx(ADbgTx),
-   .ATest(ATest)
+   .ATest()
   );
+
+ wire   BBaudIgnore = |{FState[IStCommD:IStCommA], FState[IStMosiE:IStMosiA]};
+ assign BBaudUpdate = (BBaudUpdateA & ~BBaudIgnore) | (FBaudUpdate & ~FState[IStSyncA]);
+ assign BBaudResult = (BBaudUpdate & ~FBaudUpdate) ? BBaudResultA : FBaudResult;
 
  // Flush
  UartFlush UFlush
@@ -110,6 +119,16 @@ module TestBridgeUartA
    .ABusy(BSendBusy | BSendReqA | ADbioSbActive), .AFlush(ADbgTxFlush),
    .ATest()
   );
+
+ // Leds
+ UartLed #(.CTailLen(CUartTailLen)) UUartLed [1:0]
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ASync1K(ASync1K),
+   .AReq({BSendAckA, |{FState[IStSyncA], FState[IStCommA]}}),
+   .ALed({ADbgTxLed, ADbgRxLed})
+  );
+
 
  // Alias to compare "F" and "U" easier
  wire [7:0] LCommRecvData = BCommRecvData;
@@ -129,7 +148,7 @@ module TestBridgeUartA
  wire BRecvCtrlTran = (FRecvCtrl[15:12]==4'hD); // SendRecv
 
  // FSM
- assign BState[IStSyncA] = ~BStateNZ & BBaudUpdate;
+ assign BState[IStSyncA] = ~BStateNZ & FBaudUpdate;
  assign BState[IStCommA] = ~BStateNZ & LCommRecvNow & LCommRecvData[7];
  assign BState[IStAttA]  = ~BStateNZ & ~BState[IStSyncA] & ~BState[IStCommA] &  BAttReq;
  assign BState[IStAdcA]  = ~BStateNZ & ~BState[IStSyncA] & ~BState[IStCommA] & ~BAttReq & BAdcReq;
@@ -158,15 +177,17 @@ module TestBridgeUartA
  // ADC
  assign BState[IStAdcB]  = FState[IStAdcA] | (FState[IStAdcB] & ~BSendHasSpace);
  assign BState[IStAdcC]  = FState[IStAdcB] & BSendHasSpace;
+ assign BState[IStAdcD]  = FState[IStAdcC] | (FState[IStAdcD] & ~BSendHasSpace);
+ assign BState[IStAdcE]  = FState[IStAdcD] & BSendHasSpace;
  // LogTimer
- assign BState[IStLogTC] = FState[IStAdcC] | (FState[IStLogTD] & BDataLenNZ) | (FState[IStLogTC] & ~BSendHasSpace);
+ assign BState[IStLogTC] = FState[IStAdcE] | (FState[IStLogTD] & BDataLenNZ) | (FState[IStLogTC] & ~BSendHasSpace);
  assign BState[IStLogTD] = FState[IStLogTC] &  BSendHasSpace;
  assign BState[IStLogTE] = FState[IStLogTD] & ~BDataLenNZ;
  assign BState[IStLogTF] = FState[IStLogTE];
 
 
  // Baud
- assign BBaud = FState[IStSyncA] ? BBaudResult : FBaud;
+ assign BBaud = FState[IStSyncA] ? FBaudResult : FBaud;
 
  // TimeOut
  assign BTimeOut = (FState[IStSyncA] | FState[IStCommA] | (BStateNZ & LCommRecvNow)) ? 10'd1000 : FTimeOut-{9'h0, BTimeOutNZ & ASync1K};
@@ -175,11 +196,12 @@ module TestBridgeUartA
   (FState[IStSyncC] ? 8'h55 : 8'h0) |
   (FState[IStAttC]  ? 8'hAA : 8'h0) |
   (FState[IStAdcC]  ? 8'h77 : 8'h0) |
+  (FState[IStAdcE]  ? 8'h78 : 8'h0) |
   ((FState[IStMosiE] & ~FRecvCtrl[12]) ? 8'h00 : 8'h0) |
   (FState[IStMisoB] ? 8'h00 : 8'h0) |
   ((FState[IStMisoD] | FState[IStLogTD]) ? FDbioMiso[7:0] : 8'h0) |
   (ADbioSbNow ? ADbioSbData : 8'h0);
- assign BCommSendNow = |{FState[IStSyncC], FState[IStAttC], FState[IStAdcC], FState[IStMosiE] & ~FRecvCtrl[12], FState[IStMisoB], FState[IStMisoD], FState[IStLogTD], ADbioSbNow};
+ assign BCommSendNow = |{FState[IStSyncC], FState[IStAttC], FState[IStAdcC], FState[IStAdcE], FState[IStMosiE] & ~FRecvCtrl[12], FState[IStMisoB], FState[IStMisoD], FState[IStLogTD], ADbioSbNow};
  assign BRecvCtrl =
   {
    FState[IStCommA] ? LCommRecvData : FRecvCtrl[15:8],
@@ -193,9 +215,9 @@ module TestBridgeUartA
   (BLenRecvL ? {8'h0, LCommRecvData} : 16'h0) |
   (BLenRecvH ? {LCommRecvData, FDataLen[7:0]} : 16'h0) |
   (BLenDec   ? FDataLen-16'h1 : 16'h0) |
-  (FState[IStAdcC] ? 16'h8 : 16'h0) |
+  (FState[IStAdcE] ? 16'h8 : 16'h0) |
   (FState[IStLogTE] ? {AAdcDataLen[12:0], 3'h0} : 16'h0) |
-  ((BLenRecvL | BLenRecvH | BLenDec | FState[IStAdcC] | FState[IStLogTE]) ? 16'h0 : FDataLen);
+  ((BLenRecvL | BLenRecvH | BLenDec | FState[IStAdcE] | FState[IStLogTE]) ? 16'h0 : FDataLen);
  assign BDbioDataLen =
   (BLenRecvL ? {8'h0, LCommRecvData} : 16'h0) |
   (BLenRecvH ? {LCommRecvData, FDbioDataLen[7:0]} : 16'h0) |
@@ -222,7 +244,7 @@ module TestBridgeUartA
   };
 
  wire [63:0] BDbioMisoA = (FState[IStMisoD] | FState[IStLogTD]) ? {8'h0, FDbioMiso[63:8]} : FDbioMiso;
- wire [63:0] BDbioMisoB = FState[IStAdcC] ? {24'h0, ALogTimer} : BDbioMisoA;
+ wire [63:0] BDbioMisoB = FState[IStAdcE] ? {24'h0, ALogTimer} : BDbioMisoA;
  wire [63:0] BDbioMisoC = (FState[IStMisoB] | ADbioIdxReset) ? ADbioMiso : BDbioMisoB;
  assign BDbioMiso = BDbioMisoC;
 
@@ -242,9 +264,9 @@ module TestBridgeUartA
  assign ADbioDataLenNZ = BDataLenNZ;
  assign ADbioDataLen = FDbioDataLen;
 
- assign AAdcAttAck = FState[IStAdcC];
+ assign AAdcAttAck = FState[IStAdcE];
 
  //assign ATest = {ADbgRx, ADbgTx, FState[IStMisoA], ADbioMiso1st, FState[IStCommA], FState[IStCommD], FState[IStMisoA], FState[IStMisoB]};
- //assign ATest = {AAdcAttReq, AAdcAttAck, ADbgRx, ADbgTx, FState[IStMisoA], ADbioMiso1st, FState[IStCommA], 1'b0};
+ assign ATest = {AAdcAttReq, AAdcAttAck, ADbgRx, ADbgTx, FState[IStMisoA], FState[IStMisoC], BBaudUpdateA, FBaudUpdate};
 endmodule
 

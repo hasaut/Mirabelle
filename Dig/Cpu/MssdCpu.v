@@ -63,7 +63,7 @@ module MssdCpu #(parameter CIrqCnt = 16)
  wire  [1:0] LWwConst,     MWwConst;     // Size of constant
  wire [31:0] LConst,       MConst;       // Constant
  wire  [4:0] LMlsc,        MMlsc;        // Short constant (usually for memory streaming, inc/dec)
- wire  [2:0] LLoopD,       MLoopD;      // BusB BusA
+ wire  [2:0] LLoopD,       MLoopD;       // BusB BusA
  wire  [7:0] LMuxSrc,      MMuxSrc;      // Specal MUX source (see MssdCmdDec)
  wire  [2:1] LSelIp,       MSelIp;       // Select EIP (instead of Z)
  wire  [5:0] LRegIdxR,     MRegIdxR;     // Result destination

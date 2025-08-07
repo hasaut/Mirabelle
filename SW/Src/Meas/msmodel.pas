@@ -5,15 +5,16 @@ unit MsModel;
 interface
 
 uses
-  Classes, SysUtils, StrUtils, Dynlibs, Math, AsmTypes_sd;
+  Classes, SysUtils, Dynlibs, AsmTypes_sd, OzhBitmap, Graphics;
 
 Type
   TDataSA = array [0..63] of QWord;
 
   PStimData = ^QWord;
-  TModInit = Function ( APrjPath : PChar; AModelPath : PChar ) : Integer; Stdcall;
+  TModInit = Function ( APrjPath : PChar; ADllList : PChar; AOnViewAny : TOnViewAnyExt ) : Integer; Stdcall;
   TModDone = Function : Integer; Stdcall;
   TModStep = Function ( ADataSA : PStimData ) : Double; Stdcall;
+  TModView = Procedure ( AMessage : PChar ); Stdcall;
   TModVersion = Function : Cardinal; StdCall;
   TModGetLastError = Function : string; StdCall;
 
@@ -27,6 +28,7 @@ Type
     FModInit    : TModInit;
     FModDone    : TModDone;
     FModStep    : TModStep;
+    FModView    : TModView;
     FModVersion : TModVersion;
     //FModGetLastError : TModGetLastError;
 
@@ -55,6 +57,7 @@ Type
     Function LoadVarOpti ( ALib : TLibHandle; Const AVarName : string ) : pointer;
     Procedure ViewAny ( Const AMessage : string );
     Procedure ViewAny ( Const AMessage : string; Const AProcName : string );
+    Procedure ModelViewAny ( AMessage : PChar );
     Procedure TraceExtLibCrash ( Const AModelLibName : string; AException : Exception );
     Function ModCheck : boolean;
 
@@ -66,6 +69,7 @@ Type
     Procedure ClearFiles;
     Procedure AppendFile ( AFilename : string );
 
+    Procedure SaveBmp ( Const ADataS : string );
   public
     Constructor Create; Virtual;
     Destructor Destroy; Override;
@@ -74,6 +78,7 @@ Type
     Function ExecInit ( Const APrjPath : string; Const AModelFiles : string; AOnViewAny : TOnViewAny; ASwVersion : Cardinal ) : boolean;
     Procedure ExecDone;
     Function ExecStep ( Var ADataSA : TDataSA ) : Double;
+    Procedure ExecView ( Const AMessage : string );
 
     property Iteration : Integer read FIteration;
     property ExecActive : boolean read FExecActive;
@@ -153,7 +158,7 @@ Function TMsModel.ModCheck : boolean;
 Begin
  Result:=FALSE; FVersStrC:=''; FVersStrV:='';
  repeat
- if (FModInit=nil) or (FModStep=nil) or (FModDone=nil) or (FModVersion=nil){ or (FModGetLastError=nil)} then
+ if (FModInit=nil) or (FModStep=nil) or (FModDone=nil) or (FModView=nil) or (FModVersion=nil){ or (FModGetLastError=nil)} then
   begin
   ViewAny('eSome of model mandatory procedures/variables/structures are not specified [R:TMsModel.ModelCheck]');
   break;
@@ -204,7 +209,7 @@ End;
 
 Procedure TMsModel.ExecUnloadLib;
 Begin
- FModInit:=nil; FModStep:=nil; FModDone:=nil;
+ FModInit:=nil; FModStep:=nil; FModDone:=nil; FModView:=nil;
  if FModLib<>NilHandle then begin UnloadLibrary(FModLib); FModLib:=NilHandle; end;
 End;
 
@@ -231,6 +236,7 @@ Begin
  FModInit:=TModInit(LoadProcOpti(FModLib,'ModInit'));
  FModStep:=TModStep(LoadProcOpti(FModLib,'ModStep'));
  FModDone:=TModDone(LoadProcOpti(FModLib,'ModDone'));
+ FModView:=TModView(LoadProcOpti(FModLib,'ModView'));
  FModVersion:=TModVersion(LoadProcOpti(FModLib,'ModVersion'));
  //FModGetLastError:=TModGetLastError(LoadProcOpti(FModLib,'ModGetLastError'));
 
@@ -247,11 +253,11 @@ End;
 
 Procedure VerboseVersion ( AVersCode : QWord; Out AVersCodeC, AVersCodeV : string );
 Begin
- AVersCodeC:='Mlx'+
+ AVersCodeC:='';{'Mlx'+
              StrPadResL(IntToStr((AVersCode shr 56) and $FF),'0',2)+
              StrPadResL(IntToStr((AVersCode shr 40) and $FFFF),'0',2)+
              Chr(Ord('A')+((AVersCode shr 36) and $F))+
-             Chr(Ord('A')+((AVersCode shr 32) and $F));
+             Chr(Ord('A')+((AVersCode shr 32) and $F));}
  AVersCodeV:=IntToStr((AVersCode shr 24) and $FF)+'.'+
              IntToStr((AVersCode shr 16) and $FF)+'.'+
              IntToStr((AVersCode shr  8) and $FF)+'.'+
@@ -288,9 +294,9 @@ Begin
  if ExecLoadLib=FALSE then begin ExecUnloadLib; ViewAny('eError loading library (see errors above)','ExecStart'); break; end;
 
  try
-   if FModInit(PChar(FPrjPath),PChar(FModLibName))<>0 then
+   if FModInit(PChar(FPrjPath),PChar(FModLibName),@ModelViewAny)<>0 then
     begin
-    //ViewAny('MeModel error: '+FModGetLastError(),'ExecStart');
+    ViewAny('MeModel error','ExecStart');
     break;
     end;
  except
@@ -453,6 +459,65 @@ Begin
 
  BTickThis:=GetTickCount64;
  FExecTickTime:=FExecTickTime+(BTickThis-BTickPrev);
+End;
+
+Procedure TMsModel.ExecView ( Const AMessage : string );
+Var
+  BMessage  : string;
+Begin
+ BMessage:=AMessage;
+ repeat
+ if BMessage='' then break;
+ if BMessage[1]='G' then begin Delete(BMessage,1,1); SaveBmp(BMessage); break; end;
+ FModView(PChar(AMessage));
+ until TRUE;
+End;
+
+Procedure TMsModel.SaveBmp ( Const ADataS : string );
+Var
+  BDataS,
+  BParamS   : string;
+  BPathS,
+  BNameS    : string;
+  BAddrQ    : QWord;
+  BBmpRes   : POzhBitmap;
+  BBmpSave  : TBitmap;
+  BJpgSave  : TJpegImage;
+  BBmpName,
+  BJpgName  : string;
+Begin
+ BDataS:=ADataS;
+ BBmpSave:=TBitmap.Create; BJpgSave:=TJpegImage.Create;
+ repeat
+ BParamS:=ReadParamStr(BDataS); if BParamS='' then break;
+ if HexToQWordCheck(BParamS,BAddrQ)=FALSE then break;
+ BBmpRes:=POzhBitmap(BAddrQ);
+ BPathS:=ReadParamStr(BDataS); BNameS:=ReadParamStr(BDataS); if BNameS='' then begin  ViewAny('MeDLL does not specify the path/name of files','SaveBmp'); break; end;
+ BBmpName:=AssembleFullName(BPathS,BNameS,'bmp'); BJpgName:=AssembleFullName(BPathS,BNameS,'jpg');
+ BBmpRes^.ExportBmp(BBmpSave); BJpgSave.Assign(BBmpSave);
+
+ try
+   BBmpSave.SaveToFile(BBmpName);
+ except
+   ViewAny('MeCannot save file '+BBmpName,'SaveBmp');
+ end;
+
+ try
+   BJpgSave.SaveToFile(BJpgName);
+ except
+   ViewAny('MeCannot save file '+BJpgName,'SaveBmp');
+ end;
+
+ until TRUE;
+ BBmpSave.Free; BJpgSave.Free;
+End;
+
+Procedure TMsModel.ModelViewAny ( AMessage : PChar );
+Var
+  BMessage  : string;
+Begin
+ BMessage:=AMessage;
+ ViewAny(BMessage);
 End;
 
 end.

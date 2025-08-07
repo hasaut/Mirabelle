@@ -9,15 +9,23 @@ uses
   // Compiler will complain about SynEditTypes. In this case you will may need to drop
   // SynEdit to a main form
 
+Type
+  TViewSize = record
+    FL, FT,
+    FW, FH  : Integer;
+  end;
+
 Procedure RdScrPos ( Const AParams : string; AControl : TControl );
 Procedure RdScrPos ( AParams : TStringList; AControl : TControl );
 Procedure RdScrPos ( AParams : TStringList; AControl : TControl; Const APrefix : string );
 Function RdScrParam ( AParams : TStringList; Const AName : string ) : Integer;
 Function RdScrParam ( AParams : TStringList; Const AName : string; AMinValue, AMaxValue : Integer ) : Integer;
+Procedure RdScrParam ( AParams : TStringList; Const AName : string; Out AViewSize : TViewSize );
 Function WrScrPos ( AControl : TControl ) : string;
 Procedure WrScrPos ( AParams : TStringList; AControl : TControl );
 Procedure WrScrPos ( AParams : TStringList; AControl : TControl; Const APrefix : string );
 Procedure WrScrParam ( AParams : TStringList; Const AName : string; AData : Integer );
+Procedure WrScrParam ( AParams : TStringList; Const AName : string; Const AViewSize : TViewSize );
 //Function AddSearchAgain ( ASearchOptions : TSynSearchOptions ) : TSynSearchOptions;
 Function AddSearchAgain ( ASearchOptions : TSynSearchOptions ) : TSynSearchOptions;
 
@@ -84,6 +92,23 @@ Begin
  if Result>AMaxValue then Result:=AMaxValue;
 End;
 
+Procedure RdScrParam ( AParams : TStringList; Const AName : string; Out AViewSize : TViewSize );
+Var
+  BDataS        : string;
+  BParamS       : string;
+Begin
+ AViewSize.FL:=30; AViewSize.FT:=30;
+ AViewSize.FW:=30; AViewSize.FH:=30;
+ repeat
+ BDataS:=AParams.Values[AName];
+ if BDataS='' then break;
+ if StringToInteger(ReadParamStr(BDataS),AViewSize.FL)=FALSE then begin AViewSize.FL:=30; break; end;
+ if StringToInteger(ReadParamStr(BDataS),AViewSize.FT)=FALSE then begin AViewSize.FT:=30; break; end;
+ if StringToInteger(ReadParamStr(BDataS),AViewSize.FW)=FALSE then begin AViewSize.FW:=30; break; end;
+ if StringToInteger(ReadParamStr(BDataS),AViewSize.FH)=FALSE then begin AViewSize.FH:=30; break; end;
+ until TRUE;
+End;
+
 Function WrScrPos ( AControl : TControl ) : string;
 Begin
  Result:=IntToStr(AControl.Left)+' '+
@@ -105,6 +130,14 @@ End;
 Procedure WrScrParam ( AParams : TStringList; Const AName : string; AData : Integer );
 Begin
  AParams.Values[AName]:=IntToStr(AData);
+End;
+
+Procedure WrScrParam ( AParams : TStringList; Const AName : string; Const AViewSize : TViewSize );
+Begin
+ AParams.Values[AName]:=IntToStr(AViewSize.FL)+' '+
+                        IntToStr(AViewSize.FT)+' '+
+                        IntToStr(AViewSize.FW)+' '+
+                        IntToStr(AViewSize.FH) ;
 End;
 
 {Function AddSearchAgain ( ASearchOptions : TSynSearchOptions ) : TSynSearchOptions;

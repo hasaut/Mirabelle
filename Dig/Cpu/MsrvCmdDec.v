@@ -2,7 +2,7 @@ module MsrvCmdDec
  (
   input wire [31:0] AQueTop, input wire [23:1] AIpThis, input wire AUseThisCpu,
   // CmdLen
-  output  [1:0] ACmdLen,
+  output wire [1:0] ACmdLen,
   // VLIW
   output wire [3:0] ACond, output wire ALoadEipImm,
   output wire [1:0] ATrap,
@@ -36,7 +36,7 @@ module MsrvCmdDec
 
  wire [3:0] LRegR = AQueTop[10: 7]; wire BRegRNZ = |LRegR; wire BIsRegRSp = (LRegR==4'h2);
  wire [3:0] LRegU = AQueTop[18:15]; wire BRegUNZ = |LRegU;
- wire [3:0] LRegS = AQueTop[23:20]; 
+ wire [3:0] LRegS = AQueTop[23:20];
 
  wire [4:0] LReg62C = AQueTop[6:2]; wire BReg62C_NZ = |LReg62C;
  wire [2:0] LReg42C = AQueTop[4:2]; //wire [7:0] BRow42C; MsDec3x8a URow42C ( .ADataI(LReg42C), .ADataO(BRow42C) );
@@ -286,7 +286,7 @@ module MsrvCmdDec
 
  assign AWwConst       = ((|{BCmdIIs[IIsAuipc], BCmdIIs[IIsLui], BCmdCIs[IIsCLui], BCmdCIs[IIsCLI], BCmdIIs[IIsAI], BCmdCIs[IIsCAdd4Spn], BCmdCIs[IIsCAddi16Sp], BCmdCIs[IIsCAddi], BCmdCIs[IIsCAndi]}) ? 2'h2 : 2'h0);
 
- assign AConst         = ((|{BCmdIIs[IIsLui]}) ? LImmU : 32'h0) | 
+ assign AConst         = ((|{BCmdIIs[IIsLui]}) ? LImmU : 32'h0) |
                          ((|{BIsJalr}) ? LImmI : 32'h0) |
                          ( BCmdIIs[IIsLx] ? LImmI : 32'h0) |
                          ( BCmdIIs[IIsSx] ? LImmS : 32'h0) |

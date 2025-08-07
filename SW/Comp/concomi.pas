@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Graphics, LResources, Controls, ExtCtrls, Forms,
-  Buttons, LCLType, {AsmTypes, }OzhBitmap;
+  Buttons, LCLType, {AsmTypes, }OzhBitmap, BGRABitmap, BGRABitmapTypes, BGRAFreeType;
 
 Const
   CColorBg      = $D6DEE2; // $C6CED2; // $C0C8CC;
@@ -256,6 +256,9 @@ Type
 
 
 Function AvgColor ( AColorA, AColorB : Cardinal; APos : Single ) : Cardinal;
+Function BgraColorA ( AColor : Cardinal ) : TBGRAPixel;
+Function BgraColorExA ( AColor : Cardinal ) : TExpandedPixel;
+
 Procedure BmpBox ( ABitmap : TBitmap; AColor : TColor );
 Procedure BmpBox ( ACanvas : TCanvas; ALeft, ATop, AWidth, AHeight : Integer; AColorA, AColorB : TColor );
 Procedure BmpBox ( ACanvas : TCanvas; ALeft, ATop, AWidth, AHeight : Integer; AColorA, AColorB, AColorC, AColorD : TColor );
@@ -269,6 +272,9 @@ Procedure FrameRaisedH ( ACanvas : TCanvas; ALeft, AWidth : Integer );
 
 Procedure LineF ( ABmp : TBitmap; AXA, AYA, AXB, AYB : Single; AColor : Cardinal );
 Procedure CircF ( ABmp : TBitmap; ACenterX, ACenterY, AR : Single; AColor : Cardinal );
+
+Procedure BmpBox ( ABitmap : TBGRABitmap; AColor : TColor );
+Procedure BmpBox ( ABitmap : TBGRABitmap; AColorA, AColorB, AColorF : TColor );
 
 implementation
 
@@ -348,6 +354,36 @@ End;
 Procedure BmpBox ( ABitmap : TBitmap; AColorA, AColorB, AColorF : TColor );
 Begin
  BmpBox(ABitmap.Canvas,0,0,ABitmap.Width,ABitmap.Height,AColorA,AColorB,AColorF);
+End;
+
+Function BgraColorA ( AColor : Cardinal ) : TBGRAPixel;
+Begin
+ Result.red:=(AColor and $0000FF) shr 0;
+ Result.green:=(AColor and $00FF00) shr 8;
+ Result.blue:=(AColor and $FF0000) shr 16;
+ Result.alpha:=$FF;
+End;
+
+Function BgraColorExA ( AColor : Cardinal ) : TExpandedPixel;
+Begin
+ Result.red:=(AColor and $0000FF) shl 8;
+ Result.green:=(AColor and $00FF00) shl 0;
+ Result.blue:=(AColor and $FF0000) shr 8;
+ Result.alpha:=$FFFF;
+End;
+
+Procedure BmpBox ( ABitmap : TBGRABitmap; AColor : TColor );
+Begin
+ ABitmap.FillRect(0,0,ABitmap.Width,ABitmap.Height,BgraColorA(AColor),dmSet);
+End;
+
+Procedure BmpBox ( ABitmap : TBGRABitmap; AColorA, AColorB, AColorF : TColor );
+Begin
+ BmpBox(ABitmap,AColorF);
+ ABitmap.DrawHorizLine(0,0,ABitmap.Width,BgraColorExA(AColorA));
+ ABitmap.DrawVertLine(0,0,ABitmap.Height,BgraColorExA(AColorA));
+ ABitmap.DrawHorizLine(0,ABitmap.Height-1,ABitmap.Width,BgraColorExA(AColorB));
+ ABitmap.DrawVertLine(ABitmap.Width-1,0,ABitmap.Height,BgraColorExA(AColorB));
 End;
 
 Procedure FrameRaisedV ( ACanvas : TCanvas; ATop, AHeight : Integer );
@@ -1061,14 +1097,14 @@ Begin
  BRowIdx:=0;
  while BRowIdx<FBarStart do
   begin
-  for BColIdx:=0 to 14 do FViewBitmap.Colors[15+BRowIdx,FGutterWidth+BColIdx]:=FColorTrack[(BColIdx+BRowIdx) and $1];
+  for BColIdx:=0 to 14 do FViewBitmap.Colors[(15+BRowIdx)*FViewBitmap.Width+FGutterWidth+BColIdx]:=FColorTrack[(BColIdx+BRowIdx) and $1];
   inc(BRowIdx);
   end;
  // TrackL
  BRowIdx:=FBarStart+BBarSize;
  while BRowIdx<FTrackSize do
   begin
-  for BColIdx:=0 to 14 do FViewBitmap.Colors[15+BRowIdx,FGutterWidth+BColIdx]:=FColorTrack[(BColIdx+BRowIdx) and $1];
+  for BColIdx:=0 to 14 do FViewBitmap.Colors[(15+BRowIdx)*FViewBitmap.Width+FGutterWidth+BColIdx]:=FColorTrack[(BColIdx+BRowIdx) and $1];
   inc(BRowIdx);
   end;
 
@@ -1182,14 +1218,14 @@ Begin
  BColIdx:=0;
  while BColIdx<FBarStart do
   begin
-  for BRowIdx:=0 to 14 do FViewBitmap.Colors[FGutterWidth+BRowIdx,15+BColIdx]:=FColorTrack[(BColIdx+BRowIdx) and $1];
+  for BRowIdx:=0 to 14 do FViewBitmap.Colors[(FGutterWidth+BRowIdx)*FViewBitmap.Width+15+BColIdx]:=FColorTrack[(BColIdx+BRowIdx) and $1];
   inc(BColIdx);
   end;
  // TrackR
  BColIdx:=FBarStart+BBarSize;
  while BColIdx<FTrackSize do
   begin
-  for BRowIdx:=0 to 14 do FViewBitmap.Colors[FGutterWidth+BRowIdx,15+BColIdx]:=FColorTrack[(BColIdx+BRowIdx) and $1];
+  for BRowIdx:=0 to 14 do FViewBitmap.Colors[(FGutterWidth+BRowIdx)*FViewBitmap.Width+15+BColIdx]:=FColorTrack[(BColIdx+BRowIdx) and $1];
   inc(BColIdx);
   end;
 

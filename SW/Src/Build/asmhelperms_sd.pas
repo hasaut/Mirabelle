@@ -26,6 +26,7 @@ Type
     Procedure CodeGenDB ( ALine : TAsmFlowLine );
     Procedure CodeGenDW ( ALine : TAsmFlowLine );
     Procedure CodeGenDD ( ALine : TAsmFlowLine );
+    Procedure CodeGenDQ ( ALine : TAsmFlowLine );
   protected
     Function NewFlowLine : TAsmFlowLine; Override;
     Function IsPointer ( Const AStr : string; Out ALabel : string ) : boolean;
@@ -95,12 +96,13 @@ Begin
   ReadParamA(' ',BParamA,BTextPos); if BParamA<>'' then AppendError('e',AppendParam(BParamA,BTextPos),'Extra parameter in line '+BParamA+' [R:TAsmFlowLineMs.Parse]');
   break;
   end;
- if StrInList(BCmdL,'db dw dd') then
+ if StrInList(BCmdL,'db dw dd dq') then
   begin
   FCmdIs:=acData;
   if BCmdL='db' then FAlign:=1
   else if BCmdL='dw' then FAlign:=2
-  else {if BCmd='dd' then} FAlign:=4;
+  else if BCmdL='dd' then FAlign:=4
+  else {if BCmdL='dq' then} FAlign:=8;
   ReadParamA(',',BParamA,BTextPos); if BParamA='' then begin AppendError('e',FParams[0],'Data is missing [R:TAsmFlowLineMs.Parse]'); break; end;
   AppendParam(BParamA,BTextPos);
   repeat
@@ -411,6 +413,7 @@ Begin
      if ALine.Align=1 then CodeGenDB(ALine)
      else if ALine.Align=2 then CodeGenDW(ALine)
      else if ALine.Align=4 then CodeGenDD(ALine)
+     else if ALine.Align=8 then CodeGenDQ(ALine)
      else ALine.AppendError('e',ALine.Params[0],'Internal error: Invalid align [R:TAsmHelperMs.Compile]');
      end;
    acStack:
@@ -597,6 +600,41 @@ Begin
    begin
    BDataFS:=BDataFD;
    for BDupIdx:=1 to BDupCnt do ALine.AppendDataBinD(Cardinal(BDataFS));
+   end
+  else
+   begin
+   ALine.AppendDataRefD(BParam);
+   end;
+  end;
+End;
+
+Procedure TAsmHelperMs.CodeGenDQ ( ALine : TAsmFlowLine );
+Var
+  BParamIdx     : Integer;
+  BParam        : TAsmLineParam;
+  BDataS        : string;
+  BStrIdx       : Integer;
+  BDataI        : Int64;
+  BDataFS       : Single;
+  BDataFD       : Double;
+  BDupIdx,
+  BDupCnt       : Integer;
+Begin
+ ALine.ClearDataBin;
+ for BParamIdx:=1 to Length(ALine.Params)-1 do
+  begin
+  BParam:=ALine.Params[BParamIdx];
+  BDataS:=BParam.Name;
+  ExtractDupOpti(ALine,BParam,BDataS,BDupCnt);
+  if (BDataS[1]=#39) and (Length(BDataS)>2) and (BDataS[Length(BDataS)]=#39) then
+   begin
+   for BDupIdx:=1 to BDupCnt do begin for BStrIdx:=2 to Length(BDataS)-2 do ALine.AppendDataBinQ(Ord(BDataS[BStrIdx])); end;
+   end
+  else if IsIntegerEqu(BDataS,BDataI) then
+   begin
+   if BDataI>$7FFFFFFFFFFFFFFF then ALine.AppendError('e',BParam,'Constant is too big for this data type [R:TAsmHelperMs.CodeGenB]')
+   else if BDataI<-$8000000000000000 then ALine.AppendError('e',BParam,'Constant is too small for this data type [R:TAsmHelperMs.CodeGenB]');
+   for BDupIdx:=1 to BDupCnt do ALine.AppendDataBinQ(QWord(BDataI));
    end
   else
    begin

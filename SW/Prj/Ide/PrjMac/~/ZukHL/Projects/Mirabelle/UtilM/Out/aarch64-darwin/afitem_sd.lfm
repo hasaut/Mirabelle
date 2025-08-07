@@ -1,0 +1,10 @@
+object AfItem: TAfItem
+  Left = 0
+  Height = 240
+  Top = 0
+  Width = 321
+  ParentFont = False
+  TabOrder = 0
+  DesignLeft = 853
+  DesignTop = 291
+end

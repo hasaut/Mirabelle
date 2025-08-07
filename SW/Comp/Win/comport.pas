@@ -19,8 +19,9 @@ Type
     FRecvIdx,
     FRecvLen    : Cardinal;
 
-    FRecvBufLen : Integer;
     FDcb        : TDcb;
+    //FRxOvl      : TOverlapped;
+    //FRxPend     : boolean;
 
     Procedure DecodeCommError ( AError : DWord );
     Procedure Purge;
@@ -40,6 +41,9 @@ Type
   end;
 
 implementation
+
+Const
+  CBufLen   = 32768;
 
 Constructor TComPort.Create;
 Begin
@@ -63,14 +67,18 @@ Begin
  FHandle:=CreateFile(PChar(FFullName),GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or FILE_FLAG_OVERLAPPED, 0);
  if FHandle=INVALID_HANDLE_VALUE then break;
  if SetCommMask(FHandle, 0)=FALSE then break;;
- if SetupComm(FHandle,FRecvBufLen,0)=FALSE then break;
+ if SetupComm(FHandle,CBufLen,CBufLen)=FALSE then break;
  BCommTimeOuts.ReadIntervalTimeout:=MAXWORD;
  BCommTimeOuts.ReadTotalTimeoutMultiplier:=0;
  BCommTimeOuts.ReadTotalTimeoutConstant:=0;
  BCommTimeOuts.WriteTotalTimeoutMultiplier:=0;
  BCommTimeOuts.WriteTotalTimeoutConstant:=0;
  if SetCommTimeOuts(FHandle, BCommTimeOuts)=FALSE then break;
- Result:=TRUE; FActive:=TRUE;
+ //FillChar(FRxOvl,Sizeof(FRxOvl),0);
+ //FRxOvl.hEvent:=CreateEvent(nil,TRUE,FALSE,nil);
+ //FRxPend:=FALSE;
+ FActive:=TRUE;
+ Result:=TRUE;
  until TRUE;
  if Result=FALSE then FLastError:=GetLastError;
 End;
@@ -89,8 +97,8 @@ Begin
  FDcb.StopBits:=0;
  FDcb.XonChar:=#17;
  FDcb.XoffChar:=#19;
- FDcb.XonLim:=FRecvBufLen div 4;
- FDcb.XoffLim:=FRecvBufLen div 4;
+ FDcb.XonLim:=CBufLen div 4;
+ FDcb.XoffLim:=CBufLen div 4;
  FDcb.Flags:=dcb_Binary;
  if SetCommState(FHandle,FDcb)=FALSE then break;
  Result:=TRUE;
@@ -103,6 +111,7 @@ Begin
  repeat
  if FActive=FALSE then break;
  Purge;
+ //CloseHandle(FRxOvl.hEvent);
  FileClose(FHandle);
  FActive:=FALSE;
  until TRUE;
@@ -197,11 +206,11 @@ Begin
   begin
   BResultB:=WaitForSingleObject(FHandle,ATimeOut);
   if BResultB=WAIT_TIMEOUT then
-    begin
-    PurgeComm(FHandle,PURGE_RXABORT);
-    FLastError:=CComErrTimeout;
-    break;
-    end;
+   begin
+   PurgeComm(FHandle,PURGE_RXABORT);
+   FLastError:=CComErrTimeout;
+   break;
+   end;
   if GetOverlappedResult(FHandle,BOverlapped,BBytesRecv,FALSE)=FALSE then begin FLastError:=GetLastError; break; end;
   FRecvLen:=BBytesRecv;
   if FRecvLen<>0 then begin AData:=FRecvBuf[0]; FRecvIdx:=1; Result:=TRUE; end;
@@ -216,5 +225,69 @@ Begin
   end;
 End;
 
+{ This is an "official" MSDE routine, which for some reason does not work
+Function TComPort.RecvByte ( Out AData : byte; ATimeOut : Cardinal ) : boolean;
+Var
+  BBytesRecv    : DWord;
+  BResultB      : DWord;
+  BError        : DWord;
+Begin
+ Result:=FALSE;
+ FLastError:=0; AData:=0;
+ repeat
+ if FRecvIdx<FRecvLen then
+  begin
+  AData:=FRecvBuf[FRecvIdx]; inc(FRecvIdx);
+  Result:=TRUE;
+  break;
+  end;
+
+ if FRxPend then
+  begin
+  BResultB:=WaitForSingleObject(FRxOvl.hEvent,ATimeOut);
+  if BResultB=ERROR_IO_PENDING then break;
+  FRxPend:=FALSE;
+  if BResultB=WAIT_OBJECT_0 then
+   begin
+   if GetOverlappedResult(FHandle,FRxOvl,BBytesRecv,FALSE)=FALSE then begin FLastError:=GetLastError; break; end;
+   FRecvLen:=BBytesRecv;
+   if FRecvLen<>0 then begin AData:=FRecvBuf[0]; FRecvIdx:=1; Result:=TRUE; end;
+   break;
+   end;
+  break; // other return values are errors
+  end;
+
+ FLastError:=0;
+ FRecvLen:=0; FRecvIdx:=0; BBytesRecv:=0;
+ FRxOvl.Offset:=0;
+ if ReadFile(FHandle,FRecvBuf[0],1,BBytesRecv,@FRxOvl) then
+  begin
+  FRecvLen:=BBytesRecv;
+  if FRecvLen<>0 then begin AData:=FRecvBuf[0]; FRecvIdx:=1; Result:=TRUE; break; end;
+  end;
+
+ FLastError:=GetLastError;
+ if FLastError=ERROR_IO_PENDING then
+  begin
+  BResultB:=WaitForSingleObject(FRxOvl.hEvent,ATimeOut);
+  if BResultB=WAIT_TIMEOUT then begin FRxPend:=TRUE; break; end;
+  if BResultB=WAIT_OBJECT_0 then
+   begin
+   if GetOverlappedResult(FHandle,FRxOvl,BBytesRecv,FALSE)=FALSE then begin FLastError:=GetLastError; break; end;
+   FRecvLen:=BBytesRecv;
+   if FRecvLen<>0 then begin AData:=FRecvBuf[0]; FRecvIdx:=1; Result:=TRUE; end;
+   break;
+   end;
+  end;
+
+ until TRUE;
+
+ if FLastError<>0 then
+  begin
+  BError:=0; ClearCommError(FHandle,BError,nil);
+  if BError<>0 then DecodeCommError(BError);
+  end;
+End;
+}
 end.
 

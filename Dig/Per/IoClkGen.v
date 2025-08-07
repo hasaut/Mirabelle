@@ -20,41 +20,49 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
   );
 
  // Implementation
- wire [15:0] FDivider, BDivider;
+ wire [2:0] FStartupI, BStartupI; assign BStartupI = {FStartupI[1:0], 1'b1};
+ wire [15:0] FDividerI, BDividerI;
+ wire FDividerISet, BDividerISet; // Whether to use the default value or not
+ 
+ wire [15:0] FDividerH, BDividerH;
  MsDffList #(.CRegLen(16)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADataI({BDivider}),
-   .ADataO({FDivider})
+   .ADataI({BDividerH}),
+   .ADataO({FDividerH})
   );
 
- wire [2:0] FStartup, BStartup;
- assign BStartup = {FStartup[1:0], 1'b1};
- assign BDivider = FStartup[2] ? (BIoAccess[IoSizeW+IoOperW+0] ? AIoMosi[15:0] : FDivider) : CDivider;
+ assign BDividerH = BIoAccess[IoSizeW+IoOperW+0] ? AIoMosi[15:0] : FDividerH;
 
- wire [15:0] FDividerI;
- MsCrossData #(.CRegLen(16)) UDividerI
-  (
-   .AClkH(AClkI), .AResetHN(AResetIN), .AClkHEn(1'b1),
-   .ADataI(FDivider), .ADataO(FDividerI)
-  );
+ wire [15:0] BDividerHI; wire BWrDividerI;
+ MsCrossDS #(.CRegLen(16)) UDividerHI
+ (
+  .AClkH(AClkI), .AResetHN(AResetIN), .AClkHEn(1'b1),
+  .AClkS(AClkH), .AResetSN(AResetHN),
+  .ADataI(BDividerH), .ADataO(BDividerHI),
+  .AReqS(BIoAccess[IoSizeW+IoOperW+0]), .AAckH(BWrDividerI)
+ );
+
+ assign BDividerI    = BWrDividerI ? BDividerHI : (FDividerISet ? FDividerI : CDivider);
+ assign BDividerISet = BWrDividerI | FDividerISet;
 
  // X Domain
  wire [7:0] FCntDec, BCntDec;
  wire [1:0] FClkO, BClkO;
 
- MsDffList #(.CRegLen(8+2+3)) ULocalVarsI
+ MsDffList #(.CRegLen(8+2+3+16+1)) ULocalVarsI
   (
    .AClkH(AClkI), .AResetHN(AResetIN), .AClkHEn(1'b1),
-   .ADataI({BCntDec, BClkO, BStartup}),
-   .ADataO({FCntDec, FClkO, FStartup})
+   .ADataI({BCntDec, BClkO, BStartupI, BDividerI, BDividerISet}),
+   .ADataO({FCntDec, FClkO, FStartupI, FDividerI, FDividerISet})
   );
 
  wire BCntDecNZ = |FCntDec;
  wire [7:0] BLoadMux = FClkO[0] ? FDividerI[15:8] : FDividerI[7:0];
 
- assign BCntDec = BCntDecNZ ? FCntDec-8'h1 : BLoadMux;
- assign BClkO = {FClkO[0], FClkO[0] ^ ~BCntDecNZ};
+ //assign BCntDec = (BCntDecNZ & FStartupI[2]) ? FCntDec-8'h1 : BLoadMux;
+ assign BCntDec = BCntDecNZ ? FCntDec-8'h1 : BLoadMux; // The very first clock will be too short because FDividerI (and thus BLoadMux) is zero
+ assign BClkO = {FClkO[0], (FClkO[0] ^ ~BCntDecNZ) & FStartupI[2]}; // The very first clock is masked by FStartupI
 
  // ResetHN
  wire [CResetDelayW-1:0] FResetON, BResetON;
@@ -71,7 +79,7 @@ module IoClkDivBB #(parameter CAddrBase=16'h0000, parameter CDivider=16'h1717, p
  assign AClkO = FClkO[1];
  assign AResetON = FResetON[CResetDelayW-1];
 
- assign ATest = {AClkI, AClkO, AResetIN, AResetEN, AResetHN, |FDivider, BCntDecNZ, FResetEN};
+ assign ATest = {AClkI, AClkO, AResetIN, AResetEN, AResetHN, |FDividerH, BCntDecNZ, BWrDividerI};
 endmodule
 
 module TimerClockSync #(parameter CDividerWidth=8, CDividerValue=8'hFF)

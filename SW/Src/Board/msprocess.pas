@@ -17,6 +17,7 @@ Type
 
   TMsProcess = class(TThread)
   private
+    FSwVersion      : Cardinal;
     FComStream      : TComPort;
     FIsEnded        : boolean;
     FCmdList,
@@ -108,6 +109,7 @@ Type
     Procedure SendStringAny ( Const AData : string );
     Function RecvByteA ( ASenseAtt : boolean; Out AData : byte ) : boolean;
     Function RecvByteA ( ASenseAtt : boolean; Out AData : byte; ATimeOut : Cardinal ) : boolean;
+    Function PollModel ( Out AIsModelRun : boolean ) : boolean;
 
     Function SendS ( AAddr : word; Const ADataS : string ) : boolean;
     Function RecvS ( AAddr : word; ASize : word ) : string;
@@ -134,7 +136,7 @@ Type
     Procedure ModelProcessTerm ( AData : Char );
     Procedure ModelCommWr ( AData : byte );
     Procedure ModelCommRd ( Out AData : byte );
-    Procedure ProbaA ( AData : byte );
+    //Procedure ProbaA ( AData : byte );
 
     Procedure CpuIdWarn ( Const AMessage : string );
     Function GetCpuId : boolean;
@@ -190,11 +192,13 @@ Type
     Procedure ReadStack ( Const AParams : string );
     Function GetFlashSize ( AFlashSizeCode : byte ) : boolean;
     Function FlashAddrToStr ( AAddr : Cardinal ) : string;
+    Function ProbeFlash : boolean;
     Procedure FpgaFlashOp ( Const ASectList : string );
     Procedure FpgaReset;
 
     Function ReadBinFile ( Const AFilename : string; Out ADataBin : string ) : boolean;
     Function ReadHexFile ( Const AFilename : string; Out ADataBin : string ) : boolean;
+    Function TryReadEfinixHex ( Const AFilename : string; Out ADataBin : string ) : Integer;
 
     Function EraseFlashBlockGen ( AAddr : Cardinal ) : boolean;
     Function ReadFlashFlagGen : boolean;
@@ -202,7 +206,7 @@ Type
     Function ReadFlashGen ( AAddr : Cardinal; ASize : Cardinal; Out ADataS : string ) : boolean;
     //Procedure ReadFlashGenS ( AAddr : Cardinal; ASize : Cardinal );
     //Function ReadFlashGenR ( ASize : Cardinal; Out ADataS : string ) : boolean;
-    Function FpgaReflashSect ( Const ASectInfo : string ) : boolean;
+    Function FpgaReflashSect ( Const ASectInfo : string; Var AIsExt : boolean ) : boolean;
     Function FpgaReadSect ( Const ASectInfo : string ) : boolean;
     Function FpgaWriteReg ( AAddr : Cardinal; Const ADataS : string ) : boolean;
 
@@ -213,7 +217,7 @@ Type
   protected
     Procedure Execute; Override;
   public
-    Constructor Create ( CreateSuspended : boolean );
+    Constructor Create ( CreateSuspended : boolean; AVersion : Cardinal ); Virtual;
     Destructor Destroy; Override;
 
     Procedure AppendCmd ( Const ACmdS : string );
@@ -225,6 +229,7 @@ Type
     property OnViewAny : TOnViewAny read FOnViewAny write FOnViewAny;
     property IsEnded : boolean read FIsEnded;
     property ProcModel : TProcModel read FProcModel;
+    property MsModel : TMsModel read FMsModel;
     property FlashLog : TStringList read FFlashLog;
   end;
 
@@ -339,11 +344,12 @@ End;
 
 // TMsProcess
 
-Constructor TMsProcess.Create ( CreateSuspended : boolean );
+Constructor TMsProcess.Create ( CreateSuspended : boolean; AVersion : Cardinal );
 Var
   BData     : byte;
 Begin
  Inherited Create(CreateSuspended);
+ FSwVersion:=AVersion;
  InitCriticalSection(FCmdListLock);
  FProcAnyEvt:=RtlEventCreate;
  FCmdList:=TStringList.Create;
@@ -357,7 +363,7 @@ Begin
  FWait:=1000;
  FMsModel:=TMsModel.Create;
  BData:=10;
- if Self=nil then ProbaA(BData); // Very strange bug, coming perhaps from the Intel CPU
+ //if Self=nil then ProbaA(BData); // Very strange bug, coming perhaps from the Intel CPU
 End;
 
 Destructor TMsProcess.Destroy;
@@ -748,8 +754,38 @@ Begin
  repeat
  if RecvByteAny(BByte,ATimeOut)=FALSE then break;
  if ASenseAtt and (BByte=$AA) then FAttReq:=TRUE
- else if ASenseAtt and (BByte=$77) then begin RecvModel; break; end
+ //else if ASenseAtt and (BByte=$77) then begin RecvModel; break; end // ##Model old
+ else if ASenseAtt and (BByte=$78) then RecvModel // ##Model new
+ else if ASenseAtt and (BByte=$77) then
+  begin
+  if RecvByteAny(BByte,ATimeOut)=FALSE then break;
+  if BByte<>$78 then break;
+  RecvModel;
+  end
  else begin AData:=BByte; Result:=TRUE; break; end;
+ until FALSE;
+End;
+
+Function TMsProcess.PollModel ( Out AIsModelRun : boolean ) : boolean; // Same as RecvByteA but do Break in case of Model request and return False (i.e. no byte received)
+Var
+  BByte         : byte;
+Begin
+ Result:=FALSE;
+ AIsModelRun:=FALSE;
+
+ repeat
+ if RecvByteAny(BByte,10)=FALSE then break;
+ if BByte=$AA then FAttReq:=TRUE
+ else if BByte=$78 then begin RecvModel; AIsModelRun:=TRUE; break; end
+ else if BByte=$77 then
+  begin
+  if RecvByteAny(BByte,10)=FALSE then break;
+  if BByte<>$78 then break;
+  RecvModel;
+  AIsModelRun:=TRUE;
+  break;
+  end
+ else begin Result:=TRUE; break; end;
  until FALSE;
 End;
 
@@ -1108,20 +1144,25 @@ Var
   BByte         : byte;
   BDbgCpuStat   : QWord;
   BRecvData     : string;
+  BIsModelRun   : boolean;
 Begin
  ViewAny('u0');
- BTickHs:=GetTickCount64;
+ //BTickHs:=GetTickCount64; // ##Model old
+ BTickHs:=GetTickCount64; BTickThis:=BTickHs; // ##Model new
 
  Priority:=tpHigher;
  FModelDataSend:='';
 
  repeat
  if FMcxActive and (FPlayer=plIss) then RtlEventWaitFor(FProcAnyEvt,10)
- else if RecvByteA(TRUE,BByte,10) then    // <- model data can come asynchronously
+ //else if RecvByteA(TRUE,BByte,10) then    // ##Model old <- model data can come asynchronously
+ else if PollModel(BIsModelRun) then    // ##Model new <- model data can come asynchronously
   begin
   // Misleading byte
   Sleep(0);
   end;
+ // ##Model old (empty line)
+ if BIsModelRun then BTickHs:=BTickThis+500; // ##Model new
  if FModelDataSend<>'' then
   begin
   SendS($700,FModelDataSend);
@@ -1163,23 +1204,30 @@ Begin
         if (FPlayerParams<>'') and (FComStream=nil) then begin OpenAny; FHsRepeatToFail:=5; end;
         if FComStream=nil then begin ViewAny('u4'); inc(BTickHs,500); break; end;
         SendByteAny($55);
-        if RecvByteA(TRUE,BByte) and (BByte=$55) then
+        if RecvByteA(TRUE,BByte) then
          begin
-         if FCommState<>csActive then
+         if BByte=$55 then
           begin
+          if FCommState<>csActive then
+           begin
+           SetCommState(csActive); ViewAny('u5'); // Connection established
+           FGetCpuInfo:=FALSE;
+           GetBrdVersion;
+           end
+          else if (FHsRepeatToFail<>5) or FCpuWarn or FGetCpuInfo then
+           begin
+           FGetCpuInfo:=FALSE;
+           GetBrdVersion;
+           end;
           SetCommState(csActive); ViewAny('u5'); // Connection established
-          FGetCpuInfo:=FALSE;
-          GetBrdVersion;
+          FHsRepeatToFail:=5;
+          if FDebugActions<>'' then begin AppendCmd('c'+FDebugActions); FDebugActions:=''; end;
+          break;
           end
-         else if (FHsRepeatToFail<>5) or FCpuWarn or FGetCpuInfo then
+         else // BByte<>$55
           begin
-          FGetCpuInfo:=FALSE;
-          GetBrdVersion;
-          end;
-         SetCommState(csActive); ViewAny('u5'); // Connection established
-         FHsRepeatToFail:=5;
-         if FDebugActions<>'' then begin AppendCmd('c'+FDebugActions); FDebugActions:=''; end;
-         break;
+          Sleep(0);
+          end
          end;
         if FHsRepeatToFail>0 then begin Dec(FHsRepeatToFail); break; end;
         ViewAny('u4'); // Connection error
@@ -1298,12 +1346,12 @@ Begin
  else FModelCommWrS:=FModelCommWrS+Chr(AData);
 End;
 
-Procedure TMsProcess.ProbaA ( AData : byte );
+{Procedure TMsProcess.ProbaA ( AData : byte );
 Begin
  AData:=13;
  if FModelCommRdS='' then AData:=13
  else begin AData:=Byte(FModelCommRdS[1]); Delete(FModelCommRdS,1,1); end;
-End;
+End;}
 
 Procedure TMsProcess.ModelCommRd ( Out AData : byte );
 Begin
@@ -1805,7 +1853,7 @@ Begin
     if SendB(CDbgCpuStepWr,$01)=FALSE then break;
     end;
  end;
- FMsModel.ExecInit(FPrjPath,FModelLibs,FOnViewAny,0);
+ FMsModel.ExecInit(FPrjPath,FModelLibs,FOnViewAny,FSwVersion);
  until TRUE;
 End;
 
@@ -2261,14 +2309,58 @@ Begin
  if FFlashSize>fs128M then Result:=Chr((AAddr shr 24) and $FF)+Result;
 End;
 
-Procedure TMsProcess.FpgaFlashOp ( Const ASectList : string );
+Function TMsProcess.ProbeFlash : boolean;
 Var
   BDataBin      : string;
+Begin
+ Result:=FALSE;
+ repeat
+ BDataBin:=#$66;
+ if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot reset device [R:TMsProcess.FpgaFlashOp]'); break; end;
+ BDataBin:=#$99;
+ if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot reset device [R:TMsProcess.FpgaFlashOp]'); break; end;
+ Sleep(1);
+ // Exit sleep mode
+ BDataBin:=#$AB;
+ if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot exit Sleep mode [R:TMsProcess.FpgaFlashOp]'); break; end;
+ // Read ID
+ //            Manufacturer MemoryType MemorySize [17h = 64M, 18h = 128M and so on]
+ // S25FL128  = 012018
+ // W25Q128   = 176018 178018
+ // MT25QL01G = 20BA21
+ BDataBin:=#$9F+#$FF+#$FF+#$FF;
+ if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot obtain Flash ID [R:TMsProcess.FpgaFlashOp]'); break; end;
+ ViewAny('fiDevice Flash ID: '+IntToHex(Ord(BDataBin[2]),2)+IntToHex(Ord(BDataBin[3]),2)+IntToHex(Ord(BDataBin[4]),2)+' [R:TMsProcess.FpgaFlashOp]');
+ if GetFlashSize(Ord(BDataBin[4]))=FALSE then begin ViewAny('feUnsupported memory size [R:TMsProcess.FpgaFlashOp]'); break; end;
+ // Erase Fail flag if set
+ {BDataBin:=#$07+#$FF;
+ if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error [R:TMsProcess.FpgaFlashOp]'); break; end;
+ BRegData:=Ord(BDataBin[2]);
+ if (BRegData and $60)<>0 then
+  begin
+  BDataBin:=#$30;
+  SendRecvSpi(BDataBin);
+  end;
+ BDataBin:=#$07+#$FF;
+ if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error [R:TMsProcess.FpgaFlashOp]'); break; end;
+ BRegData:=Ord(BDataBin[2]);
+ if (BRegData and $60)<>0 then
+  begin
+  BDataBin:=#$30;
+  SendRecvSpi(BDataBin);
+  end;}
+ Result:=TRUE;
+ until TRUE;
+End;
+
+Procedure TMsProcess.FpgaFlashOp ( Const ASectList : string );
+Var
   BSectList     : string;
   BSectThis     : string;
   BCmd          : char;
   BSuccess      : boolean;
   BResetNeeded  : boolean;
+  BIsExt        : boolean;
 Begin
  FFlashLog.Clear; FFlashLogKeep:=TRUE;
  repeat
@@ -2281,42 +2373,9 @@ Begin
    plFpga,
    plComb:
      begin
-     BSuccess:=FALSE;
-     // Device reset
-     BDataBin:=#$66;
-     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot reset device [R:TMsProcess.FpgaFlashOp]'); break; end;
-     BDataBin:=#$99;
-     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot reset device [R:TMsProcess.FpgaFlashOp]'); break; end;
-     Sleep(1);
-     // Exit sleep mode
-     BDataBin:=#$AB;
-     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot exit Sleep mode [R:TMsProcess.FpgaFlashOp]'); break; end;
-     // Read ID
-     //            Manufacturer MemoryType MemorySize [17h = 64M, 18h = 128M and so on]
-     // S25FL128  = 012018
-     // W25Q128   = 176018 178018
-     // MT25QL01G = 20BA21
-     BDataBin:=#$9F+#$FF+#$FF+#$FF;
-     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCannot obtain Flash ID [R:TMsProcess.FpgaFlashOp]'); break; end;
-     ViewAny('fiDevice Flash ID: '+IntToHex(Ord(BDataBin[2]),2)+IntToHex(Ord(BDataBin[3]),2)+IntToHex(Ord(BDataBin[4]),2)+' [R:TMsProcess.FpgaFlashOp]');
-     if GetFlashSize(Ord(BDataBin[4]))=FALSE then begin ViewAny('feUnsupported memory size [R:TMsProcess.FpgaFlashOp]'); break; end;
-     // Erase Fail flag if set
-     {BDataBin:=#$07+#$FF;
-     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error [R:TMsProcess.FpgaFlashOp]'); break; end;
-     BRegData:=Ord(BDataBin[2]);
-     if (BRegData and $60)<>0 then
-      begin
-      BDataBin:=#$30;
-      SendRecvSpi(BDataBin);
-      end;
-     BDataBin:=#$07+#$FF;
-     if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error [R:TMsProcess.FpgaFlashOp]'); break; end;
-     BRegData:=Ord(BDataBin[2]);
-     if (BRegData and $60)<>0 then
-      begin
-      BDataBin:=#$30;
-      SendRecvSpi(BDataBin);
-      end;}
+     BSuccess:=FALSE; BIsExt:=FALSE;
+     // Probe Flash
+     if ProbeFlash=FALSE then break;
      BSectList:=ASectList; if BSectList='' then break;
      BCmd:=BSectList[1]; Delete(BSectList,1,1);
      BResetNeeded:=FALSE;
@@ -2329,7 +2388,7 @@ Begin
       end;
      case BCmd of
        'w': begin
-            if FpgaReflashSect(BSectThis)=FALSE then break;
+            if FpgaReflashSect(BSectThis,BIsExt)=FALSE then break;
             BResetNeeded:=TRUE;
             end;
        'r': begin
@@ -2346,8 +2405,14 @@ Begin
       ViewAny('feFPGA operation stopped by error [R:TMsProcess.FpgaFlashOp]');
       break;
       end;
+     // Reset Startup flags again (to main flash)
+     if SendB(CDbgStartupWr,$00)=FALSE then begin ViewAny('feCommunication error (Reset startup flags) [R:TMsProcess.FpgaFlashOp]'); break; end;
      ViewAny('fiFPGA operation finished [R:TMsProcess.FpgaFlashOp]');
-     if BResetNeeded then
+     if BIsExt then
+      begin
+      ViewAny('fiDevice will not be reset because it is used to reprogram external flash [R:TMsProcess.FpgaFlashOp]');
+      end
+     else if BResetNeeded then
       begin
       ViewAny('fiDevice will be reset to read a new configuration [R:TMsProcess.FpgaFlashOp]');
       if FpgaResetA($00)=FALSE then break;
@@ -2405,6 +2470,27 @@ Begin
  BList.Free;
 End;
 
+Function TMsProcess.TryReadEfinixHex ( Const AFilename : string; Out ADataBin : string ) : Integer;
+Var
+  BList     : TStringList;
+  BErrorS   : string;
+Begin
+ Result:=-1; ADataBin:='';
+ BList:=TStringList.Create;
+ repeat
+ try
+   BList.LoadFromFile(AFilename);
+ except
+   ViewAny('feCannot read file "'+AFilename+'" [R:TMsProcess.ReadBinFile]');
+   break;
+ end;
+ if TryParseEfinixHex(BList,ADataBin,BErrorS)=FALSE then begin Result:=-2; break; end;
+ if BErrorS<>'' then begin ViewAny('feError parsing file "'+AFilename+'": '+BErrorS+' [R:TMsProcess.ReadBinFile]'); break; end;
+ Result:=0;
+ until TRUE;
+ BList.Free;
+End;
+
 Function TMsProcess.EraseFlashBlockGen ( AAddr : Cardinal ) : boolean;
 Var
   BDataBin      : string;
@@ -2414,6 +2500,10 @@ Var
 Begin
  Result:=FALSE;
  repeat
+ // Status register 2 read
+ //BDataBin:=#$35+#$FF;
+ //if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error (Ready flag reading) [R:TMsProcess.ProgramFlashPageGen]'); break; end;
+
  // Write enable
  BDataBin:=#$06;
  if SendRecvSpi(BDataBin)=FALSE then begin ViewAny('feCommunication error (Erase block) [R:TMsProcess.EraseFlashBlockGen]'); break; end;
@@ -2545,7 +2635,7 @@ Begin
 End;
 }
 
-Function TMsProcess.FpgaReflashSect ( Const ASectInfo : string ) : boolean;
+Function TMsProcess.FpgaReflashSect ( Const ASectInfo : string; Var AIsExt : boolean ) : boolean;
 Var
   BSectInfo     : string;
   BAddrS,
@@ -2569,6 +2659,7 @@ Var
   BViewIdx      : byte;
   BVerifError   : boolean;
   BPos          : Integer;
+  BResultA      : Integer;
 Begin
  Result:=FALSE;
  repeat
@@ -2601,7 +2692,17 @@ Begin
   end
  else if BExt='.hex' then
   begin
-  if ReadHexFile(BFilename,BDataBin)=FALSE then break;
+  BResultA:=TryReadEfinixHex(BFilename,BDataBin);
+  if BResultA=-1 then break
+  else if BResultA=0 then
+   begin
+   if FBrdVers in [$36] then
+   else begin ViewAny('feThis type of HEX file is supposed to be used with Efinix Trion devices and does not seem to be compatible with the board [R:TMsProcess.FpgaReflashSect]'); break; end;
+   BPos:=Pos('Family: Trion',BDataBin);
+   if (BPos<>0) and (BPos<$200) then
+   else begin ViewAny('feThis BIN file does not have a recognised Efinix Trion header and can damage the device [R:TMsProcess.FpgaReflashSect]'); break; end;
+   end
+  else if ReadHexFile(BFilename,BDataBin)=FALSE then break;
   end
  else if BExt='.mcs' then
   begin
@@ -2622,20 +2723,60 @@ Begin
   end
  else if StrInList(BExt,'.bit') then
   begin
-  if FBrdVers in [$15, $25] then
-  else begin ViewAny('feBIT file can only be flashed to Lattice and Xilinx/AMD devices [R:TMsProcess.FpgaReflashSect]'); break; end;
-  if ReadBinFile(BFilename,BDataBin)=FALSE then break;
-  if FBrdVers=$15 then
+  BResultA:=TryReadEfinixHex(BFilename,BDataBin);
+  if BResultA=0 then
    begin
-   BPos:=Pos(#$FF+#$FF+#$FF+#$BD+#$B3+#$FF+#$FF+#$FF+#$FF+#$3B,BDataBin);
+   if FBrdVers in [$36] then
+   else begin ViewAny('feThis type of HEX file is supposed to be used with Efinix Trion devices and does not seem to be compatible with the board [R:TMsProcess.FpgaReflashSect]'); break; end;
+   BPos:=Pos('Family: Trion',BDataBin);
    if (BPos<>0) and (BPos<$200) then
-   else begin ViewAny('feThis BIT file does not have a recognised Lattice header and can damage Lattice device [R:TMsProcess.FpgaReflashSect]'); break; end;
+   else begin ViewAny('feThis BIN file does not have a recognised Efinix Trion header and can damage the device [R:TMsProcess.FpgaReflashSect]'); break; end;
    end
-  else if FBrdVers=$25 then
+  else
+   begin // Not Efinix bit
+   if FBrdVers in [$15, $25] then
+   else begin ViewAny('feBIT file can only be flashed to Lattice and Xilinx/AMD devices [R:TMsProcess.FpgaReflashSect]'); break; end;
+   if ReadBinFile(BFilename,BDataBin)=FALSE then break;
+   if FBrdVers=$15 then
+    begin
+    BPos:=Pos(#$FF+#$FF+#$FF+#$BD+#$B3+#$FF+#$FF+#$FF+#$FF+#$3B,BDataBin);
+    if (BPos<>0) and (BPos<$200) then
+    else begin ViewAny('feThis BIT file does not have a recognised Lattice header and can damage Lattice device [R:TMsProcess.FpgaReflashSect]'); break; end;
+    end
+   else if FBrdVers=$25 then
+    begin
+    BPos:=Pos(#$FF+#$FF+#$FF+#$FF+#$AA+#$99+#$55+#$66,BDataBin);
+    if (BPos<>0) and (BPos<$100) then
+    else begin ViewAny('feThis BIT file does not have a recognised Xilinx/AMD header and can damage Xilinx/AMD device [R:TMsProcess.FpgaReflashSect]'); break; end;
+    end;
+   end; // Not Efinix bit
+  end
+ else if StrInList(BExt,'.bin') then
+  begin
+  if FBrdVers in [$36] then
+  else begin ViewAny('feBIN file can only be flashed to Efinix Trion devices [R:TMsProcess.FpgaReflashSect]'); break; end;
+  if ReadBinFile(BFilename,BDataBin)=FALSE then break;
+  BPos:=Pos('Family: Trion',BDataBin);
+  if (BPos<>0) and (BPos<$200) then
+  else begin ViewAny('feThis BIN file does not have a recognised Efinix Trion header and can damage the device [R:TMsProcess.FpgaReflashSect]'); break; end;
+  //InvertBytes(BDataBin);
+  end
+ else if StrInList(BExt,'.cgm') then
+  begin
+  if FBrdVers in [$46] then
+  else begin ViewAny('feCGM file can only be flashed to Cologne GateMate devices [R:TMsProcess.FpgaReflashSect]'); break; end;
+  if ReadBinFile(BFilename,BDataBin)=FALSE then break;
+  end
+ else if StrInList(BExt,'.ext') then
+  begin
+  AIsExt:=TRUE;
+  ViewAny('fiSelect EXT flash [R:TMsProcess.FpgaReflashSect]');
+  if SendB(CDbgStartupWr,$02)=FALSE then begin ViewAny('feCommunication error (Select EXT flash) [R:TMsProcess.FpgaReflashSect]'); break; end;
+  if ProbeFlash=FALSE then break;
+  BResultA:=TryReadEfinixHex(BFilename,BDataBin);
+  if BResultA<>0 then
    begin
-   BPos:=Pos(#$FF+#$FF+#$FF+#$FF+#$AA+#$99+#$55+#$66,BDataBin);
-   if (BPos<>0) and (BPos<$100) then
-   else begin ViewAny('feThis BIT file does not have a recognised Xilinx/AMD header and can damage Xilinx/AMD device [R:TMsProcess.FpgaReflashSect]'); break; end;
+   if ReadBinFile(BFilename,BDataBin)=FALSE then break;
    end;
   end
  else
@@ -2724,7 +2865,8 @@ Begin
    ViewAny('feDevice verification error at address '+IntToHex(BDataIdx,6)+' [R:TMsProcess.FpgaReflashSect]');
    ViewAny('t'+StrBinToHex(Copy(BDataBin,1+BDataIdx,$100)));
    ViewAny('t'+StrBinToHex(BDataVer));
-   BVerifError:=TRUE;
+   ReadFlashGen(BAddr+BDataIdx,$100,BDataVer);
+   //BVerifError:=TRUE;
    end;
   if (BViewIdx and $0F)=0 then ViewAny('p'+FloatToStr(BDataIdx/BBinLenWr)+' '+CColorFLS+' Verifying flash');
   inc(BDataIdx,$100); inc(BViewIdx);

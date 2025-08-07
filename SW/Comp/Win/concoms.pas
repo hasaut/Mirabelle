@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, ConComL;
 
 Type
-  TOsIs = (oiWin, oiLin);
+  TOsIs    = (oiWin, oiLin, ioMac);
 
 Function AbsFilename ( Const ABasePath, ARelName : string ) : string;
 Function RelFilename ( Const ABasePath, AAbsName : string ) : string;

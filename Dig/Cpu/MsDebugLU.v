@@ -1,8 +1,9 @@
 // UART version of MsDebug (almost completely copy-paste of FTDI version)
 
-module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5, CBrkCnt=8, CProgBaudLen=3, CProgBaudDiv=3'h7, CMemCodeBase=32'h0000, CMemCodeSize=32'h0000, CProgBootOffs=32'h300000)
+module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5, CHwVers=32'h0, CBrkCnt=8, CMemCodeBase=32'h0000, CMemCodeSize=32'h0000, CProgBootOffs=32'h300000, CUartLedTailLen=4)
  (
   input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] AProgBaudRate,
   input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
   // CPU
   output wire ADbgExecEn, output wire ADbgResetS, output wire ADbgClkHEn, output wire ADbgStep,
@@ -11,10 +12,11 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCore
   // ADC
   input wire AAdcAttReq, output wire AAdcAttAck, input wire [15:0] AAdcDataLen,
   input wire [63:0] AAdcMiso, output wire [63:0] AAdcMosi, output wire AAdcWrEn, AAdcRdEn,
+  input wire AClkStopAdc,
   // Mem
   output wire AMemAccess, output wire [31:3] AMemAddr, input wire [63:0] AMemMiso, output wire [63:0] AMemMosi, output wire [1:0] AMemWrRdEn,
   // Dbg bridge
-  input wire ADbgRx, output wire ADbgTx, output wire ADbgTxFlush,
+  input wire ADbgRx, output wire ADbgTx, output wire ADbgTxFlush, output wire ADbgTxLed, ADbgRxLed,
   // Sync
   input wire ASync1M, input wire ASync1K,
   // Flash
@@ -48,10 +50,10 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCore
  wire [7:0] BTestFsm;
  wire [39:0] BLogTimer;
 
- TestBridgeUartA UTestBridge
+ TestBridgeUartA #(.CUartTailLen(CUartLedTailLen)) UTestBridge
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ADbgRx(ADbgRx), .ADbgTx(ADbgTx), .ADbgTxFlush(ADbgTxFlush),
+   .ADbgRx(ADbgRx), .ADbgTx(ADbgTx), .ADbgTxFlush(ADbgTxFlush), .ADbgTxLed(ADbgTxLed), .ADbgRxLed(ADbgRxLed),
    .ASync1M(ASync1M), .ASync1K(ASync1K), .ALogTimer(BLogTimer),
    .ADbioAddr(BDbioAddrU), .ADbioMosi(BDbioMosiU), .ADbioMiso(BDbioMiso), .ADbioMosiIdx(BDbioMosiIdxU), .ADbioMisoIdx(BDbioMisoIdxU), .ADbioMosi1st(BDbioMosi1stU), .ADbioMiso1st(BDbioMiso1stU), .ADbioDataLen(BDbioDataLenU), .ADbioDataLenNZ(BDbioDataLenNZU), .ADbioIdxReset(BDbioIdxReset),
    .ADbioSbData(BLdrSbData), .ADbioSbNow(BLdrSbNow), .ADbioSbActive(BLdrSbActive),
@@ -92,10 +94,10 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCore
  wire BMemAccessU, BMemAccessL;
 
  wire [7:0] BTestBU;
- MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CRegCnt(CRegCnt), .CCoreCnt(CCoreCnt), .CBrdVers(CBrdVers)) UTestU
+ MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CRegCnt(CRegCnt), .CCoreCnt(CCoreCnt), .CBrdVers(CBrdVers), .CHwVers(CHwVers)) UTestU
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ASync1M(ASync1M),
+   .ASync1M(ASync1M), .AClkStopAdc(AClkStopAdc),
    .AIoAddr(AIoAddr), .AIoMiso(AIoMiso), .AIoMosi(AIoMosi), .AIoWrSize(AIoWrSize),  .AIoRdSize(AIoRdSize), .AIoAddrAck(AIoAddrAck), .AIoAddrErr(AIoAddrErr),
    .ADbioAddr(BDbioAddr[7:0]), .ADbioMosi(BDbioMosi), .ADbioMiso(BDbioMisoU), .ADbioMosiIdx(BDbioTestUCS ? BDbioMosiIdx : 4'h0), .ADbioMisoIdx(BDbioTestUCS ? BDbioMisoIdx : 4'h0), .ADbioMosi1st(BDbioTestUCS & BDbioMosi1st), .ADbioMiso1st(BDbioTestUCS & BDbioMiso1st), .ADbioDataLenNZ(BDbioTestUCS & BDbioDataLenNZ), .ADbioIdxReset(BDbioIdxResetU),
    .ADbgExecEn(ADbgExecEn), .ADbgResetS(ADbgResetS), .ADbgClkHEn(ADbgClkHEn), .ADbgStep(ADbgStep),
@@ -109,9 +111,10 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCore
   );
 
  wire [7:0] BTestLdr;
- MsTestLdr #(.CBaudLen(CProgBaudLen), .CBaudDiv(CProgBaudDiv), .CMemCodeBase(CMemCodeBase), .CMemCodeSize(CMemCodeSize)) UTestLdr
+ MsTestLdr #(.CMemCodeBase(CMemCodeBase), .CMemCodeSize(CMemCodeSize)) UTestLdr
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AProgBaudRate(AProgBaudRate),
    .ADbioAddr(BDbioAddr[7:0]), .ADbioMosi(BDbioMosi), .ADbioMiso(BDbioMisoL), .ADbioMosiIdx(BDbioTestLCS ? BDbioMosiIdx : 4'h0), .ADbioMisoIdx(BDbioTestLCS ? BDbioMisoIdx : 4'h0), .ADbioMosi1st(BDbioTestLCS & BDbioMosi1st), .ADbioMiso1st(BDbioTestLCS & BDbioMiso1st), .ADbioDataLen(BDbioTestLCS ? BDbioDataLen : 16'h0), .ADbioDataLenNZ(BDbioTestLCS & BDbioDataLenNZ), .ADbioIdxReset(BDbioIdxResetL),
    .ADbioSbData(BLdrSbData), .ADbioSbNow(BLdrSbNow),
    .AMemAccess(BMemAccessL), .AMemAddr(BMemAddrL), .AMemMiso(AMemMiso), .AMemMosi(BMemMosiL), .AMemWrEn(BMemWrEnL),
@@ -134,7 +137,12 @@ module MsDebugU #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCore
    (BMemAccessL ? {BMemAddrL, BMemMosiL, BMemWrEnL, 1'b0} : {29'h0, 64'h0, 2'h0});
  assign AMemAccess = BMemAccessU | BMemAccessL;
 
- assign ATest = {BTestBU, AClkH, ADbgTxFlush, ADbgRx, ADbgTx, BTestAdc[3:0]}; //{AAdcAttReq, AAdcAttAck, AAdcWrEn, AAdcRdEn, ADbgTx, ADbgRx, AAdcDataLen[1:0]};
+ //assign ATest = {BTestUart[7:0], AClkH, ADbgTxFlush, ADbgRx, ADbgTx, BTestAdc[3:0]}; //{AAdcAttReq, AAdcAttAck, AAdcWrEn, AAdcRdEn, ADbgTx, ADbgRx, AAdcDataLen[1:0]};
+ assign ATest = 
+  {
+   ALoadFW, 2'h0, AFlashMaster, AFlashMiso, AFlashMosi, AFlashSck, AFlashNCS,
+   BTestLdr
+  };
 
 endmodule
 

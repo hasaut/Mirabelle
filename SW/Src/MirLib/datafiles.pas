@@ -14,6 +14,8 @@ Procedure HexFileCreate ( ABaseAddr : Cardinal; Const AData : string; AHex : TSt
 Procedure HexFileAddData ( ABaseAddr : Cardinal; Const AData : string; AHex : TStringList );
 Procedure MemFileCreate ( AFullSize : Cardinal; AHwWidth : byte; Const AData : string; AMem : TStringList );
 
+Function TryParseEfinixHex ( AFile : TStringList; Out ADataBin : string; Out AErrorS : string ) : boolean;
+
 implementation
 
 Uses
@@ -126,7 +128,8 @@ Begin
  if HexToDWordCheck(BAddrS,BAddr)=FALSE then begin AError:='Cannot convert address part to integer'; break; end;
  if HexToDWordCheck(BSizeS,BSize)=FALSE then begin AError:='Cannot convert size part to integer'; break; end;
  BDataBin:=StrHexToBin(BDataS);
- if Length(BDataBin)<>BSize then begin AError:='Invalid data size'; break; end;
+ if Length(BDataBin)<>BSize then begin AError:='Invalid data size'; break;
+  end;
  if BTypeS='00' then
   begin
   BWrAddr:=AHexOffset+BAddr;
@@ -190,9 +193,12 @@ Var
   BChecksum : byte;
   BData     : byte;
   BByteCnt  : Cardinal;
+  BOffset   : Cardinal;
   BDummyS   : string;
+  BWrOffset : boolean;
 Begin
  BAddrThis:=ABaseAddr; BAddrPrev:=BAddrThis;
+ BWrOffset:=(BAddrThis and $FFFF0000)<>0;
  BDataIdx:=0; BByteCnt:=0;
  BCheckSum:=$00;
  BDummyS:='';
@@ -206,9 +212,15 @@ Begin
   inc(BAddrThis);
   if (BByteCnt>=16) or ((BAddrThis mod 16)=0) then
    begin
-   BCheckSum:=BCheckSum+BByteCnt+(BAddrPrev shr 8)+(BAddrPrev and $FF);
+   if BWrOffset then
+    begin
+    BOffset:=(BAddrPrev and $FFFF0000) shr 4;
+    AHex.Append(':03000002'+IntToHex(BOffset,6)+'00');
+    end;
+   BCheckSum:=BCheckSum+BByteCnt+((BAddrPrev shr 8) and $FF)+(BAddrPrev and $FF);
    BCheckSum:=(BCheckSum xor $FF)+$01;
-   AHex.Append(':'+IntToHex(BByteCnt,2)+IntToHex(BAddrPrev,4)+'00'+BDummyS+IntToHex(BCheckSum,2));
+   AHex.Append(':'+IntToHex(BByteCnt,2)+IntToHex(BAddrPrev and $FFFF,4)+'00'+BDummyS+IntToHex(BCheckSum,2));
+   BWrOffset:=(BAddrThis and $FFFF0000)<>(BAddrPrev and $FFFF0000); // Write offset (code 02)
    BCheckSum:=$00; BDummyS:=''; BAddrPrev:=BAddrThis;
    BByteCnt:=0;
    end;
@@ -268,6 +280,35 @@ Begin
   AMem.Append(BDataS);
   inc(BRowIdx);
   end;
+End;
+
+// Returns FALSE if not Efinix HEX. Otherwise see the error code
+Function TryParseEfinixHex ( AFile : TStringList; Out ADataBin : string; Out AErrorS : string ) : boolean;
+Var
+  BLineIdx  : Integer;
+  BDataS    : string;
+  BDataB    : byte;
+Begin
+ Result:=FALSE;
+ repeat
+ ADataBin:=''; AErrorS:='';
+ BLineIdx:=0;
+ while BLineIdx<AFile.Count do
+  begin
+  BDataS:=AFile.Strings[BLineIdx]; DelFirstLastSpace(BDataS);
+  if BDataS<>'' then
+   begin
+   if Result=FALSE then // First non-empty line
+    begin
+    if Length(BDataS)<>2 then break;
+    Result:=TRUE;
+    end;
+   if HexToByteCheck(BDataS,BDataB)=FALSE then begin AErrorS:='Conversion error in line '+IntToStr(BLineIdx+1)+' of Efinix HEX file'; break; end;
+   ADataBin:=ADataBin+Chr(BDataB);
+   end;
+  inc(BLineIdx);
+  end;
+ until TRUE;
 End;
 
 end.

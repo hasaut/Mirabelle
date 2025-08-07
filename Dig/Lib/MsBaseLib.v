@@ -97,6 +97,15 @@ module MsDec5x32a ( input wire [4:0] ADataI, output wire [31:0] ADataO );
  assign ADataO = BMaskD;
 endmodule
 
+module MsDec6x64a ( input wire [5:0] ADataI, output wire [63:0] ADataO );
+ wire [ 3:0] BMaskA = {{ 2{ADataI[1]}}, { 2{~ADataI[1]}}} & {2{ADataI[0], ~ADataI[0]}};
+ wire [ 7:0] BMaskB = {{ 4{ADataI[2]}}, { 4{~ADataI[2]}}} & {2{BMaskA}};
+ wire [15:0] BMaskC = {{ 8{ADataI[3]}}, { 8{~ADataI[3]}}} & {2{BMaskB}};
+ wire [31:0] BMaskD = {{16{ADataI[4]}}, {16{~ADataI[4]}}} & {2{BMaskC}};
+ wire [63:0] BMaskE = {{32{ADataI[5]}}, {32{~ADataI[5]}}} & {2{BMaskD}};
+ assign ADataO = BMaskE;
+endmodule
+
 module MsEnc4x2a ( input wire [3:0] ADataI, output wire [1:0] ADataO );
  assign ADataO =
   {
@@ -531,7 +540,23 @@ module MsOrVectL #(parameter CVectLen=3) ( input wire [CVectLen-1:0] ADataI, out
   BDataO[0]=ADataI[0];
   for (BIndex=1; BIndex<CVectLen; BIndex=BIndex+1)
    begin
-   BDataO[BIndex]=ADataI[BIndex]|BDataO[BIndex-1];
+   BDataO[BIndex]=ADataI[BIndex] | BDataO[BIndex-1];
+   end
+  end
+
+ assign ADataO = BDataO;
+endmodule
+
+module MsOrVectR #(parameter CVectLen=3) ( input wire [CVectLen-1:0] ADataI, output wire [CVectLen-1:0] ADataO );
+ integer BIndex;
+ reg [CVectLen-1:0] BDataO;
+
+ always @*
+  begin
+  BDataO[CVectLen-1]=ADataI[CVectLen-1];
+  for (BIndex=CVectLen-2; BIndex>=0; BIndex=BIndex-1)
+   begin
+   BDataO[BIndex]=ADataI[BIndex] | BDataO[BIndex+1];
    end
   end
 

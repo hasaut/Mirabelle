@@ -27,7 +27,7 @@ module MssdCmdDec
  (
   input wire [47:0] AQueTop, input wire [23:1] AIpThis, input wire AUseThisCpu,
   // CmdLen
-  output  [1:0] ACmdLen,
+  output wire [1:0] ACmdLen,
   // VLIW
   output wire [3:0] ACond, output wire ALoadEipImm, // load IP by a special BusP (usually constant directly)
   output wire [1:0] ATrap,
@@ -140,7 +140,7 @@ module MssdCmdDec
  assign MCmdIs[IIsARUS] = (AQueTop[15: 9]==7'b1111111);
 
  assign ACmdLen =
-   ((|(BCmdIs & 24'h7CE6D8)) ? 2'h1 : 2'h0) |
+   ((|(BCmdIs & 24'h7CF6D8)) ? 2'h1 : 2'h0) |
    ((|(BCmdIs & 24'h830900)) ? {1'b1, LConstLenX} : 2'h0) |
    ((|(BCmdIs & 24'h000004)) ? {1'b1, LConstLenY} : 2'h0) |
    ((|(BCmdIs & 24'h001000)) ? {1'b1, AQueTop[9]} : 2'h0) | // REM C

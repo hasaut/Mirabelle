@@ -4,10 +4,10 @@
  */
 
 // Register A is sent first, then B and so on. StateWord at the end
-module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5)
+module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5, CHwVers=32'h0)
  (
   input wire AClkH, AResetHN, AClkHEn,
-  input wire ASync1M,
+  input wire ASync1M, input wire AClkStopAdc,
   input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
   input wire [7:0] ADbioAddr, input wire [63:0] ADbioMosi, output wire [63:0] ADbioMiso, input wire [3:0] ADbioMosiIdx, input wire [3:0] ADbioMisoIdx, input wire ADbioMosi1st, input wire ADbioMiso1st, input wire ADbioDataLenNZ, output wire ADbioIdxReset,
   output wire ADbgExecEn, output wire ADbgResetS, output wire ADbgClkHEn, output wire ADbgStep,
@@ -86,7 +86,7 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8, CMcuType=8'h08, CRegC
 
  wire [31:0] BIoAccess;
 
- IoIntf2s #(.CAddrBase(CAddrBase), .CAddrUsed(32'h000100C9)) UIntf
+ IoIntf2s #(.CAddrBase(CAddrBase), .CAddrUsed(32'h000300C9)) UIntf
   (
    .AIoAddr(AIoAddr), .AIoWrSize(AIoWrSize), .AIoRdSize(AIoRdSize),
    .AIoAccess(BIoAccess),
@@ -97,6 +97,7 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8, CMcuType=8'h08, CRegC
  assign AIoMiso =
   (BIoAccess[IoSizeB+IoOperR+0] ? {32'h0, 16'h0, 8'h0, 4'h0, 1'b0, 1'b0, BTtySendHasSpace, 1'b0} : 64'h0) |
   (BIoAccess[IoSizeD+IoOperR+0] ? {32'h0, CBrkCnt[7:0], CBrdVers, CCoreCnt[7:0], CMcuType} : 64'h0) |
+  (BIoAccess[IoSizeD+IoOperR+1] ? {32'h0, CHwVers} : 64'h0) |
   (BIoAccess[IoSizeB+IoOperR+3] ? {32'h0, 16'h0, 8'h0, 4'h0, FStartupI} : 64'h0);
 
  assign BStartupI = AStartupI;
@@ -104,12 +105,12 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8, CMcuType=8'h08, CRegC
  // Terminal
  wire [7:0] BTtySendBoei; // Send Buf_Out_Ext_In
  wire BTtySendFifoRd;
- MsFifo256b UTtySendFifo
+ MsFifoMx #(.CAddrLen(8), .CDataLen(8)) UTtySendFifo
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
    .ADataI(AIoMosi[7:0]), .AWrEn(BIoAccess[IoSizeB+IoOperW+2]),
    .ADataO(BTtySendBoei), .ARdEn(BTtySendFifoRd),
-   .AHasData(BTtySendHasData), .AHasSpace(BTtySendHasSpace), .ADataSize(BTtySendSize)
+   .AClr(1'b0), .AHasData(BTtySendHasData), .AHasSpace(BTtySendHasSpace), .ADataSize(BTtySendSize)
   );
 
  // Common
@@ -194,7 +195,7 @@ module MsTestBU #(parameter CAddrBase=16'h0000, CBrkCnt=8, CMcuType=8'h08, CRegC
  assign BTEndList = ATEndList | (BCpuStatRd ? CCoreNil : FTEndList);
 
  // Log timer
- assign BLogTimer = FDbgResetS ? 40'h0 : FLogTimer + {39'h0, FDbgExecEn & ASync1M};
+ assign BLogTimer = FDbgResetS ? 40'h0 : FLogTimer + {39'h0, FDbgExecEn & ASync1M & ~AClkStopAdc};
 
  assign {ADbgExecEn, ADbgResetS, ADbgClkHEn} = {FDbgExecEn & ~BIsStopNotConf, FDbgResetS, FDbgClkHEn};
  assign ADbgStep = FDbgStep;
@@ -226,9 +227,52 @@ module MsBrkCmp #(parameter CBrkCnt=9) ( input wire [31:0] ABrkIp, input wire [C
  assign AIsBreak = |BBreakList;
 endmodule
 
-module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CMemCodeBase=32'h0000, CMemCodeSize=32'h0000)
+module SpiFsmCpu
  (
   input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] ABaudRate,
+  input wire [7:0] AFsmMosi, output wire [7:0] AFsmMiso, input wire AFsmSend, output wire AFsmBusy, output wire AFsmRecv,
+  input wire ASpiMiso, output wire ASpiMosi, output wire ASpiSck
+ );
+
+ wire [7:0] FDataS, BDataS;
+ wire [3:0] FHalfBitIdx, BHalfBitIdx;
+ wire FActive, BActive;
+ wire FFsmRecv, BFsmRecv;
+ wire [7:0] FBaudDiv, BBaudDiv;
+
+ MsDffList #(.CRegLen(8+4+1+1+8)) ULocalVars
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI({BDataS, BHalfBitIdx, BActive, BFsmRecv, BBaudDiv}),
+   .ADataO({FDataS, FHalfBitIdx, FActive, FFsmRecv, FBaudDiv})
+  );
+
+ wire BHalfBitIdxE = &FHalfBitIdx;
+ wire BBaudDivNZ   = |FBaudDiv;
+ wire BBitShift    = FActive & FHalfBitIdx[0] & ~BBaudDivNZ;
+
+ assign BDataS = AFsmSend ? AFsmMosi : (BBitShift ? {FDataS[6:0], ASpiMiso} : FDataS);
+ assign BHalfBitIdx = AFsmSend ? 4'h0 : FHalfBitIdx + {3'h0, FActive & ~BBaudDivNZ};
+ assign BBaudDiv = (AFsmSend | (FActive & ~BBaudDivNZ & ~BHalfBitIdxE)) ? ABaudRate : FBaudDiv - {7'h0, BBaudDivNZ};
+
+ assign BFsmRecv = FActive & BHalfBitIdxE & ~BBaudDivNZ;
+ assign BActive = AFsmSend | (FActive & ~BFsmRecv);
+
+ assign AFsmBusy = FActive;
+ assign AFsmRecv = FFsmRecv;
+ assign AFsmMiso = FDataS;
+
+ assign ASpiMosi = FDataS[7];
+ assign ASpiSck = FHalfBitIdx[0];
+
+endmodule
+
+
+module MsTestLdr #(parameter CMemCodeBase=32'h0000, CMemCodeSize=32'h0000)
+ (
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] AProgBaudRate,
   input wire [7:0] ADbioAddr, input wire [63:0] ADbioMosi, output wire [63:0] ADbioMiso, input wire [3:0] ADbioMosiIdx, ADbioMisoIdx, input wire ADbioMosi1st, ADbioMiso1st, input wire [15:0] ADbioDataLen, input wire ADbioDataLenNZ, output wire ADbioIdxReset,
   output wire [7:0] ADbioSbData, output wire ADbioSbNow, // Data to be sent back immediately
   output wire AMemAccess, output wire [31:3] AMemAddr, input wire [63:0] AMemMiso, output wire [63:0] AMemMosi, output wire AMemWrEn,
@@ -403,9 +447,10 @@ module MsTestLdr #(parameter CBaudLen=3, CBaudDiv=3'h7, CMemCodeBase=32'h0000, C
  assign BDelayCnt = BDelayCntSet ? BDelayCntNext : FDelayCnt-{7'h0, BDelayCntNZ};
 
  // Submodules
- SpiFsmMS #(.CBaudLen(CBaudLen), .CBaudRate(CBaudDiv)) USpiFsm
+ SpiFsmCpu USpiFsm
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ABaudRate(AProgBaudRate),
    .AFsmMosi(BSpiMosi), .AFsmMiso(BSpiMiso), .AFsmSend(BSpiSend), .AFsmBusy(BSpiBusy), .AFsmRecv(BSpiRecv),
    .ASpiMiso(ASpiMiso), .ASpiMosi(ASpiMosi), .ASpiSck(ASpiSck)
   );

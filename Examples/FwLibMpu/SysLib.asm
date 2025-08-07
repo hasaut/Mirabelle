@@ -13,6 +13,7 @@ Public DbgSendByte
 Public DbgSendHexT
 Public SysStop
 Public PinDbgSet
+Public Bit4ToHexA
 
 Public mtrunc
 

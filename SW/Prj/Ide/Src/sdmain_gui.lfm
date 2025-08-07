@@ -7,9 +7,9 @@ object SdMainForm: TSdMainForm
   ClientHeight = 442
   ClientWidth = 745
   Menu = MainMenu1
+  LCLVersion = '4.99.0.0'
   OnClose = FormClose
   OnShow = FormShow
-  LCLVersion = '3.2.0.0'
   object PnlTop: TPanel
     Left = 0
     Height = 19

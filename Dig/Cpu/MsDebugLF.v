@@ -1,6 +1,6 @@
 // FTDI version of MsDebug (almost completely copy-paste of UART version)
 
-module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5, CBrkCnt=8, CProgBaudLen=3, CProgBaudDiv=3'h7, CMemCodeBase=32'h0000, CMemCodeSize=32'h0000, CProgBootOffs=32'h300000)
+module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCoreCnt=2, CBrdVers=8'h5, CHwVers=32'h0, CBrkCnt=8, CProgBaudLen=3, CProgBaudDiv=3'h7, CMemCodeBase=32'h0000, CMemCodeSize=32'h0000, CProgBootOffs=32'h300000)
  (
   input wire AClkH, AResetHN, AClkHEn,
   input wire [15:0] AIoAddr, output wire [63:0] AIoMiso, input wire [63:0] AIoMosi, input wire [3:0] AIoWrSize, input wire [3:0] AIoRdSize, output wire AIoAddrAck, output wire AIoAddrErr,
@@ -11,6 +11,7 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCore
   // ADC
   input wire AAdcAttReq, output wire AAdcAttAck, input wire [15:0] AAdcDataLen,
   input wire [63:0] AAdcMiso, output wire [63:0] AAdcMosi, output wire AAdcWrEn, AAdcRdEn,
+  input wire AClkStopAdc,
   // Mem
   output wire AMemAccess, output wire [31:3] AMemAddr, input wire [63:0] AMemMiso, output wire [63:0] AMemMosi, output wire [1:0] AMemWrRdEn,
   // Dbg bridge
@@ -92,10 +93,10 @@ module MsDebugF #(parameter CAddrBase=16'h0000, CMcuType=8'h08, CRegCnt=8, CCore
  wire BMemAccessU, BMemAccessL;
 
  wire [7:0] BTestBU;
- MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CRegCnt(CRegCnt), .CCoreCnt(CCoreCnt), .CBrdVers(CBrdVers)) UTestU
+ MsTestBU #(.CAddrBase(CAddrBase), .CBrkCnt(CBrkCnt), .CMcuType(CMcuType), .CRegCnt(CRegCnt), .CCoreCnt(CCoreCnt), .CBrdVers(CBrdVers), .CHwVers(CHwVers)) UTestU
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .ASync1M(ASync1M),
+   .ASync1M(ASync1M), .AClkStopAdc(AClkStopAdc),
    .AIoAddr(AIoAddr), .AIoMiso(AIoMiso), .AIoMosi(AIoMosi), .AIoWrSize(AIoWrSize),  .AIoRdSize(AIoRdSize), .AIoAddrAck(AIoAddrAck), .AIoAddrErr(AIoAddrErr),
    .ADbioAddr(BDbioAddr[7:0]), .ADbioMosi(BDbioMosi), .ADbioMiso(BDbioMisoU), .ADbioMosiIdx(BDbioTestUCS ? BDbioMosiIdx : 4'h0), .ADbioMisoIdx(BDbioTestUCS ? BDbioMisoIdx : 4'h0), .ADbioMosi1st(BDbioTestUCS & BDbioMosi1st), .ADbioMiso1st(BDbioTestUCS & BDbioMiso1st), .ADbioDataLenNZ(BDbioTestUCS & BDbioDataLenNZ), .ADbioIdxReset(BDbioIdxResetU),
    .ADbgExecEn(ADbgExecEn), .ADbgResetS(ADbgResetS), .ADbgClkHEn(ADbgClkHEn), .ADbgStep(ADbgStep),

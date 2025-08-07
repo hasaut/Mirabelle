@@ -165,46 +165,52 @@ module MsFifoMx #(parameter CAddrLen=8, CDataLen=16)
  //wire BAddrLE = FWrIdx[7:0]==FRdIdx[7:0];
  //wire BAddrHE = BAddrLE & (FWrIdx[8]==FRdIdx[8]);
 
- assign BHasData = BDataSizeNZ & ~ARdEn;
+ assign BHasData = BDataSizeNZ & ~ARdEn; // Avoid Comb-loop and enables Memory address feed from "FRdIdx" (and not "BRdIdx")
 
  assign AHasData  = FHasData;
  assign AHasSpace =  ~BDataSize[CAddrLen];
  assign ADataSize = {{(15-CAddrLen){1'b0}}, BDataSize};
 endmodule
 
-module MsFifo4x #(parameter CDataLen = 8)
+// Different from "Mx" in a way how HasData is reported, also "BRdIdx" (and not "FRdIdx") is used to address memory
+module MsFifoMxA #(parameter CAddrLen=8, CDataLen=16)
  (
   input wire AClkH, AResetHN, AClkHEn,
-  input wire [(CDataLen-1):0] ADataI, input wire AWrEn,
-  output wire [(CDataLen-1):0] ADataO, input wire ARdEn,
+  input wire [CDataLen-1:0] ADataI, input wire AWrEn,
+  output wire [CDataLen-1:0] ADataO, input wire ARdEn,
   input wire AClr, output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
  );
 
- wire [(CDataLen*4-1):0] FData, BData;
- wire [2:0] FWrIdx, BWrIdx;
- wire [2:0] FRdIdx, BRdIdx;
+ localparam CAddrNil = {(CAddrLen+1){1'b0}};
 
- MsDffList #(.CRegLen(CDataLen*4+3+3)) ULocalVars
+ wire [CAddrLen:0] FWrIdx, BWrIdx;
+ wire [CAddrLen:0] FRdIdx, BRdIdx;
+
+ MsDffList #(.CRegLen(CAddrLen+1+CAddrLen+1)) ULocalVars
   (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BData, BWrIdx, BRdIdx}),
-   .ADataO({FData, FWrIdx, FRdIdx})
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI({BWrIdx, BRdIdx}),
+   .ADataO({FWrIdx, FRdIdx})
   );
 
- wire [3:0] BWrIdxDec; MsDecAny #(.CAddrLen(2)) UWrIdxDec ( .AAddr(FWrIdx[1:0]), .ADataO(BWrIdxDec) );
- wire [(CDataLen*4-1):0] BWrMux; MsSpreadVect #(.CVectLen(4), .CSpreadLen(CDataLen)) UWrMux ( .ADataI({4{AWrEn}} & BWrIdxDec), .ADataO(BWrMux) );
- MsMux1b UData[(CDataLen*4-1):0] ( .ADataA(FData), .ADataB({4{ADataI}}), .ADataO(BData), .AAddr(BWrMux) );
+ RamSDP #(.CAddrLen(CAddrLen), .CDataLen(CDataLen)) URam
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .AAddrWr(FWrIdx[CAddrLen-1:0]), .AAddrRd(BRdIdx[CAddrLen-1:0]), .AMosi(ADataI), .AMiso(ADataO), .AWrEn(AWrEn)
+  );
 
- assign BWrIdx = AClr ? 3'h0 : FWrIdx + {2'h0, AWrEn};
- assign BRdIdx = AClr ? 3'h0 : FRdIdx + {2'h0, ARdEn};
+ assign BWrIdx = AClr ? CAddrNil : FWrIdx + {{CAddrLen{1'b0}}, AWrEn};
+ assign BRdIdx = AClr ? CAddrNil : FRdIdx + {{CAddrLen{1'b0}}, ARdEn};
 
- wire [2:0] BDataSize = FWrIdx - FRdIdx;
+ wire [CAddrLen:0] BDataSize = FWrIdx - FRdIdx;
+ wire BDataSizeNZ = |BDataSize;
 
- MsMuxAny #(.CLenFinal(CDataLen), .CAddrLen(2)) UDataO ( .ADataI(FData), .AAddr(FRdIdx[1:0]), .ADataO(ADataO) );
+ //wire BAddrLE = FWrIdx[7:0]==FRdIdx[7:0];
+ //wire BAddrHE = BAddrLE & (FWrIdx[8]==FRdIdx[8]);
 
- assign AHasData = ~(FWrIdx[2:0]==FRdIdx[2:0]);
- assign AHasSpace = (FWrIdx[2:0]==FRdIdx[2:0]) | (FWrIdx[1:0]!=FRdIdx[1:0]);
- assign ADataSize = {13'h0, BDataSize};
+ assign AHasData  = BDataSizeNZ;
+ assign AHasSpace = ~BDataSize[CAddrLen];
+ assign ADataSize = {{(15-CAddrLen){1'b0}}, BDataSize};
 endmodule
 
 module MsFifoDff #(parameter CAddrLen = 2, CDataLen = 8)
@@ -242,131 +248,6 @@ module MsFifoDff #(parameter CAddrLen = 2, CDataLen = 8)
  assign AHasData = ~(FWrIdx==FRdIdx);
  assign AHasSpace = (FWrIdx==FRdIdx) | (FWrIdx[CAddrLen-1:0]!=FRdIdx[CAddrLen-1:0]);
  assign ADataSize = {{(15-CAddrLen){1'b0}}, BDataSize};
-endmodule
-
-module MsFifo256b
- (
-  input wire AClkH, AResetHN, AClkHEn,
-  input wire [7:0] ADataI, input wire AWrEn,
-  output wire [7:0] ADataO, input wire ARdEn,
-  output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
- );
-
- wire [8:0] FWrIdx, BWrIdx;
- wire [8:0] FRdIdx, BRdIdx;
- wire FHasData, BHasData;
-
-
- MsDffList #(.CRegLen(9+9+1)) ULocalVars
-  (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BWrIdx, BRdIdx, BHasData}),
-   .ADataO({FWrIdx, FRdIdx, FHasData})
-  );
-
- RamSDP #(.CAddrLen(8), .CDataLen(8)) URam
-  (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .AAddrWr(FWrIdx[7:0]), .AAddrRd(FRdIdx[7:0]), .AMosi(ADataI), .AMiso(ADataO), .AWrEn(AWrEn)
-  );
-
- assign BWrIdx = FWrIdx + {8'h0, AWrEn};
- assign BRdIdx = FRdIdx + {8'h0, ARdEn};
-
- wire [8:0] BDataSize = FWrIdx - FRdIdx;
- wire BDataSizeNZ = |BDataSize;
-
- //wire BAddrLE = FWrIdx[7:0]==FRdIdx[7:0];
- //wire BAddrHE = BAddrLE & (FWrIdx[8]==FRdIdx[8]);
-
- assign BHasData = BDataSizeNZ & ~ARdEn;
-
- assign AHasData  = FHasData;
- assign AHasSpace =  ~BDataSize[8];
- assign ADataSize = {7'h0, BDataSize};
-endmodule
-
-module MsFifo256x #(parameter CDataLen=16)
- (
-  input wire AClkH, AResetHN, AClkHEn,
-  input wire [CDataLen-1:0] ADataI, input wire AWrEn,
-  output wire [CDataLen-1:0] ADataO, input wire ARdEn,
-  output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
- );
-
- wire [8:0] FWrIdx, BWrIdx;
- wire [8:0] FRdIdx, BRdIdx;
- wire FHasData, BHasData;
-
-
- MsDffList #(.CRegLen(9+9+1)) ULocalVars
-  (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BWrIdx, BRdIdx, BHasData}),
-   .ADataO({FWrIdx, FRdIdx, FHasData})
-  );
-
- RamSDP #(.CAddrLen(8), .CDataLen(CDataLen)) URam
-  (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .AAddrWr(FWrIdx[7:0]), .AAddrRd(FRdIdx[7:0]), .AMosi(ADataI), .AMiso(ADataO), .AWrEn(AWrEn)
-  );
-
- assign BWrIdx = FWrIdx + {8'h0, AWrEn};
- assign BRdIdx = FRdIdx + {8'h0, ARdEn};
-
- wire [8:0] BDataSize = FWrIdx - FRdIdx;
- wire BDataSizeNZ = |BDataSize;
-
- //wire BAddrLE = FWrIdx[7:0]==FRdIdx[7:0];
- //wire BAddrHE = BAddrLE & (FWrIdx[8]==FRdIdx[8]);
-
- assign BHasData = BDataSizeNZ & ~ARdEn;
-
- assign AHasData  = FHasData;
- assign AHasSpace =  ~BDataSize[8];
- assign ADataSize = {7'h0, BDataSize};
-endmodule
-
-module MsFifo1K
- (
-  input wire AClkH, AResetHN, AClkHEn,
-  input wire [7:0] ADataI, input wire AWrEn,
-  output wire [7:0] ADataO, input wire ARdEn,
-  output wire AHasData, output wire AHasSpace, output wire [15:0] ADataSize
- );
-
- wire [10:0] FWrIdx, BWrIdx;
- wire [10:0] FRdIdx, BRdIdx;
- wire FHasData, BHasData;
-
- MsDffList #(.CRegLen(11+11+1)) ULocalVars
-  (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BWrIdx, BRdIdx, BHasData}),
-   .ADataO({FWrIdx, FRdIdx, FHasData})
-  );
-
- RamSDP #(.CAddrLen(10), .CDataLen(8)) URam
-  (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .AAddrWr(FWrIdx[9:0]), .AAddrRd(FRdIdx[9:0]), .AMosi(ADataI), .AMiso(ADataO), .AWrEn(AWrEn)
-  );
-
- assign BWrIdx = FWrIdx + {10'h0, AWrEn};
- assign BRdIdx = FRdIdx + {10'h0, ARdEn};
-
- wire [10:0] BDataSize = FWrIdx - FRdIdx;
- wire BDataSizeNZ = |BDataSize;
-
- //wire BAddrLE = FWrIdx[9:0]==FRdIdx[9:0];
- //wire BAddrHE = BAddrLE & (FWrIdx[10]==FRdIdx[10]);
-
- assign BHasData = BDataSizeNZ & ~ARdEn;
-
- assign AHasData  = FHasData;
- assign AHasSpace =  ~BDataSize[10];
- assign ADataSize = {5'h0, BDataSize};
 endmodule
 
 module PerifFifoMem #(parameter CAddrLen = 3)
@@ -441,106 +322,143 @@ module PerifFifoAddrInc #(parameter CAddrLen=5) ( input wire [CAddrLen-1:0] AAdd
   };
 endmodule
 
-module PerifFifoSend #(parameter CAddrLen = 5)
+module FifoBufSendQ
  (
   input wire AClkH, AResetHN, AClkHEn,
-  input wire AResetSN,
   input wire [63:0] ADataI, input wire [3:0] AWrSize,
   output wire [7:0] ADataO, input wire ARdEn,
-  output wire AHasData, output wire AHasSpace, output wire [15:0] AFreeSize
+  input wire AClr, output wire AHasData, output wire [3:0] AFreeSize
  );
 
  // Process
- wire [CAddrLen:0] FWrIdx, BWrIdx;
- wire [CAddrLen:0] FRdIdx, BRdIdx;
- wire FHasData, BHasData;
+ wire [3:0] FWrIdx, BWrIdx;
+ wire [3:0] FRdIdx, BRdIdx;
+ wire [63:0] FBuf, BBuf;
 
- MsDffList #(.CRegLen(1+CAddrLen+1+CAddrLen+1)) ULocalVars
-  (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BWrIdx, BRdIdx, BHasData}),
-   .ADataO({FWrIdx, FRdIdx, FHasData})
-  );
-
- wire [7:0] BWrMask; IoSizeToMask UWrMask ( .ASize(AWrSize), .AMask(BWrMask) );
- wire [63:0] BDataRol; wire [7:0] BMaskRol; PerifDataRol UDataRol ( .ADataI(ADataI), .AMaskI(BWrMask), .AShCnt(FWrIdx[2:0]), .ADataO(BDataRol), .AMaskO(BMaskRol) );
- wire [8*(CAddrLen-3)-1:0] BWrAddr; PerifFifoAddrInc #(.CAddrLen(CAddrLen)) UWrAddr ( .AAddrI(FWrIdx[CAddrLen-1:0]), .AMask(BWrMask), .AAddrO(BWrAddr) );
-
- wire [63:0] BDataMem;
- PerifFifoMem #(.CAddrLen(CAddrLen-3)) UFifoMem[7:0]
+ MsDffList #(.CRegLen(4+4+64)) ULocalVars
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .AAddrI(BWrAddr), .ADataI(BDataRol), .AWrEn(BMaskRol),
-   .AAddrO(FRdIdx[CAddrLen-1:3]), .ADataO(BDataMem)
+   .ADataI({BWrIdx, BRdIdx, BBuf}),
+   .ADataO({FWrIdx, FRdIdx, FBuf})
   );
 
- wire [63:0] BDataRor; PerifDataRor UDataRor ( .ADataI(BDataMem), .AShCnt(FRdIdx[2:0]), .ADataO(BDataRor) );
+ wire [7:0] BWrMaskA; IoSizeToMask UWrMaskA ( .ASize(AWrSize), .AMask(BWrMaskA) );
+ wire [63:0] BDataRol; wire [7:0] BMaskRol; PerifDataRol UDataRol ( .ADataI(ADataI), .AMaskI(BWrMaskA), .AShCnt(FWrIdx[2:0]), .ADataO(BDataRol), .AMaskO(BMaskRol) );
+ wire [63:0] BWrMask; MsSpreadVect #(.CVectLen(8), .CSpreadLen(8)) UWrMask ( .ADataI(BMaskRol), .ADataO(BWrMask) );
 
- assign BWrIdx = AResetSN ? FWrIdx + {{(CAddrLen-3){1'b0}}, AWrSize} : {(CAddrLen+1){1'b0}};
- assign BRdIdx = AResetSN ? FRdIdx + {{CAddrLen{1'b0}}, ARdEn} : {(CAddrLen+1){1'b0}};
+ assign BBuf = (BWrMask & BDataRol) | (~BWrMask & FBuf);
 
- wire [CAddrLen:0] BDataSize = FWrIdx - FRdIdx;
- wire BDataSizeNZ = |BDataSize;
+ wire [7:0] BRdMask; MsDec3x8a URdMask ( .ADataI(FRdIdx[2:0]), .ADataO(BRdMask) );
+ MsSelectRow #( .CRowCnt(8), .CColCnt(8) ) UDataO ( .ADataI(FBuf), .AMask(BRdMask), .ADataO(ADataO) );
 
- assign ADataO = BDataRor[7:0];
+ assign BWrIdx = AClr ? 4'h0 : FWrIdx+AWrSize;
+ assign BRdIdx = AClr ? 4'h0 : FRdIdx+{3'h0, ARdEn};
 
- assign BHasData = BDataSizeNZ & ~ARdEn;
+ wire [3:0] BDataSize = FWrIdx-FRdIdx;
+ assign AHasData = |BDataSize;
+ assign AFreeSize = 4'h8-BDataSize;
+endmodule
 
- assign AHasData  = FHasData;
- assign AHasSpace =  ~BDataSize[CAddrLen];
- assign AFreeSize = {{(15-CAddrLen){1'b0}}, {1'b1, {(CAddrLen-1){1'b0}}}-BDataSize};
+module FifoBufRecvQ
+ (
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [7:0] ADataI, input wire AWrEn,
+  output wire [63:0] ADataO, input wire [3:0] ARdSize,
+  input wire AClr, output wire AHasSpace, output wire [3:0] AFillSize
+ );
+
+ // Process
+ wire [3:0] FWrIdx, BWrIdx;
+ wire [3:0] FRdIdx, BRdIdx;
+ wire [63:0] FBuf, BBuf;
+
+ MsDffList #(.CRegLen(4+4+64)) ULocalVars
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI({BWrIdx, BRdIdx, BBuf}),
+   .ADataO({FWrIdx, FRdIdx, FBuf})
+  );
+
+ wire [7:0] BWrMaskA; MsDec3x8e UWrMaskA ( .ADataI(FWrIdx[2:0]), .AEn(AWrEn), .ADataO(BWrMaskA) );
+ wire [63:0] BWrMask; MsSpreadVect #(.CVectLen(8), .CSpreadLen(8)) UWrMask ( .ADataI(BWrMaskA), .ADataO(BWrMask) );
+
+ assign BBuf = (BWrMask & {8{ADataI}}) | (~BWrMask & FBuf);
+
+ wire [63:0] BDataO; PerifDataRor UDataO ( .ADataI(FBuf), .AShCnt(FRdIdx[2:0]), .ADataO(BDataO) );
+
+ wire [7:0] BRdMaskA; IoSizeToMask URdMaskA ( .ASize(ARdSize), .AMask(BRdMaskA) );
+ wire [63:0] BRdMask; MsSpreadVect #(.CVectLen(8), .CSpreadLen(8)) URdMask ( .ADataI(BRdMaskA), .ADataO(BRdMask) );
+ assign ADataO = BDataO & BRdMask;
+
+ assign BWrIdx = AClr ? 4'h0 : FWrIdx+{3'h0, AWrEn};
+ assign BRdIdx = AClr ? 4'h0 : FRdIdx+ARdSize;
+
+ wire [3:0] BDataSize = FWrIdx-FRdIdx;
+ assign AHasSpace = ~BDataSize[3];
+ assign AFillSize = BDataSize;
+endmodule
+
+module PerifFifoSend #(parameter CAddrLen = 5)
+ (
+  input wire AClkH, AResetHN, AClkHEn,
+  input wire [63:0] ADataI, input wire [3:0] AWrSize,
+  output wire [7:0] ADataO, input wire ARdEn,
+  input wire AClr, output wire AHasData, output wire [3:0] AFreeSize,
+  output wire [3:0] ATest
+ );
+
+ wire [7:0] BDataBofi; wire BProcBofi; // BOFI = Buf-Out-Fifo-In
+ wire BBufHasData, BFifoHasSpace;
+ FifoBufSendQ UBufQ
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI(ADataI), .AWrSize(AWrSize),
+   .ADataO(BDataBofi), .ARdEn(BProcBofi),
+   .AClr(AClr), .AHasData(BBufHasData), .AFreeSize(AFreeSize)
+  );
+
+ MsFifoMx #(.CAddrLen(CAddrLen), .CDataLen(8) ) UFifo
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI(BDataBofi), .AWrEn(BProcBofi),
+   .ADataO(ADataO), .ARdEn(ARdEn),
+   .AClr(AClr), .AHasData(AHasData), .AHasSpace(BFifoHasSpace), .ADataSize()
+  );
+
+ assign BProcBofi = BBufHasData & BFifoHasSpace;
+ assign ATest = {|AWrSize, ARdEn, AFreeSize[3], BProcBofi};
 endmodule
 
 module PerifFifoRecv #(parameter CAddrLen = 5)
  (
   input wire AClkH, AResetHN, AClkHEn,
-  input wire AResetSN,
   input wire [7:0] ADataI, input wire AWrEn,
   output wire [63:0] ADataO, input wire [3:0] ARdSize,
-  output wire AHasData, output wire AHasSpace, output wire [15:0] AFillSize
+  input wire AClr, output wire AHasSpace, output wire [3:0] AFillSize,
+  output wire [3:0] ATest
  );
 
- // Process
- wire [CAddrLen:0] FWrIdx, BWrIdx;
- wire [CAddrLen:0] FRdIdx, BRdIdx;
- wire FHasData, BHasData;
-
- MsDffList #(.CRegLen(1+CAddrLen+1+CAddrLen+1)) ULocalVars
-  (
-   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn), 
-   .ADataI({BWrIdx, BRdIdx, BHasData}),
-   .ADataO({FWrIdx, FRdIdx, FHasData})
-  );
-
- wire [63:0] BDataRol; wire [7:0] BMaskRol; PerifDataRol UDataRol ( .ADataI({56'h0, ADataI}), .AMaskI(8'h1), .AShCnt(FWrIdx[2:0]), .ADataO(BDataRol), .AMaskO(BMaskRol) );
-
- wire [7:0] BRdMask; IoSizeToMask URdMask ( .ASize(ARdSize), .AMask(BRdMask) );
- wire [8*(CAddrLen-3)-1:0] BRdAddr; PerifFifoAddrInc #(.CAddrLen(CAddrLen)) UWrAddr ( .AAddrI(FRdIdx[CAddrLen-1:0]), .AMask(BRdMask), .AAddrO(BRdAddr) );
-
- wire [63:0] BDataMem;
- PerifFifoMem #(.CAddrLen(CAddrLen-3)) UFifoMem[7:0]
+ wire [7:0] BDataBifo; wire BProcBifo; // BIFO = Buf-In-Fifo-Out
+ wire BFifoHasData, BBufHasSpace;
+ MsFifoMx #(.CAddrLen(CAddrLen), .CDataLen(8) ) UFifo
   (
    .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
-   .AAddrI(FWrIdx[CAddrLen-1:3]), .ADataI(BDataRol), .AWrEn(BMaskRol),
-   .AAddrO(BRdAddr), .ADataO(BDataMem)
+   .ADataI(ADataI), .AWrEn(AWrEn),
+   .ADataO(BDataBifo), .ARdEn(BProcBifo),
+   .AClr(AClr), .AHasData(BFifoHasData), .AHasSpace(AHasSpace), .ADataSize()
   );
 
- wire [63:0] BDataRor; PerifDataRor UDataRor ( .ADataI(BDataMem), .AShCnt(FRdIdx[2:0]), .ADataO(BDataRor) );
- wire [63:0] BMaskRor; MsSpreadVect #(.CVectLen(8), .CSpreadLen(8)) UMaskRor ( .ADataI(BRdMask), .ADataO(BMaskRor) );
+ FifoBufRecvQ UBufQ
+  (
+   .AClkH(AClkH), .AResetHN(AResetHN), .AClkHEn(AClkHEn),
+   .ADataI(BDataBifo), .AWrEn(BProcBifo),
+   .ADataO(ADataO), .ARdSize(ARdSize),
+   .AClr(AClr), .AHasSpace(BBufHasSpace), .AFillSize(AFillSize)
+  );
 
- assign BWrIdx = AResetSN ? FWrIdx + {{CAddrLen{1'b0}}, AWrEn} : {(CAddrLen+1){1'b0}};
- assign BRdIdx = AResetSN ? FRdIdx + {{(CAddrLen-3){1'b0}}, ARdSize} : {(CAddrLen+1){1'b0}};
+ assign BProcBifo = BFifoHasData & BBufHasSpace;
+ assign ATest = {AWrEn, |ARdSize, AFillSize[3], BProcBifo};
 
- wire [CAddrLen:0] BDataSize = FWrIdx - FRdIdx;
- wire BDataSizeNZ = |BDataSize;
-
- assign ADataO = BDataRor & BMaskRor;
-
- assign BHasData = BDataSizeNZ;
-
- assign AHasData  = FHasData;
- assign AHasSpace =  ~BDataSize[CAddrLen];
- assign AFillSize = {{(15-CAddrLen){1'b0}}, BDataSize};
 endmodule
 
 module PerifCfgBlock #(parameter CRegLen=8, CRegCnt=6)
@@ -568,5 +486,4 @@ module PerifCfgBlock #(parameter CRegLen=8, CRegCnt=6)
 
  assign BWrIdx = AWrEn ? {FWrIdx[CRegCnt-2:0], 1'b0} : (AAnyOtherAccess ? {{(CRegCnt-1){1'b0}}, 1'b1} : FWrIdx);
 endmodule
-
 

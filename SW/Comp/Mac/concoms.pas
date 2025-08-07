@@ -5,22 +5,29 @@ unit ConComS;
 interface
 
 uses
-  Classes, SysUtils, ConComL, SynEditTypes;
+  Classes, SysUtils, ConComL;
 
-Function AbsFilename ( ABasePath, ARelName : string ) : string;
-Function RelFilename ( ABasePath, AAbsName : string ) : string;
-Function AssembleFullName ( APath, AName, AExt : string ) : string;
+Type
+  TOsIs    = (oiWin, oiLin, ioMac);
+
+Function AbsFilename ( Const ABasePath, ARelName : string ) : string;
+Function RelFilename ( Const ABasePath, AAbsName : string ) : string;
+Function AssembleFullName ( Const APath, AName, AExt : string ) : string;
 Procedure ForceCheckFileExtA ( Var AFullName : string; Const AExt : string );
-Function AddSearchAgain ( ASearchOptions : TSynSearchOptions ) : TSynSearchOptions;
+Function ReplacePathSlash ( Const APath : string ) : string;
+Procedure ReplacePathSlashVar ( Var APath : string );
 Procedure ReplaceListSlash ( AList : TStringList; Const AMask : string ); Overload;
-Procedure ReplaceListSlash ( AList : TStringList; Const AMask : string; AStartIndex : Integer ); Overload;
+//Procedure ReplaceListSlash ( AList : TStringList; Const AMask : string; AStartIndex : Integer ); Overload;
+Procedure AppendLastSlash ( Var S : string );
+
+Const
+  COsIs        = ioMac;
+  CFileSlash   = '/';
+  CForceEol    = #13;
 
 implementation
 
-Const
-  CFileSlash         = '/';
-
-Function AbsFilename ( ABasePath, ARelName : string ) : string;
+{Function AbsFilename ( Const ABasePath, ARelName : string ) : string;
 Var
   BRelName : string;
   BPath    : string;
@@ -56,9 +63,62 @@ Begin
 
  Result:=BPath+'/'+BRelName;
  until TRUE;
+End; }
+
+Function AbsFilename ( Const ABasePath, ARelName : string ) : string;
+Var
+  BName     : string;
+  BPath     : string;
+  BLen      : Integer;
+  BIndex    : Integer;
+  BPos      : Integer;
+Begin
+ repeat
+ BName:=ARelName;
+ BPath:=ABasePath;
+ DelLastSlash(BPath);
+ DelFirstSpace(BName);
+ if ExtractFileDrive(BName)<>'' then
+  begin
+  Result:=BName;
+  break;
+  end;
+ if Pos('./',BName)=1 then
+  begin
+  Delete(BName,1,2);
+  Result:=IncludeTrailingPathDelimiter(GetCurrentDir)+BName;
+  break;
+  end;
+
+ if (BName<>'') and (BName[1]='/') then begin Result:=BName; break; end;
+
+ DelFirstSlash(BName);
+ while BName<>'' do
+  begin
+  if Copy(BName,1,2)<>'..' then break;
+  Delete(BName,1,2); DelFirstSlash(BName);
+  BLen:=Length(BPath);
+  BIndex:=BLen;
+  while BIndex>0 do
+   begin
+   if BPath[BIndex]=CFileSlash then break;
+   dec(BIndex);
+   end;
+  Delete(BPath,BIndex,BLen-BIndex+1);
+  end;
+
+ Result:=BPath+CFileSlash+BName;
+
+ repeat
+ BPos:=Pos('//',Result);
+ if BPos=0 then break;
+ Delete(Result,BPos,1);
+ until FALSE;
+
+ until TRUE;
 End;
 
-Function RelFilename ( ABasePath, AAbsName : string ) : string;
+{Function RelFilename ( Const ABasePath, AAbsName : string ) : string;
 Var
   BPathPrev,
   BNamePrev,
@@ -96,14 +156,44 @@ Begin
   end;
  Result:=Result+BNamePrev;
  until TRUE;
+End;}
+
+Function RelFilename ( Const ABasePath : string; Const AAbsName : string ) : string;
+Var
+  BBasePath,
+  BPath,
+  BFilename : string;
+Begin
+ //Result:=ExtractRelativePath(ABasePath,ExtractFilePath(AAbsName))+ExtractFilename(AAbsName);
+ Result:='';
+ repeat
+ BBasePath:=IncludeTrailingPathDelimiter(ABasePath);
+ BPath:=ExtractFilePath(AAbsName);
+ BFilename:=ExtractFilename(AAbsName);
+ if BPath='' then
+  begin
+  Result:=AAbsName;
+  break;
+  end;
+ if BPath[1]<>'/' then
+  begin
+  Result:=AAbsName;
+  break;
+  end;
+ Result:=ExtractRelativePath(BBasePath,BPath)+BFilename;
+ until TRUE;
 End;
 
-Function AssembleFullName ( APath, AName, AExt : string ) : string;
+Function AssembleFullName ( Const APath, AName, AExt : string ) : string;
 Begin
- Result:=APath;
- if Result<>'' then Result:=Result+CFileSlash;
+ Result:='';
+ if APath<>'' then Result:=IncludeTrailingPathDelimiter(APath);
  Result:=Result+AName;
- if AExt<>'' then Result:=Result+'.'+AExt;
+ if AExt<>'' then
+  begin
+  if AExt[1]='.' then Result:=Result+AExt
+  else Result:=Result+'.'+AExt;
+  end;
 End;
 
 Procedure ForceCheckFileExtA ( Var AFullName : string; Const AExt : string );
@@ -120,29 +210,55 @@ Begin
  until TRUE;
 End;
 
-Function AddSearchAgain ( ASearchOptions : TSynSearchOptions ) : TSynSearchOptions;
+Function ReplacePathSlash ( Const APath : string ) : string;
+Var
+  BIndex    : Integer;
 Begin
- Result:=ASearchOptions-[ssoEntireScope]{+[ssoFindContinue]}; // Seems to be a bug for Linux
+ Result:=APath;
+ BIndex:=0;
+ while BIndex<Length(Result) do
+  begin
+  if Result[1+BIndex]='\' then Result[1+BIndex]:='/';
+  inc(BIndex);
+  end;
+End;
+
+Procedure ReplacePathSlashVar ( Var APath : string );
+Var
+  BIndex    : Integer;
+Begin
+ BIndex:=0;
+ while BIndex<Length(APath) do
+  begin
+  if APath[1+BIndex]='\' then APath[1+BIndex]:='/';
+  inc(BIndex);
+  end;
 End;
 
 Procedure ReplaceListSlash ( AList : TStringList; Const AMask : string );
 Var
   BDummyS       : string;
   BPos          : Integer;
+  BIndex        : Integer;
 Begin
- repeat
- BDummyS:=AList.Values[AMask];
- if BDummyS='' then break;
+ BIndex:=0;
+ while BIndex<AList.Count do
+  begin
+  BDummyS:=AList.Strings[BIndex];
+  if Pos(AMask,BDummyS)=1 then
+   begin
  BPos:=Pos('\',BDummyS);
  while BPos<>0 do
   begin
   BDummyS[BPos]:='/';
   BPos:=Pos('\',BDummyS);
   end;
- AList.Values[AMask]:=BDummyS;
- until TRUE;
+   AList.Strings[BIndex]:=BDummyS;
+   end;
+  inc(BIndex);
+  end;
 End;
-
+{
 Procedure ReplaceListSlash ( AList : TStringList; Const AMask : string; AStartIndex : Integer );
 Var
   BDummyS       : string;
@@ -164,6 +280,15 @@ Begin
  AList.Values[BMask]:=BDummyS;
  inc(BIndex);
  until FALSE;
+End;
+}
+Procedure AppendLastSlash ( Var S : string );
+Var
+  BLen          : Integer;
+Begin
+ BLen:=Length(S);
+ if BLen=0 then S:=S+'/'
+ else if S[BLen]<>'/' then S:=S+'/';
 End;
 
 end.
